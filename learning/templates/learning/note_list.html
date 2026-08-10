@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}Note list- Study Support{% endblock %}
+{% block title %}Note list - Study Support{% endblock %}
 
 {% block content %}
 <div class="notes-header">
     <h2>Note created</h2>
-    <a href="{% url 'note_create' %}" class="btn-create">+ Create new note</a>
+    <!-- learning:note_create -->
+    <a href="{% url 'learning:note_create' %}" class="btn-create">+ Create new note</a>
 </div>
 
 {% if notes %}
@@ -22,8 +23,8 @@
     </div>
 {% else %}
     <div class="empty-state">
-        <p>Empty.</p>
-        <a href="{% url 'note_create' %}" class="btn-submit">Create your first note</a>
+        <!-- learning:note_create -->
+        <a href="{% url 'learning:note_create' %}" class="btn-submit">Create your first note</a>
     </div>
 {% endif %}
 {% endblock %}

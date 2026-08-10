@@ -12,13 +12,16 @@
     <link rel="stylesheet" href="{% static 'learning/style.css' %}">
 </head>
 <body>
-   <header class="navbar">
+<header class="navbar">
     <div class="logo">Study Support</div>
     <nav>
-        <a href="#">Homepage</a>
+        <!-- Homepage-->
+        <a href="{% url 'learning:home' %}">Homepage</a>
+        
         <a href="{% url 'learning:note_create' %}">Take note</a>
+        
         <!-- Note list -->
-        <a href="#">My notes</a>
+        <a href="{% url 'learning:note_list' %}">My notes</a>
     </nav>
 </header>
 
