@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - Study Support{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+    <div class="login-card">
+        <h2>Welcome Back</h2>
+        <p class="login-subtitle">Please login to access your notes and exercises.</p>
+
+        <!-- Wrong password or username -->
+        {% if form.errors %}
+            <div class="alert-error">
+                Username or password is incorrect. Please try again.
+            </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="id_username">Username</label>
+                <input type="text" name="username" id="id_username" placeholder="Enter your username" required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="id_password">Password</label>
+                <input type="password" name="password" id="id_password" placeholder="Enter your password" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn-submit btn-login">Login</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Note list- Study Support{% endblock %}
+
+{% block content %}
+<div class="notes-header">
+    <h2>Note created</h2>
+    <a href="{% url 'note_create' %}" class="btn-create">+ Create new note</a>
+</div>
+
+{% if notes %}
+    <div class="note-grid">
+        {% for note in notes %}
+            <div class="note-card">
+                <p class="note-content">{{ note.content|truncatewords:20 }}</p>
+                <div class="note-footer">
+                    <small class="note-date">{{ note.created_at|date:"d/m/Y H:i" }}</small>
+                    <a href="#" class="btn-detail">Details &rarr;</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state">
+        <p>Empty.</p>
+        <a href="{% url 'note_create' %}" class="btn-submit">Create your first note</a>
+    </div>
+{% endif %}
+{% endblock %}
