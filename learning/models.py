@@ -1,3 +1,44 @@
+from django.conf import settings
 from django.db import models
-
 # Create your models here.
+class Note(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notes")
+    title = models.CharField(max_length=100)
+    subject = models.CharField(max_length=100)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.subject} - {self.title}"
+
+class Exercise(models.Model):
+    class Difficulty(models.TextChoices):
+        EASY = "Easy"
+        MEDIUM = "Medium"
+        HARD = "Hard"
+        
+    note = models.ForeignKey(Note, on_delete=models.CASCADE, related_name="exercises")
+    title = models.CharField(max_length=100)
+    content = models.TextField()
+    difficulty = models.CharField(max_length=10, choices=Difficulty.choices, default=Difficulty.MEDIUM)
+    question = models.TextField()
+    correct_answer = models.TextField()
+    hints = models.JSONField(default=list)
+    explanation = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.difficulty} - {self.question[:100]}"
+
+class Attempt(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="attempts")
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name="attempts")
+    user_answer = models.TextField()
+    reasoning = models.TextField()
+    is_correct = models.BooleanField(blank=True, null=True)
+    used_hint_count = models.PositiveSmallIntegerField(default=0)
+    feedback = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attempt by {self.user.username} on {self.exercise.title} - Correct: {self.is_correct}"
