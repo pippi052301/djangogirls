@@ -4,7 +4,7 @@ from .forms import NoteForm
 
 
 def home(request):
-    return render(request, "home.html")
+    return render(request, "base.html")
 
 
 def create_note(request):
