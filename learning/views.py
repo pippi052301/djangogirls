@@ -3,10 +3,6 @@ from .models import Note
 from .forms import NoteForm
 
 
-def home(request):
-    return render(request, "base.html")
-
-
 def create_note(request):
     if request.method == "POST":
         form = NoteForm(request.POST)
@@ -31,7 +27,7 @@ def note_list(request):
 
     return render(
         request,
-        "learning/note_list.html",
+        "base.html",
         {
             "notes": notes
         }
