@@ -25,3 +25,5 @@ urlpatterns = [
     path('ai/', include('ai_engine.urls')),
     path('', include('core.urls')),
 ]
+LOGIN_REDIRECT_URL = "/notes/"
+LOGOUT_REDIRECT_URL = "/accounts/login/"
