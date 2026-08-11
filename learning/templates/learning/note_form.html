@@ -5,12 +5,12 @@
 {% block content %}
 <h2>Enter the note content</h2>
 
-<form method="post" action="">
+<form method="post" action="{% url 'learning:create_note' %}">
     {% csrf_token %}
-    <div class="form-group">
-        <label for="id_content">Note content:</label>
-        <textarea name="content" id="id_content" rows="8" placeholder="Please write down the summary in order for AI to help you..."></textarea>
-    </div>
+    
+    <!-- Render Form (title and content) from views.py -->
+    {{ form.as_p }}
+
     <button type="submit" class="btn-submit">Create exercise</button>
 </form>
 {% endblock %}
