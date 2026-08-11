@@ -118,4 +118,15 @@ urlpatterns = [
         views.note_link_delete,
         name="note_link_delete"
     ),
+    path(
+        "map/",
+        views.map_view,
+        name="map_view"
+    ),
+
+    path(
+        "map/data/",
+        views.map_graph_data,
+        name="map_graph_data"
+    ),
     ]

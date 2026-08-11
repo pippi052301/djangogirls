@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import Note, Folder, Tag, Attachment, NoteLink
 from .forms import NoteForm, FolderForm, TagForm, NoteTagForm, AttachmentForm, NoteLinkForm
 from django.contrib.auth.decorators import login_required
-
+from django.http import JsonResponse
 #notes settings
 @login_required
 def note_list(request):
@@ -564,3 +564,34 @@ def note_link_delete(request, pk):
             "link": link
         }
     )
+
+@login_required
+def map_view(request):
+
+    return render(
+        request,
+        "notes/map.html"
+    )
+    
+@login_required
+def map_graph_data(request):
+
+    notes = Note.objects.filter(
+        owner=request.user
+    )
+
+    links = NoteLink.objects.filter(
+        from_note__owner=request.user
+    )
+
+    nodes = [{"id": note.id, "label": note.title} for note in notes]
+
+    edges = [
+        {"id": link.id, "from": link.from_note.id, "to": link.to_note.id}
+        for link in links
+    ]
+
+    return JsonResponse({
+        "nodes": nodes,
+        "edges": edges,
+    })
