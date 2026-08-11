@@ -107,4 +107,15 @@ urlpatterns = [
         views.attachment_delete,
         name="attachment_delete"
     ),
+    path(
+        "map/link/create/<int:pk>/",
+        views.note_link_create,
+        name="note_link_create"
+    ),
+
+    path(
+        "map/link/<int:pk>/delete/",
+        views.note_link_delete,
+        name="note_link_delete"
+    ),
     ]

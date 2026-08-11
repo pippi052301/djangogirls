@@ -491,3 +491,76 @@ def attachment_delete(request, pk):
             "attachment": attachment
         }
     )
+    
+@login_required
+def note_link_create(request, pk):
+
+    from_note = get_object_or_404(
+        Note,
+        pk=pk,
+        owner=request.user
+    )
+
+    if request.method == "POST":
+
+        form = NoteLinkForm(
+            request.POST,
+            user=request.user
+        )
+
+        if form.is_valid():
+
+            link = form.save(
+                commit=False
+            )
+
+            link.from_note = from_note
+
+            link.save()
+
+            return redirect(
+                "notes:note_detail",
+                pk=from_note.pk
+            )
+
+    else:
+
+        form = NoteLinkForm(
+            user=request.user
+        )
+
+    return render(
+        request,
+        "notes/note_link_form.html",
+        {
+            "form": form,
+            "note": from_note
+        }
+    )
+
+@login_required
+def note_link_delete(request, pk):
+
+    link = get_object_or_404(
+        NoteLink,
+        pk=pk,
+        from_note__owner=request.user
+    )
+
+
+    if request.method == "POST":
+        note = link.from_note
+        link.delete()
+
+        return redirect(
+            "notes:note_detail",
+            pk=note.pk
+        )
+
+    return render(
+        request,
+        "notes/note_link_confirm_delete.html",
+        {
+            "link": link
+        }
+    )
