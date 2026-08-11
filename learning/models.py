@@ -404,25 +404,3 @@ class MapEdge(models.Model):
     def __str__(self):
         return f"{self.source} -> {self.target}"
 
-
-class AIResponseCache(models.Model):
-    cache_key = models.CharField(
-        max_length=64,
-        unique=True,
-        help_text="正規化した入力から作るSHA-256ハッシュ",
-    )
-    response = models.JSONField(
-        help_text="再利用するAIのJSON応答",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="未設定の場合は自動失効しない",
-    )
-
-    def is_expired(self):
-        return self.expires_at is not None and timezone.now() >= self.expires_at
-
-    def __str__(self):
-        return self.cache_key
