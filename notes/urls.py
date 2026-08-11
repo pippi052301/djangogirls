@@ -6,6 +6,7 @@ app_name = "notes"
 
 
 urlpatterns = [
+    #note
     path(
         "",
         views.note_list,
@@ -34,5 +35,23 @@ urlpatterns = [
         "<int:pk>/delete/",
         views.note_delete,
         name="note_delete"
+    ),
+    # folder
+    path(
+        "folders/",
+        views.folder_list,
+        name="folder_list"
+    ),
+
+    path(
+        "folders/create/",
+        views.folder_create,
+        name="folder_create"
+    ),
+
+    path(
+        "folders/<int:pk>/",
+        views.folder_detail,
+        name="folder_detail"
     ),
 ]

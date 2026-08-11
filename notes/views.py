@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Note
-from .forms import NoteForm
+from .models import Note, Folder, Tag, Attachment, NoteLink
+from .forms import NoteForm, FolderForm
 from django.contrib.auth.decorators import login_required
 
+#notes settings
 @login_required
 def note_list(request):
     notes = Note.objects.filter(owner=request.user)
@@ -122,3 +123,60 @@ def note_delete(request, pk):
         "notes/note_confirm_delete.html",
         {"note": note}
     )
+    
+#folder settings
+@login_required
+def folder_list(request):
+
+    folders = Folder.objects.filter(
+        owner=request.user,
+        parent=None
+    )
+
+    return render(
+        request,
+        "notes/folder_list.html",
+        {
+            "folders": folders
+        }
+    )
+    
+@login_required
+def folder_create(request):
+
+    if request.method == "POST":
+
+        form = FolderForm(
+            request.POST,
+            user=request.user
+        )
+
+        if form.is_valid():
+
+            folder = form.save(commit=False)
+
+            folder.owner = request.user
+
+            folder.save()
+
+            return redirect(
+                "notes:folder_detail",
+                pk=folder.pk
+            )
+
+    else:
+
+        form = FolderForm(
+            user=request.user
+        )
+
+    return render(
+        request,
+        "notes/folder_form.html",
+        {
+            "form": form
+        }
+    )
+    
+
+    

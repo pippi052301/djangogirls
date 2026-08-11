@@ -3,11 +3,24 @@ from .models import Note, Folder, Tag, Attachment, NoteLink
 
 
 class FolderForm(forms.ModelForm):
+
     class Meta:
         model = Folder
-        fields = ['name', 'parent']
+        fields = [
+            'name',
+            'parent'
+        ]
 
+    def __init__(self, *args, **kwargs):
 
+        user = kwargs.pop('user', None)
+
+        super().__init__(*args, **kwargs)
+
+        if user:
+            self.fields['parent'].queryset = Folder.objects.filter(
+                owner=user
+            )
 class NoteForm(forms.ModelForm):
     class Meta:
         model = Note
