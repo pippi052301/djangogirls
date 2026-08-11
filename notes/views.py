@@ -376,3 +376,48 @@ def tag_delete(request, pk):
             "tag": tag
         }
     )
+
+@login_required
+def note_tags(request, pk):
+
+    note = get_object_or_404(
+        Note,
+        pk=pk,
+        owner=request.user
+    )
+
+    if request.method == "POST":
+
+        form = NoteTagForm(
+            request.POST,
+            user=request.user
+        )
+
+        if form.is_valid():
+
+            tags = form.cleaned_data["tags"]
+
+            note.tags.set(tags)
+
+            return redirect(
+                "notes:note_detail",
+                pk=note.pk
+            )
+
+    else:
+
+        form = NoteTagForm(
+            user=request.user,
+            initial={
+                "tags": note.tags.all()
+            }
+        )
+
+    return render(
+        request,
+        "notes/note_tags.html",
+        {
+            "note": note,
+            "form": form
+        }
+    )
