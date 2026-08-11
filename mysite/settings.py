@@ -133,3 +133,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 ALLOWED_HOSTS = ['127.0.0.1', 'pythonanywhere.com']
 # Print OTP to cmd
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Login back to note_page
+LOGIN_REDIRECT_URL = 'learning:note_list'
+
+# logout back to homepage
+LOGOUT_REDIRECT_URL = 'learning:home'

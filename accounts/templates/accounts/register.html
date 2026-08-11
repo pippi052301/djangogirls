@@ -13,7 +13,8 @@
         </div>
     {% endif %}
 
-    <form method="post" action="{% url 'learning:register' %}">
+    <!--  'accounts:register' -->
+    <form method="post" action="{% url 'accounts:register' %}">
         {% csrf_token %}
 
         <div class="form-group">
@@ -54,7 +55,8 @@
     </form>
 
     <p class="login-footer" style="text-align: center; margin-top: 20px; font-size: 14px; color: #666;">
-        Already have an account? <a href="{% url 'login' %}" style="color: #2e7d32; font-weight: bold; text-decoration: none;">Log in here</a>
+        <!-- 'accounts:login' -->
+        Already have an account? <a href="{% url 'accounts:login' %}" style="color: #2e7d32; font-weight: bold; text-decoration: none;">Log in here</a>
     </p>
 </div>
 {% endblock %}

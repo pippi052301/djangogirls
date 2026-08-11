@@ -21,7 +21,8 @@
         </div>
     {% endif %}
 
-    <form method="post" action="{% url 'login' %}">
+    <!--  'accounts:login' -->
+    <form method="post" action="{% url 'accounts:login' %}">
         {% csrf_token %}
 
         <div class="form-group">
@@ -43,7 +44,7 @@
     </form>
 
     <p class="login-footer" style="text-align: center; margin-top: 20px; font-size: 14px; color: #666;">
-        Don't have an account? <a href="{% url 'learning:register' %}" style="color: #2e7d32; font-weight: bold; text-decoration: none;">Create an Account</a>
+        Don't have an account? <a href="{% url 'accounts:register' %}" style="color: #2e7d32; font-weight: bold; text-decoration: none;">Create an Account</a>
     </p>
 </div>
 {% endblock %}

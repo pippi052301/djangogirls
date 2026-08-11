@@ -16,14 +16,10 @@ def register(request):
 
             login(request, user)
 
-            return redirect("notes:note_list")
+            return redirect("learning:note_list")
 
     else:
 
         form = RegisterForm()
 
-    return render(
-        request,
-        "accounts/register.html",
-        {"form": form}
-    )
+    return render(request, "accounts/register.html", {"form": form})
