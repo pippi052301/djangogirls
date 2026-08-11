@@ -2,7 +2,7 @@ import json
 # Đảm bảo bạn trỏ đúng đường dẫn đến file ai.py hoặc ai_service.py của bạn
 # Ví dụ: nếu file ai_service.py nằm ngang hàng với manage.py thì dùng import thẳng
 # Nếu nằm trong thư mục learning thì dùng: from learning.ai_service import generate_quiz_from_text
-from learning.services.ai_service import generate_quiz_from_text 
+from learning.services.quiz_service import generate_quiz_from_text 
 
 # 1. Chuẩn bị đầu vào (Văn bản mẫu)
 sample_text = """
