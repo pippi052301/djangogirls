@@ -211,3 +211,127 @@ textarea {
     margin-bottom: 20px;
     text-align: center;
 }
+/* Styling for register page */
+
+
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 0;
+}
+
+
+.login-card {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 420px;
+    padding: 35px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.login-card h2 {
+    margin-bottom: 8px;
+    color: #1a1a1a;
+    font-size: 24px;
+    text-align: center;
+}
+
+.login-subtitle {
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #333;
+}
+
+
+.login-card input[type="text"],
+.login-card input[type="password"],
+.login-card input[type="email"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box; 
+}
+
+.login-card input:focus {
+    outline: none;
+    border-color: #2e7d32;
+}
+/* Main green header navbar */
+.navbar-header {
+    background-color: #2e7d32;
+    padding: 0 40px;
+    height: 60px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
+.navbar-container {
+    max-width: 1200px;
+    height: 100%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Study Support logo */
+.nav-logo {
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: bold;
+    text-decoration: none;
+    font-family: 'Georgia', serif;
+    font-style: italic;
+}
+
+/* Folder-style navigation tab container */
+.nav-tabs {
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+    gap: 6px;
+}
+
+/* Individual tab styling (Folder / Tab style) */
+.tab-item {
+    color: #e8f5e9;
+    text-decoration: none;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-radius: 8px 8px 0 0; /* Rounded top corners for folder tab effect */
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Hover effect & Active tab state */
+.tab-item:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+.tab-item.active {
+    background-color: #ffffff;
+    color: #2e7d32;
+    font-weight: bold;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+}

@@ -3,35 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <!-- Google Fonts (Poppins, Pacifico, Fredoka) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Pacifico&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
-    <title>{% block title %}Learning aid{% endblock %}</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'learning/style.css' %}">
+    <title>{% block title %}Study Support{% endblock %}</title>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header Navbar */
+        .navbar-header {
+            background-color: #2e7d32;
+            padding: 0 40px;
+            height: 60px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        .navbar-container {
+            max-width: 1200px;
+            height: 100%;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: bold;
+            text-decoration: none;
+            font-family: 'Georgia', serif;
+            font-style: italic;
+        }
+
+        /* Main Content - Căn giữa nội dung ra trung tâm màn hình */
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Thẻ Card chứa Form Login gọn gàng */
+        .login-card {
+            background-color: #ffffff;
+            padding: 35px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 420px;
+            box-sizing: border-box;
+        }
+
+        .login-card h2 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #333333;
+            text-align: center;
+        }
+
+        .login-subtitle {
+            font-size: 14px;
+            color: #666666;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #444444;
+            margin-bottom: 6px;
+        }
+
+        /* Footer */
+        .site-footer {
+            text-align: center;
+            padding: 20px;
+            color: #777777;
+            font-size: 14px;
+            background-color: transparent;
+        }
+    </style>
 </head>
 <body>
-<header class="navbar">
-    <div class="logo">Study Support</div>
-    <nav>
-        <!-- Homepage-->
-        <a href="{% url 'learning:home' %}">Homepage</a>
-        
-        <a href="{% url 'learning:note_create' %}">Take note</a>
-        
-        <!-- Note list -->
-        <a href="{% url 'learning:note_list' %}">My notes</a>
-    </nav>
+
+<header class="navbar-header">
+    <div class="navbar-container">
+        <!-- Logo bên trái -->
+        <a href="{% url 'learning:home' %}" class="nav-logo">Study Support</a>
+    </div>
 </header>
 
-    <main class="container">
-        {% block content %}
-        {% endblock %}
-    </main>
+<main class="main-content">
+    {% block content %}
+    {% endblock %}
+</main>
 
-    <footer class="footer">
-        <p>&copy; 2026 Phindi-hanhnhan</p>
-    </footer>
+<footer class="site-footer">
+    © 2026 Phindi-hanhnhan
+</footer>
+
 </body>
 </html>

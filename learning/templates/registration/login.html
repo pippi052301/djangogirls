@@ -3,33 +3,47 @@
 {% block title %}Login - Study Support{% endblock %}
 
 {% block content %}
-<div class="login-wrapper">
-    <div class="login-card">
-        <h2>Welcome Back</h2>
-        <p class="login-subtitle">Please login to access your notes and exercises.</p>
+<div class="login-card">
+    <h2>Welcome Back</h2>
+    <p class="login-subtitle">Please login to access your notes and exercises.</p>
 
-        <!-- Wrong password or username -->
-        {% if form.errors %}
-            <div class="alert-error">
-                Username or password is incorrect. Please try again.
+    {% if messages %}
+        {% for message in messages %}
+            <div style="padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 14px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;">
+                {{ message }}
             </div>
-        {% endif %}
+        {% endfor %}
+    {% endif %}
 
-        <form method="post" action="{% url 'login' %}">
-            {% csrf_token %}
+    {% if form.errors %}
+        <div class="alert-error" style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+            Your username and password didn't match. Please try again.
+        </div>
+    {% endif %}
 
-            <div class="form-group">
-                <label for="id_username">Username</label>
-                <input type="text" name="username" id="id_username" placeholder="Enter your username" required autocomplete="username">
+    <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="{{ form.username.id_for_label }}">Username</label>
+            <input type="text" name="username" id="{{ form.username.id_for_label }}" placeholder="Enter your username" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+        </div>
+
+        <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label for="{{ form.password.id_for_label }}" style="margin-bottom: 0;">Password</label>
+                <a href="{% url 'learning:custom_password_reset' %}" style="font-size: 13px; color: #2e7d32; text-decoration: none; font-weight: 500;">Forgot password?</a>
             </div>
+            <input type="password" name="password" id="{{ form.password.id_for_label }}" placeholder="Enter your password" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+        </div>
 
-            <div class="form-group">
-                <label for="id_password">Password</label>
-                <input type="password" name="password" id="id_password" placeholder="Enter your password" required autocomplete="current-password">
-            </div>
+        <button type="submit" class="btn-submit btn-login" style="width: 100%; margin-top: 15px; padding: 12px; background-color: #2e7d32; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+            Login
+        </button>
+    </form>
 
-            <button type="submit" class="btn-submit btn-login">Login</button>
-        </form>
-    </div>
+    <p class="login-footer" style="text-align: center; margin-top: 20px; font-size: 14px; color: #666;">
+        Don't have an account? <a href="{% url 'learning:register' %}" style="color: #2e7d32; font-weight: bold; text-decoration: none;">Create an Account</a>
+    </p>
 </div>
 {% endblock %}
