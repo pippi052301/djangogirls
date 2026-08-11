@@ -595,3 +595,10 @@ def map_graph_data(request):
         "nodes": nodes,
         "edges": edges,
     })
+@login_required
+def template_picker(request):
+
+    return render(
+        request,
+        "notes/template_picker.html"
+    )

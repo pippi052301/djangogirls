@@ -129,4 +129,9 @@ urlpatterns = [
         views.map_graph_data,
         name="map_graph_data"
     ),
+    path(
+        "templates/",
+        views.template_picker,
+        name="template_picker"
+    ),
     ]
