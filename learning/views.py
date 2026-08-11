@@ -1,12 +1,12 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
-from .models import Note
+from notes.models import Note
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
-from .models import PasswordResetOTP
+from accounts.models import PasswordResetOTP
 from django.http import HttpResponse
 from accounts.forms import RegisterForm 
 def home(request):

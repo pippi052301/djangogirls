@@ -33,7 +33,7 @@
         <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <label for="{{ form.password.id_for_label }}" style="margin-bottom: 0;">Password</label>
-                <a href="{% url 'learning:custom_password_reset' %}" style="font-size: 13px; color: #2e7d32; text-decoration: none; font-weight: 500;">Forgot password?</a>
+                <a href="{% url 'accounts:password_reset' %}" style="font-size: 13px; color: #2e7d32; text-decoration: none; font-weight: 500;">Forgot password?</a>
             </div>
             <input type="password" name="password" id="{{ form.password.id_for_label }}" placeholder="Enter your password" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
         </div>
