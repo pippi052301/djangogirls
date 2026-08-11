@@ -39,6 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     "learning",
+#new apps
+    'accounts',
+    'notes',
+    'ai_engine',
+    'core',
 ]
 
 MIDDLEWARE = [
