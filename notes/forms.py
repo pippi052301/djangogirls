@@ -3,21 +3,58 @@ from .models import Note, Folder, Tag, Attachment, NoteLink
 
 
 class FolderForm(forms.ModelForm):
+
     class Meta:
         model = Folder
-        fields = ['name', 'parent']
+        fields = [
+            'name',
+            'parent'
+        ]
 
+    def __init__(self, *args, **kwargs):
 
+        user = kwargs.pop('user', None)
+
+        super().__init__(*args, **kwargs)
+
+        if user:
+            self.fields['parent'].queryset = Folder.objects.filter(
+                owner=user
+            )
 class NoteForm(forms.ModelForm):
     class Meta:
         model = Note
-        fields = ['title', 'folder', 'content', 'template_type']
+        fields = [
+            'title',
+            'folder',
+            'content',
+            'template_type',
+        ]
+
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nhập tiêu đề...'}),
-            'template_type': forms.Select(attrs={'class': 'form-control'}),
+            'title': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Nhập tiêu đề...'
+                }
+            ),
+
+            'template_type': forms.Select(
+                attrs={
+                    'class': 'form-control'
+                }
+            ),
         }
 
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
 
+        super().__init__(*args, **kwargs)
+
+        if user:
+            self.fields['folder'].queryset = Folder.objects.filter(
+                owner=user
+            )
 class TagForm(forms.ModelForm):
     class Meta:
         model = Tag
@@ -31,6 +68,21 @@ class AttachmentForm(forms.ModelForm):
 
 
 class NoteLinkForm(forms.ModelForm):
+
     class Meta:
         model = NoteLink
-        fields = ['to_note', 'relation_label']
+        fields = [
+            'to_note',
+            'relation_label'
+        ]
+
+    def __init__(self, *args, **kwargs):
+
+        user = kwargs.pop('user', None)
+
+        super().__init__(*args, **kwargs)
+
+        if user:
+            self.fields['to_note'].queryset = Note.objects.filter(
+                owner=user
+            )

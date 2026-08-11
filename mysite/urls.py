@@ -23,3 +23,5 @@ urlpatterns = [
     path('', include('learning.urls')),      
     path('accounts/', include('accounts.urls')),  
 ]
+LOGIN_REDIRECT_URL = "/notes/"
+LOGOUT_REDIRECT_URL = "/accounts/login/"

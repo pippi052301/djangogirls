@@ -64,7 +64,14 @@ class Note(models.Model):
 
     updated_at = models.DateTimeField(
         auto_now=True
+    
     )
+    tags = models.ManyToManyField(
+        'Tag',
+        through='NoteTag',
+        blank=True
+    )
+    
 
     def __str__(self):
         return self.title
