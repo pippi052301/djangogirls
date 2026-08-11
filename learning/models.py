@@ -10,21 +10,12 @@ from django.db import models
 
 
 class Quiz(models.Model):
-    class GenerationType(models.TextChoices):
-        STANDARD = "standard", "標準"
-        ADAPTIVE = "adaptive", "適応型"
-
     note = models.ForeignKey(
         "notes.Note",
         on_delete=models.CASCADE,
         related_name="quizzes",
     )
     title = models.CharField(max_length=100)
-    generation_type = models.CharField(
-        max_length=20,
-        choices=GenerationType.choices,
-        default=GenerationType.ADAPTIVE,
-    )
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -165,16 +156,6 @@ class QuizAttempt(models.Model):
         on_delete=models.CASCADE,
         related_name="quiz_attempts",
     )
-    score = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        validators=[
-            MinValueValidator(0),
-            MaxValueValidator(100),
-        ],
-    )
     started_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -185,21 +166,9 @@ class QuizAttempt(models.Model):
 
     class Meta:
         ordering = ["-started_at"]
-        constraints = [
-            models.CheckConstraint(
-                condition=(
-                    models.Q(score__isnull=True)
-                    | models.Q(
-                        score__gte=0,
-                        score__lte=100,
-                    )
-                ),
-                name="quiz_attempt_score_between_0_and_100",
-            )
-        ]
 
     def __str__(self):
-        return f"{self.user} - {self.quiz.title} ({self.score})"
+        return f"{self.user} - {self.quiz.title}"
 
 
 class AttemptQuerySet(models.QuerySet):
@@ -252,10 +221,6 @@ class Attempt(models.Model):
             MaxValueValidator(100),
         ],
     )
-    is_correct = models.BooleanField(
-        blank=True,
-        null=True,
-    )
     used_hint_count = models.PositiveSmallIntegerField(
         default=0,
     )
@@ -307,3 +272,72 @@ class Attempt(models.Model):
 
     def __str__(self):
         return f"{self.quiz_attempt.user} - {self.exercise}"
+
+
+class MapNode(models.Model):
+    note = models.ForeignKey(
+        "notes.Note",
+        on_delete=models.CASCADE,
+        related_name="map_nodes",
+    )
+    key = models.CharField(
+        max_length=100,
+        help_text="AIのnodes[].idに対応するノート内の識別子",
+    )
+    label = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["note", "key"],
+                name="unique_map_node_key_per_note",
+            )
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class MapEdge(models.Model):
+    source = models.ForeignKey(
+        MapNode,
+        on_delete=models.CASCADE,
+        related_name="outgoing_edges",
+    )
+    target = models.ForeignKey(
+        MapNode,
+        on_delete=models.CASCADE,
+        related_name="incoming_edges",
+    )
+    label = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source", "target", "label"],
+                name="unique_map_edge",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+
+        if self.source_id and self.target_id:
+            if self.source_id == self.target_id:
+                raise ValidationError(
+                    "同じノード自身には接続できません。"
+                )
+
+            if self.source.note_id != self.target.note_id:
+                raise ValidationError(
+                    "異なるノートに属するノード同士は接続できません。"
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.source} -> {self.target}"
