@@ -3,6 +3,7 @@ from .models import Note, Folder, Tag, Attachment, NoteLink
 from .forms import NoteForm, FolderForm, TagForm, NoteTagForm, AttachmentForm, NoteLinkForm
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+import json
 #notes settings
 @login_required
 def note_list(request):
@@ -602,3 +603,47 @@ def template_picker(request):
         request,
         "notes/template_picker.html"
     )
+    
+@login_required
+def note_autosave(request, pk):
+
+    if request.method != "PATCH":
+
+        return JsonResponse(
+            {
+                "error": "PATCH required"
+            },
+            status=405
+        )
+
+    note = get_object_or_404(
+        Note,
+        pk=pk,
+        owner=request.user
+    )
+
+    try:
+
+        data = json.loads(
+            request.body
+        )
+
+        note.content = data.get(
+            "content",
+            {}
+        )
+
+        note.save()
+
+        return JsonResponse({
+            "success": True
+        })
+
+    except json.JSONDecodeError:
+
+        return JsonResponse(
+            {
+                "error": "Invalid JSON"
+            },
+            status=400
+        )

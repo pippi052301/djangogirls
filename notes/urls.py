@@ -134,4 +134,9 @@ urlpatterns = [
         views.template_picker,
         name="template_picker"
     ),
+    path(
+        "<int:pk>/autosave/",
+        views.note_autosave,
+        name="note_autosave"
+    ),
     ]
