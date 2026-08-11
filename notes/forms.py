@@ -11,13 +11,37 @@ class FolderForm(forms.ModelForm):
 class NoteForm(forms.ModelForm):
     class Meta:
         model = Note
-        fields = ['title', 'folder', 'content', 'template_type']
+        fields = [
+            'title',
+            'folder',
+            'content',
+            'template_type',
+        ]
+
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nhập tiêu đề...'}),
-            'template_type': forms.Select(attrs={'class': 'form-control'}),
+            'title': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Nhập tiêu đề...'
+                }
+            ),
+
+            'template_type': forms.Select(
+                attrs={
+                    'class': 'form-control'
+                }
+            ),
         }
 
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
 
+        super().__init__(*args, **kwargs)
+
+        if user:
+            self.fields['folder'].queryset = Folder.objects.filter(
+                owner=user
+            )
 class TagForm(forms.ModelForm):
     class Meta:
         model = Tag

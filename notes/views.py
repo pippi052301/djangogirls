@@ -15,25 +15,39 @@ def note_list(request):
 
 @login_required
 def note_create(request):
+
     if request.method == "POST":
-        form = NoteForm(request.POST)
+
+        form = NoteForm(
+            request.POST,
+            user=request.user
+        )
 
         if form.is_valid():
+
             note = form.save(commit=False)
+
             note.owner = request.user
+
             note.save()
 
-            return redirect("notes:note_detail", pk=note.pk)
+            return redirect(
+                "notes:note_detail",
+                pk=note.pk
+            )
 
     else:
-        form = NoteForm()
+
+        form = NoteForm(
+            user=request.user
+        )
 
     return render(
         request,
         "notes/note_form.html",
         {"form": form}
     )
-
+    
 @login_required
 def note_detail(request, pk):
     note = get_object_or_404(
@@ -50,6 +64,7 @@ def note_detail(request, pk):
 
 @login_required
 def note_edit(request, pk):
+
     note = get_object_or_404(
         Note,
         pk=pk,
@@ -57,9 +72,15 @@ def note_edit(request, pk):
     )
 
     if request.method == "POST":
-        form = NoteForm(request.POST, instance=note)
+
+        form = NoteForm(
+            request.POST,
+            instance=note,
+            user=request.user
+        )
 
         if form.is_valid():
+
             form.save()
 
             return redirect(
@@ -68,14 +89,21 @@ def note_edit(request, pk):
             )
 
     else:
-        form = NoteForm(instance=note)
+
+        form = NoteForm(
+            instance=note,
+            user=request.user
+        )
 
     return render(
         request,
         "notes/note_form.html",
-        {"form": form, "note": note}
+        {
+            "form": form,
+            "note": note
+        }
     )
-
+    
 @login_required
 def note_delete(request, pk):
     note = get_object_or_404(
