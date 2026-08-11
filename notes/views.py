@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Note, Folder, Tag, Attachment, NoteLink
-from .forms import NoteForm, FolderForm
+from .forms import NoteForm, FolderForm, TagForm, NoteTagForm
 from django.contrib.auth.decorators import login_required
 
 #notes settings
@@ -280,5 +280,99 @@ def folder_delete(request, pk):
         "notes/folder_confirm_delete.html",
         {
             "folder": folder
+        }
+    )
+
+@login_required
+def tag_create(request):
+
+    if request.method == "POST":
+
+        form = TagForm(request.POST)
+
+        if form.is_valid():
+
+            tag = form.save(commit=False)
+
+            tag.owner = request.user
+
+            tag.save()
+
+            return redirect(
+                "notes:tag_list"
+            )
+
+    else:
+
+        form = TagForm()
+
+    return render(
+        request,
+        "notes/tag_form.html",
+        {
+            "form": form
+        }
+    )
+    
+@login_required
+def tag_list(request):
+
+    tags = Tag.objects.filter(
+        owner=request.user
+    )
+
+    return render(
+        request,
+        "notes/tag_list.html",
+        {
+            "tags": tags
+        }
+    )
+    
+@login_required
+def tag_detail(request, pk):
+
+    tag = get_object_or_404(
+        Tag,
+        pk=pk,
+        owner=request.user
+    )
+
+    notes = Note.objects.filter(
+        owner=request.user,
+        tags=tag
+    )
+
+    return render(
+        request,
+        "notes/tag_detail.html",
+        {
+            "tag": tag,
+            "notes": notes
+        }
+    )
+    
+@login_required
+def tag_delete(request, pk):
+
+    tag = get_object_or_404(
+        Tag,
+        pk=pk,
+        owner=request.user
+    )
+
+    if request.method == "POST":
+
+        tag.delete()
+
+        return redirect(
+            "notes:tag_list"
+        )
+
+    return render(
+        request,
+        "notes/tag_confirm_delete.html",
+        {
+            "tag": tag
         }
     )
