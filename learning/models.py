@@ -7,6 +7,7 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
+from django.utils import timezone
 
 
 class Quiz(models.Model):
@@ -227,6 +228,11 @@ class Attempt(models.Model):
     feedback = models.TextField(
         blank=True,
     )
+    rubric_details = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="AIが返した項目別の点数・根拠・要点分解",
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -255,6 +261,11 @@ class Attempt(models.Model):
     def clean(self):
         super().clean()
 
+        if not isinstance(self.rubric_details, dict):
+            raise ValidationError(
+                {"rubric_details": "採点詳細はJSONオブジェクトで保存してください。"}
+            )
+
         if self.quiz_attempt_id and self.exercise_id:
             if self.quiz_attempt.quiz_id != self.exercise.quiz_id:
                 raise ValidationError(
@@ -272,6 +283,57 @@ class Attempt(models.Model):
 
     def __str__(self):
         return f"{self.quiz_attempt.user} - {self.exercise}"
+
+
+class ReferenceSample(models.Model):
+    exercise = models.ForeignKey(
+        Exercise,
+        on_delete=models.CASCADE,
+        related_name="reference_samples",
+    )
+    answer_text = models.TextField(
+        help_text="教師が標準採点した比較用の模範回答",
+    )
+    human_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(100),
+        ],
+    )
+    rubric_details = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="教師による項目別の点数と採点理由",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    human_score__gte=0,
+                    human_score__lte=100,
+                ),
+                name="reference_sample_score_between_0_and_100",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+
+        if not isinstance(self.rubric_details, dict):
+            raise ValidationError(
+                {"rubric_details": "採点詳細はJSONオブジェクトで保存してください。"}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.exercise} - 教師採点 {self.human_score}点"
 
 
 class MapNode(models.Model):
@@ -341,3 +403,26 @@ class MapEdge(models.Model):
 
     def __str__(self):
         return f"{self.source} -> {self.target}"
+
+
+class AIResponseCache(models.Model):
+    cache_key = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text="正規化した入力から作るSHA-256ハッシュ",
+    )
+    response = models.JSONField(
+        help_text="再利用するAIのJSON応答",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="未設定の場合は自動失効しない",
+    )
+
+    def is_expired(self):
+        return self.expires_at is not None and timezone.now() >= self.expires_at
+
+    def __str__(self):
+        return self.cache_key
