@@ -65,4 +65,35 @@ urlpatterns = [
         views.folder_delete,
         name="folder_delete"
     ),
+    
+    
+    # TAG
+    path(
+        "tags/",
+        views.tag_list,
+        name="tag_list"
+    ),
+
+    path(
+        "tags/create/",
+        views.tag_create,
+        name="tag_create"
+    ),
+
+    path(
+        "tags/<int:pk>/",
+        views.tag_detail,
+        name="tag_detail"
+    ),
+
+    path(
+        "tags/<int:pk>/delete/",
+        views.tag_delete,
+        name="tag_delete"
+    ),
+    path(
+    "<int:pk>/tags/",
+    views.note_tags,
+    name="note_tags"
+    ),
 ]
