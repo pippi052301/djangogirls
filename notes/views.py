@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Note, Folder, Tag, Attachment, NoteLink
-from .forms import NoteForm, FolderForm, TagForm, NoteTagForm
+from .forms import NoteForm, FolderForm, TagForm, NoteTagForm, AttachmentForm, NoteLinkForm
 from django.contrib.auth.decorators import login_required
 
 #notes settings
@@ -419,5 +419,75 @@ def note_tags(request, pk):
         {
             "note": note,
             "form": form
+        }
+    )
+    
+@login_required
+def attachment_upload(request, pk):
+
+    note = get_object_or_404(
+        Note,
+        pk=pk,
+        owner=request.user
+    )
+
+    if request.method == "POST":
+
+        form = AttachmentForm(
+            request.POST,
+            request.FILES
+        )
+
+        if form.is_valid():
+
+            attachment = form.save(
+                commit=False
+            )
+
+            attachment.note = note
+
+            attachment.save()
+
+            return redirect(
+                "notes:note_detail",
+                pk=note.pk
+            )
+
+    else:
+
+        form = AttachmentForm()
+
+    return render(
+        request,
+        "notes/attachment_form.html",
+        {
+            "form": form,
+            "note": note
+        }
+    )
+    
+@login_required
+def attachment_delete(request, pk):
+
+    attachment = get_object_or_404(
+        Attachment,
+        pk=pk,
+        note__owner=request.user
+    )
+
+    if request.method == "POST":
+        note = attachment.note
+        attachment.delete()
+
+        return redirect(
+            "notes:note_detail",
+            pk=note.pk
+        )
+
+    return render(
+        request,
+        "notes/attachment_confirm_delete.html",
+        {
+            "attachment": attachment
         }
     )

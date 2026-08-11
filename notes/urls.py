@@ -96,4 +96,15 @@ urlpatterns = [
     views.note_tags,
     name="note_tags"
     ),
-]
+    path(
+        "<int:pk>/attachment/upload/",
+        views.attachment_upload,
+        name="attachment_upload"
+    ),
+
+    path(
+        "attachment/<int:pk>/delete/",
+        views.attachment_delete,
+        name="attachment_delete"
+    ),
+    ]
