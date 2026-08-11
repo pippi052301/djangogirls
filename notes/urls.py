@@ -54,4 +54,15 @@ urlpatterns = [
         views.folder_detail,
         name="folder_detail"
     ),
+    path(
+        "folders/<int:pk>/edit/",
+        views.folder_edit,
+        name="folder_edit"
+    ),
+
+    path(
+        "folders/<int:pk>/delete/",
+        views.folder_delete,
+        name="folder_delete"
+    ),
 ]

@@ -68,6 +68,21 @@ class AttachmentForm(forms.ModelForm):
 
 
 class NoteLinkForm(forms.ModelForm):
+
     class Meta:
         model = NoteLink
-        fields = ['to_note', 'relation_label']
+        fields = [
+            'to_note',
+            'relation_label'
+        ]
+
+    def __init__(self, *args, **kwargs):
+
+        user = kwargs.pop('user', None)
+
+        super().__init__(*args, **kwargs)
+
+        if user:
+            self.fields['to_note'].queryset = Note.objects.filter(
+                owner=user
+            )

@@ -178,5 +178,107 @@ def folder_create(request):
         }
     )
     
+@login_required
+def folder_detail(request, pk):
 
+    folder = get_object_or_404(
+        Folder,
+        pk=pk,
+        owner=request.user
+    )
+
+    subfolders = Folder.objects.filter(
+        parent=folder,
+        owner=request.user
+    )
+
+    notes = Note.objects.filter(
+        folder=folder,
+        owner=request.user
+    )
+
+    return render(
+        request,
+        "notes/folder_detail.html",
+        {
+            "folder": folder,
+            "subfolders": subfolders,
+            "notes": notes,
+        }
+    )
     
+@login_required
+def folder_detail(request, pk):
+    folder = get_object_or_404(Folder, pk=pk, owner=request.user)
+    notes = folder.notes.all()  # Lấy danh sách ghi chú thuộc thư mục này
+    return render(
+        request,
+        "notes/folder_detail.html",
+        {"folder": folder, "notes": notes}
+    )
+@login_required
+def folder_edit(request, pk):
+
+    folder = get_object_or_404(
+        Folder,
+        pk=pk,
+        owner=request.user
+    )
+
+    if request.method == "POST":
+
+        form = FolderForm(
+            request.POST,
+            instance=folder,
+            user=request.user
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            return redirect(
+                "notes:folder_detail",
+                pk=folder.pk
+            )
+
+    else:
+
+        form = FolderForm(
+            instance=folder,
+            user=request.user
+        )
+
+    return render(
+        request,
+        "notes/folder_form.html",
+        {
+            "form": form,
+            "folder": folder
+        }
+    )
+    
+@login_required
+def folder_delete(request, pk):
+
+    folder = get_object_or_404(
+        Folder,
+        pk=pk,
+        owner=request.user
+    )
+
+    if request.method == "POST":
+
+        folder.delete()
+
+        return redirect(
+            "notes:folder_list"
+        )
+
+    return render(
+        request,
+        "notes/folder_confirm_delete.html",
+        {
+            "folder": folder
+        }
+    )
