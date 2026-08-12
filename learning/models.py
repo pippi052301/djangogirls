@@ -79,6 +79,11 @@ class Exercise(models.Model):
     explanation = models.TextField(
         blank=True,
     )
+    reference_samples = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="教師が採点した模範解答のリスト",
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
