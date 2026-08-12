@@ -1,31 +1,52 @@
-{% extends 'base.html' %}
+{% extends 'base_notes.html' %}
 
-{% block title %}My Notes - Study Support{% endblock %}
+{% block title %}{% if note %}Edit Note - {{ note.title }}{% else %}Create Note{% endif %}{% endblock %}
+
+{% block page_title %}{% if note %}Edit Note{% else %}New Note{% endif %}{% endblock %}
 
 {% block content %}
-<div style="max-width: 900px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-        <h1 style="color: #1f1f1f; margin: 0;">My Notes</h1>
-        <a href="{% url 'notes:note_create' %}" style="background-color: #2e7d32; color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-weight: bold; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-            + New Note
+<div class="p-4 max-w-xl mx-auto space-y-6">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+        <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">
+            {% if note %}Edit Note{% else %}Create New Note{% endif %}
+        </h2>
+        <a href="{% if note %}{% url 'notes:note_detail' pk=note.pk %}{% else %}{% url 'notes:note_list' %}{% endif %}" class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            Cancel
         </a>
     </div>
 
-    {% if notes %}
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px;">
-            {% for note in notes %}
-                <div style="background-color: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e0e0e0;">
-                    <h3 style="margin-top: 0; color: #2e7d32;">{{ note.title }}</h3>
-                    <p style="color: #555; font-size: 14px; line-height: 1.5;">{{ note.content|truncatewords:20 }}</p>
-                    <span style="font-size: 12px; color: #888;">{{ note.created_at|date:"M d, Y" }}</span>
-                </div>
-            {% endfor %}
+    <form method="POST" class="space-y-4">
+        {% csrf_token %}
+        <div>
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Title</label>
+            <input type="text" name="title" value="{{ form.title.value|default:note.title|default:'' }}" required placeholder="Note title..." class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-semibold">
         </div>
-    {% else %}
-        <div style="text-align: center; background: white; padding: 40px; border-radius: 12px; border: 1px solid #e0e0e0;">
-            <p style="color: #666; font-size: 16px;">You don't have any notes yet.</p>
-            <a href="{% url 'notes:note_create' %}" style="color: #2e7d32; font-weight: bold; text-decoration: none;">Create your first note &rarr;</a>
+
+        <div>
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Folder</label>
+            <select name="folder" class="w-full px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500">
+                <option value="">No Folder</option>
+                {% for folder in form.folder.field.queryset %}
+                    <option value="{{ folder.pk }}" {% if form.folder.value == folder.pk or note.folder_id == folder.pk %}selected{% endif %}>
+                        {{ folder.name }}
+                    </option>
+                {% endfor %}
+            </select>
         </div>
-    {% endif %}
+
+        <div>
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Content</label>
+            <textarea name="content" rows="8" placeholder="Start typing note content..." class="w-full p-3 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-mono resize-y">{% if note.content.body %}{{ note.content.body }}{% else %}{{ form.content.value|default:'' }}{% endif %}</textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <a href="{% if note %}{% url 'notes:note_detail' pk=note.pk %}{% else %}{% url 'notes:note_list' %}{% endif %}" class="px-3.5 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition font-medium">
+                Cancel
+            </a>
+            <button type="submit" class="px-4 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition">
+                Save Note
+            </button>
+        </div>
+    </form>
 </div>
 {% endblock %}

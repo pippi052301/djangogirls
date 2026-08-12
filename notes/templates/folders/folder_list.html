@@ -1,0 +1,198 @@
+{% extends 'base_notes.html' %}
+
+{% block title %}Library - Personal Study Space{% endblock %}
+
+{% block page_title %}Library{% endblock %}
+
+<!-- Custom Page Header -->
+{% block page_header %}
+<div class="-mt-14 mb-6">
+    <div class="mb-4 inline-block">
+        <span class="text-6xl hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded cursor-pointer transition">📚</span>
+    </div>
+    <div class="flex items-center justify-between">
+        <h1 class="text-4xl font-bold text-slate-800 dark:text-slate-100">Library</h1>
+        
+        <!-- Notion Split Button (New Folder) -->
+        <div class="inline-flex rounded-md shadow-sm bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition overflow-hidden divide-x divide-blue-500">
+            <button type="button" onclick="openFolderModal()" class="px-3 py-1.5 flex items-center gap-1.5 hover:bg-blue-700 transition focus:outline-none">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>New folder</span>
+            </button>
+            <button type="button" class="px-1.5 py-1.5 hover:bg-blue-700 transition focus:outline-none">
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6 relative">
+    <!-- Navigation Tabs & Search Bar -->
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+        <div class="flex items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400 overflow-x-auto">
+            <button class="flex items-center gap-1.5 pb-2 border-b-2 border-slate-900 dark:border-slate-100 text-slate-900 dark:text-slate-100 font-semibold">
+                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                <span>Recents</span>
+            </button>
+            <button class="flex items-center gap-1.5 pb-2 hover:text-slate-800 dark:hover:text-slate-200 transition">
+                <i data-lucide="star" class="w-3.5 h-3.5"></i>
+                <span>Favorites</span>
+            </button>
+            <button class="flex items-center gap-1.5 pb-2 hover:text-slate-800 dark:hover:text-slate-200 transition">
+                <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                <span>Shared</span>
+            </button>
+            <button class="flex items-center gap-1.5 pb-2 hover:text-slate-800 dark:hover:text-slate-200 transition">
+                <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                <span>Private</span>
+            </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <div class="relative">
+                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2 top-2 text-slate-400"></i>
+                <input type="text" placeholder="Search folder..." class="pl-7 pr-2 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 focus:outline-none focus:bg-white dark:focus:bg-slate-900 text-slate-700 dark:text-slate-200 w-36 focus:w-48 transition-all">
+            </div>
+        </div>
+    </div>
+
+    <!-- Database Table View -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm border-collapse">
+            <thead>
+                <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 text-xs font-normal select-none">
+                    <th class="py-2 px-3 font-normal w-5/12">
+                        <div class="flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Name</div>
+                    </th>
+                    <th class="py-2 px-3 font-normal">
+                        <div class="flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i> Created by</div>
+                    </th>
+                    <th class="py-2 px-3 font-normal">
+                        <div class="flex items-center gap-1.5"><i data-lucide="folder" class="w-3.5 h-3.5"></i> Source</div>
+                    </th>
+                    <th class="py-2 px-3 font-normal">
+                        <div class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Last edited</div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% for folder in folders %}
+                <!-- Folder Row -->
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 group cursor-pointer transition">
+                    <td class="py-2 px-3 font-medium text-slate-800 dark:text-slate-200">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="folder" class="w-4 h-4 text-slate-500"></i>
+                            <a href="{% url 'notes:folder_detail' pk=folder.pk %}" class="hover:underline font-semibold">{{ folder.name }}</a>
+                        </div>
+                    </td>
+                    <td class="py-2 px-3 text-slate-600 dark:text-slate-400 text-xs">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-4 h-4 rounded-full bg-slate-700 dark:bg-slate-300 text-white dark:text-slate-900 flex items-center justify-center text-[10px] font-bold">
+                                {{ request.user.username|slice:":1"|upper }}
+                            </div>
+                            <span>{{ request.user.username }}</span>
+                        </div>
+                    </td>
+                    <td class="py-2 px-3 text-xs">
+                        <span class="inline-flex items-center gap-1 text-slate-400">
+                            <i data-lucide="lock" class="w-3 h-3"></i> Private
+                        </span>
+                    </td>
+                    <td class="py-2 px-3 text-slate-400 text-xs">
+                        {{ folder.updated_at|default:folder.created_at|timesince }} ago
+                    </td>
+                </tr>
+
+                <!-- Notes Inside Folder -->
+                {% for note in folder.notes.all %}
+                <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 group cursor-pointer transition">
+                    <td class="py-2 px-3 pl-8 text-slate-700 dark:text-slate-300">
+                        <div class="flex items-center gap-2">
+                            <span>📝</span>
+                            <a href="{% url 'notes:note_detail' pk=note.pk %}" class="hover:underline truncate">{{ note.title }}</a>
+                        </div>
+                    </td>
+                    <td class="py-2 px-3 text-slate-600 dark:text-slate-400 text-xs">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-4 h-4 rounded-full bg-slate-700 dark:bg-slate-300 text-white dark:text-slate-900 flex items-center justify-center text-[10px] font-bold">
+                                {{ request.user.username|slice:":1"|upper }}
+                            </div>
+                            <span>{{ request.user.username }}</span>
+                        </div>
+                    </td>
+                    <td class="py-2 px-3 text-xs">
+                        <span class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300">
+                            <i data-lucide="folder" class="w-3 h-3 text-slate-400"></i>
+                            {{ folder.name }}
+                        </span>
+                    </td>
+                    <td class="py-2 px-3 text-slate-400 text-xs">
+                        {{ note.updated_at|timesince }} ago
+                    </td>
+                </tr>
+                {% endfor %}
+
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="py-8 text-center text-slate-400">
+                        No folders found in library. Click "New folder" to create one.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- NOTION SIDE PEEK MODAL (New Folder) -->
+<div id="folder-modal" class="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex justify-end hidden transition-opacity">
+    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800 overflow-y-auto transform transition-transform">
+        <!-- Close Modal Button -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
+            <span class="text-xs text-slate-400 font-medium">New folder</span>
+            <button onclick="closeFolderModal()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Create Folder Form -->
+        <form method="POST" action="{% url 'notes:folder_create' %}" class="space-y-6 flex-1 flex flex-col">
+            {% csrf_token %}
+            <div>
+                <input type="text" name="name" placeholder="Folder Name" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent">
+            </div>
+
+            <!-- Folder Properties -->
+            <div class="space-y-3 text-xs text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-6">
+                <div class="flex items-center gap-4">
+                    <span class="w-24 flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Date created</span>
+                    <span class="text-slate-700 dark:text-slate-300 font-medium">{% now "M d, Y" %}</span>
+                </div>
+            </div>
+
+            <!-- Description / Note Area -->
+            <div class="flex-1">
+                <textarea name="description" placeholder="Folder description or notes..." class="w-full h-full min-h-[180px] border-none outline-none resize-none bg-transparent text-slate-700 dark:text-slate-300 placeholder-slate-400 text-sm"></textarea>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onclick="closeFolderModal()" class="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition">Cancel</button>
+                <button type="submit" class="px-4 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition">Save folder</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- JS Modal Script -->
+<script>
+    function openFolderModal() {
+        document.getElementById('folder-modal').classList.remove('hidden');
+    }
+
+    function closeFolderModal() {
+        document.getElementById('folder-modal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

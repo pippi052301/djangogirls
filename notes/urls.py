@@ -87,6 +87,12 @@ urlpatterns = [
     ),
 
     path(
+        "tags/<int:pk>/edit/",
+        views.tag_edit,
+        name="tag_update"
+    ),
+
+    path(
         "tags/<int:pk>/delete/",
         views.tag_delete,
         name="tag_delete"

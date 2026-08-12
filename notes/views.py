@@ -2,53 +2,56 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import Note, Folder, Tag, Attachment, NoteLink
 from .forms import NoteForm, FolderForm, TagForm, NoteTagForm
 from django.contrib.auth.decorators import login_required
-
-#notes settings
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+# ================= NOTES VIEWS =================
 @login_required
 def note_list(request):
-    notes = Note.objects.filter(owner=request.user)
+    notes_queryset = Note.objects.filter(owner=request.user).prefetch_related('tags', 'folder').order_by('-created_at')
+    folders = Folder.objects.filter(owner=request.user)
+    tags = Tag.objects.filter(owner=request.user)
+
+    paginator = Paginator(notes_queryset, 10)
+    page_number = request.GET.get('page', 1)
+    notes = paginator.get_page(page_number)
+
+    form = NoteForm(user=request.user)
 
     return render(
         request,
         "notes/note_list.html",
-        {"notes": notes}
+        {
+            "notes": notes,
+            "folders": folders,
+            "tags": tags,
+            "form": form,
+        }
     )
 
 @login_required
 def note_create(request):
-
     if request.method == "POST":
-
         form = NoteForm(
             request.POST,
             user=request.user
         )
 
         if form.is_valid():
-
             note = form.save(commit=False)
-
             note.owner = request.user
-
             note.save()
+            form.save_m2m() 
 
-            return redirect(
-                "notes:note_detail",
-                pk=note.pk
-            )
+            tag_ids = request.POST.getlist('tags')
+            if tag_ids:
+                valid_tags = Tag.objects.filter(id__in=tag_ids, owner=request.user)
+                note.tags.set(valid_tags)
 
-    else:
+            return redirect("notes:note_list")
 
-        form = NoteForm(
-            user=request.user
-        )
+    return redirect("notes:note_list")
 
-    return render(
-        request,
-        "notes/note_form.html",
-        {"form": form}
-    )
-    
 @login_required
 def note_detail(request, pk):
     note = get_object_or_404(
@@ -65,7 +68,6 @@ def note_detail(request, pk):
 
 @login_required
 def note_edit(request, pk):
-
     note = get_object_or_404(
         Note,
         pk=pk,
@@ -73,7 +75,6 @@ def note_edit(request, pk):
     )
 
     if request.method == "POST":
-
         form = NoteForm(
             request.POST,
             instance=note,
@@ -81,16 +82,16 @@ def note_edit(request, pk):
         )
 
         if form.is_valid():
-
-            form.save()
-
+            note = form.save()
+            tag_ids = request.POST.getlist('tags')
+            if tag_ids:
+                valid_tags = Tag.objects.filter(id__in=tag_ids, owner=request.user)
+                note.tags.set(valid_tags)
             return redirect(
                 "notes:note_detail",
                 pk=note.pk
             )
-
     else:
-
         form = NoteForm(
             instance=note,
             user=request.user
@@ -104,7 +105,7 @@ def note_edit(request, pk):
             "note": note
         }
     )
-    
+
 @login_required
 def note_delete(request, pk):
     note = get_object_or_404(
@@ -115,72 +116,47 @@ def note_delete(request, pk):
 
     if request.method == "POST":
         note.delete()
-
         return redirect("notes:note_list")
 
     return render(
         request,
-        "notes/note_confirm_delete.html",
-        {"note": note}
+        "notes/note_confirm_deletion.html",
+        {"note": note, "object": note}
     )
-    
-#folder settings
+
+
+# ================= FOLDERS VIEWS =================
 @login_required
 def folder_list(request):
-
-    folders = Folder.objects.filter(
-        owner=request.user,
-        parent=None
-    )
-
+    folders = Folder.objects.filter(owner=request.user).prefetch_related('notes')
+    
     return render(
         request,
-        "notes/folder_list.html",
+        "folders/folder_list.html", 
         {
-            "folders": folders
+            "folders": folders,
         }
     )
-    
+
 @login_required
 def folder_create(request):
-
     if request.method == "POST":
-
         form = FolderForm(
             request.POST,
             user=request.user
         )
 
         if form.is_valid():
-
             folder = form.save(commit=False)
-
             folder.owner = request.user
-
             folder.save()
 
-            return redirect(
-                "notes:folder_detail",
-                pk=folder.pk
-            )
+            return redirect("notes:folder_list")
 
-    else:
+    return redirect("notes:folder_list")
 
-        form = FolderForm(
-            user=request.user
-        )
-
-    return render(
-        request,
-        "notes/folder_form.html",
-        {
-            "form": form
-        }
-    )
-    
 @login_required
 def folder_detail(request, pk):
-
     folder = get_object_or_404(
         Folder,
         pk=pk,
@@ -192,33 +168,20 @@ def folder_detail(request, pk):
         owner=request.user
     )
 
-    notes = Note.objects.filter(
-        folder=folder,
-        owner=request.user
-    )
+    notes = folder.notes.all()
 
     return render(
         request,
-        "notes/folder_detail.html",
+        "folders/folder_detail.html",
         {
             "folder": folder,
             "subfolders": subfolders,
             "notes": notes,
         }
     )
-    
-@login_required
-def folder_detail(request, pk):
-    folder = get_object_or_404(Folder, pk=pk, owner=request.user)
-    notes = folder.notes.all()  # Lấy danh sách ghi chú thuộc thư mục này
-    return render(
-        request,
-        "notes/folder_detail.html",
-        {"folder": folder, "notes": notes}
-    )
+
 @login_required
 def folder_edit(request, pk):
-
     folder = get_object_or_404(
         Folder,
         pk=pk,
@@ -226,7 +189,6 @@ def folder_edit(request, pk):
     )
 
     if request.method == "POST":
-
         form = FolderForm(
             request.POST,
             instance=folder,
@@ -234,16 +196,12 @@ def folder_edit(request, pk):
         )
 
         if form.is_valid():
-
-            form.save()
-
+            folder = form.save()
             return redirect(
                 "notes:folder_detail",
                 pk=folder.pk
             )
-
     else:
-
         form = FolderForm(
             instance=folder,
             user=request.user
@@ -251,16 +209,15 @@ def folder_edit(request, pk):
 
     return render(
         request,
-        "notes/folder_form.html",
+        "folders/folder_form.html",
         {
             "form": form,
             "folder": folder
         }
     )
-    
+
 @login_required
 def folder_delete(request, pk):
-
     folder = get_object_or_404(
         Folder,
         pk=pk,
@@ -268,70 +225,59 @@ def folder_delete(request, pk):
     )
 
     if request.method == "POST":
-
         folder.delete()
-
         return redirect(
             "notes:folder_list"
         )
 
     return render(
         request,
-        "notes/folder_confirm_delete.html",
+        "folders/folder_confirm_delete.html",
         {
-            "folder": folder
+            "folder": folder,
+            "object": folder
         }
     )
 
+
+# ================= TAGS VIEWS =================
 @login_required
 def tag_create(request):
-
     if request.method == "POST":
-
         form = TagForm(request.POST)
 
         if form.is_valid():
-
             tag = form.save(commit=False)
-
             tag.owner = request.user
-
             tag.save()
 
-            return redirect(
-                "notes:tag_list"
-            )
+            # AJAX (JavaScript)
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'id': tag.id, 'name': tag.name})
+
+            return redirect("notes:tag_list")
 
     else:
-
         form = TagForm()
 
     return render(
         request,
-        "notes/tag_form.html",
-        {
-            "form": form
-        }
+        "notes/tags/tag_form.html",
+        {"form": form}
     )
-    
+
 @login_required
+@xframe_options_sameorigin
 def tag_list(request):
-
-    tags = Tag.objects.filter(
-        owner=request.user
-    )
-
+    tags = Tag.objects.filter(owner=request.user)
     return render(
         request,
-        "notes/tag_list.html",
-        {
-            "tags": tags
-        }
+        "notes/tags/tag_list.html",
+        {"tags": tags}
     )
-    
+
 @login_required
 def tag_detail(request, pk):
-
     tag = get_object_or_404(
         Tag,
         pk=pk,
@@ -345,16 +291,15 @@ def tag_detail(request, pk):
 
     return render(
         request,
-        "notes/tag_detail.html",
+        "notes/tags/tag_detail.html",
         {
             "tag": tag,
             "notes": notes
         }
     )
-    
-@login_required
-def tag_delete(request, pk):
 
+@login_required
+def tag_edit(request, pk):
     tag = get_object_or_404(
         Tag,
         pk=pk,
@@ -362,24 +307,48 @@ def tag_delete(request, pk):
     )
 
     if request.method == "POST":
+        form = TagForm(request.POST, instance=tag)
+        if form.is_valid():
+            form.save()
+            return redirect("notes:tag_list")
+    else:
+        form = TagForm(instance=tag)
 
+    return render(
+        request,
+        "notes/tags/tag_form.html",
+        {
+            "form": form,
+            "tag": tag,
+            "object": tag
+        }
+    )
+
+@login_required
+def tag_delete(request, pk):
+    tag = get_object_or_404(
+        Tag,
+        pk=pk,
+        owner=request.user
+    )
+
+    if request.method == "POST":
         tag.delete()
-
         return redirect(
             "notes:tag_list"
         )
 
     return render(
         request,
-        "notes/tag_confirm_delete.html",
+        "notes/tags/tag_confirm_deletion.html",
         {
-            "tag": tag
+            "tag": tag,
+            "object": tag
         }
     )
 
 @login_required
 def note_tags(request, pk):
-
     note = get_object_or_404(
         Note,
         pk=pk,
@@ -387,25 +356,20 @@ def note_tags(request, pk):
     )
 
     if request.method == "POST":
-
         form = NoteTagForm(
             request.POST,
             user=request.user
         )
 
         if form.is_valid():
-
             tags = form.cleaned_data["tags"]
-
             note.tags.set(tags)
 
             return redirect(
                 "notes:note_detail",
                 pk=note.pk
             )
-
     else:
-
         form = NoteTagForm(
             user=request.user,
             initial={

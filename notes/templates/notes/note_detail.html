@@ -1,0 +1,84 @@
+{% extends 'base_notes.html' %}
+
+{% block title %}{{ note.title }} - Study Notes{% endblock %}
+
+{% block page_title %}{{ note.title }}{% endblock %}
+
+{% block page_header %}
+<!-- Header Actions & Breadcrumb -->
+<div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 mb-6">
+    <div class="flex items-center gap-2 text-xs text-slate-500">
+        <a href="{% url 'notes:note_list' %}" class="hover:underline flex items-center gap-1">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+            <span>Back to Notes</span>
+        </a>
+    </div>
+    <div class="flex items-center gap-2">
+        <a href="{% url 'notes:note_edit' pk=note.pk %}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded transition">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <span>Edit</span>
+        </a>
+        <a href="{% url 'notes:note_delete' pk=note.pk %}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded transition">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Delete</span>
+        </a>
+    </div>
+</div>
+
+<!-- Title & Icon -->
+<div class="mb-6">
+    <span class="text-5xl inline-block mb-3">✏️</span>
+    <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ note.title }}</h1>
+</div>
+
+<!-- Note Properties (Notion Style) -->
+<div class="space-y-3 text-xs text-slate-500 border-y border-slate-100 dark:border-slate-800 py-4 mb-6">
+    <div class="flex items-center gap-4">
+        <span class="w-28 flex items-center gap-1.5 text-slate-400">
+            <i data-lucide="clock" class="w-3.5 h-3.5"></i> Created
+        </span>
+        <span class="text-slate-700 dark:text-slate-300 font-medium">{{ note.created_at|date:"M d, Y, H:i" }}</span>
+    </div>
+    
+    <div class="flex items-center gap-4">
+        <span class="w-28 flex items-center gap-1.5 text-slate-400">
+            <i data-lucide="folder" class="w-3.5 h-3.5"></i> Folder
+        </span>
+        {% if note.folder %}
+            <a href="{% url 'notes:folder_detail' pk=note.folder.pk %}" class="inline-block bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded font-medium hover:underline">
+                {{ note.folder.name }}
+            </a>
+        {% else %}
+            <span class="text-slate-400 italic">No Folder</span>
+        {% endif %}
+    </div>
+
+    <div class="flex items-center gap-4">
+        <span class="w-28 flex items-center gap-1.5 text-slate-400">
+            <i data-lucide="tag" class="w-3.5 h-3.5"></i> Tags
+        </span>
+        <div class="flex flex-wrap gap-1">
+            {% for tag in note.tags.all %}
+                <a href="{% url 'notes:tag_detail' pk=tag.pk %}" class="inline-block {{ tag.color_class }} text-xs px-2.5 py-0.5 rounded border font-medium transition hover:scale-105">
+                    # {{ tag.name }}
+                </a>
+            {% empty %}
+                <span class="text-slate-400 italic">No Tags</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Note Content Display -->
+<div class="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+    {% if note.content.body %}
+        {{ note.content.body }}
+    {% elif note.content %}
+        {{ note.content }}
+    {% else %}
+        <p class="text-slate-400 italic">No content in this note yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

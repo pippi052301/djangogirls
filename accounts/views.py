@@ -1,4 +1,4 @@
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.shortcuts import render, redirect
 from django.contrib.auth.views import LoginView
 from .forms import RegisterForm
@@ -23,3 +23,8 @@ def register(request):
         form = RegisterForm()
 
     return render(request, "accounts/register.html", {"form": form})
+
+
+def custom_logout(request):
+    logout(request)
+    return redirect("accounts:login")
