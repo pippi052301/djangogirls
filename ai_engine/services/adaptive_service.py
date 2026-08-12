@@ -118,10 +118,14 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     Bước 4 (Justification): Đưa ra lý do CỤ THỂ cho từng điểm số.
     
     [RUBRIC ĐA CHIỀU (Thang 100 điểm)]
-    1. Độ chính xác nội dung - 40đ
-    2. Tính logic của lập luận - 30đ
-    3. Cấu trúc bài viết - 15đ
-    4. Từ vựng/Thuật ngữ - 15đ
+    1. Độ chính xác nội dung (Content Accuracy) - Tối đa 40 điểm: Mức độ bao phủ các ý chuẩn.
+    2. Tính logic của lập luận (Logical Argumentation) - Tối đa 30 điểm: Sự chặt chẽ, mạch lạc.
+    3. Cấu trúc bài viết (Structure) - Tối đa 15 điểm: Mở bài, thân bài, kết luận rõ ràng.
+    4. Từ vựng/Thuật ngữ (Vocabulary) - Tối đa 15 điểm: Sử dụng ngôn từ tinh tế, đúng chuyên ngành như một chuyên gia.
+    
+    [NGÔN NGỮ ĐẦU RA] #jp
+    "decomposition", tất cả "rationale", và "overall_feedback" phải được viết bằng tiếng Nhật.
+    Tên key JSON và điểm số giữ nguyên.
 
     TRẢ VỀ 100% JSON THEO CẤU TRÚC:
     {{
