@@ -39,7 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     "learning",
-    "ai_engine"
+
+    'accounts',
+    'notes',
+    'ai_engine',
+    'core',
 ]
 
 MIDDLEWARE = [
@@ -133,3 +137,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 ALLOWED_HOSTS = ['127.0.0.1', 'pythonanywhere.com']
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"

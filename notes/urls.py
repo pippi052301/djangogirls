@@ -96,4 +96,47 @@ urlpatterns = [
     views.note_tags,
     name="note_tags"
     ),
-]
+    path(
+        "<int:pk>/attachment/upload/",
+        views.attachment_upload,
+        name="attachment_upload"
+    ),
+
+    path(
+        "attachment/<int:pk>/delete/",
+        views.attachment_delete,
+        name="attachment_delete"
+    ),
+    path(
+        "map/link/create/<int:pk>/",
+        views.note_link_create,
+        name="note_link_create"
+    ),
+
+    path(
+        "map/link/<int:pk>/delete/",
+        views.note_link_delete,
+        name="note_link_delete"
+    ),
+    path(
+        "map/",
+        views.map_view,
+        name="map_view"
+    ),
+
+    path(
+        "map/data/",
+        views.map_graph_data,
+        name="map_graph_data"
+    ),
+    path(
+        "templates/",
+        views.template_picker,
+        name="template_picker"
+    ),
+    path(
+        "<int:pk>/autosave/",
+        views.note_autosave,
+        name="note_autosave"
+    ),
+    ]
