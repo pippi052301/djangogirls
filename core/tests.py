@@ -6,4 +6,4 @@ class corePageTest(TestCase):
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Core Home")
+        self.assertContains(response, "Study Support")

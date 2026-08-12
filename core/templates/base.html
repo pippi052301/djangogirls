@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Study Support{% endblock %}</title>
-    
+
     <style>
         body {
             margin: 0;
@@ -15,7 +15,6 @@
             flex-direction: column;
             min-height: 100vh;
         }
-
         /* Header Navbar */
         .navbar-header {
             background-color: #2e7d32;
@@ -23,7 +22,6 @@
             height: 60px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.15);
         }
-
         .navbar-container {
             max-width: 1300px;
             height: 100%;
@@ -32,7 +30,6 @@
             justify-content: space-between;
             align-items: center;
         }
-
         .nav-logo {
             color: #ffffff;
             font-size: 22px;
@@ -41,12 +38,10 @@
             font-family: 'Georgia', serif;
             font-style: italic;
         }
-
         /* Avatar Container & Menu Profile Popup */
         .user-profile-wrapper {
             position: relative;
         }
-
         .profile-avatar-btn {
             width: 40px;
             height: 40px;
@@ -62,12 +57,10 @@
             user-select: none;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-
         .profile-avatar-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
-
         .profile-card-popup {
             display: none;
             position: absolute;
@@ -82,18 +75,15 @@
             box-sizing: border-box;
             text-align: center;
         }
-
         .profile-card-popup.show {
             display: block;
         }
-
         .popup-email {
             font-size: 13px;
             color: #444746;
             margin-bottom: 12px;
             word-break: break-all;
         }
-
         .popup-large-avatar {
             width: 70px;
             height: 70px;
@@ -106,14 +96,12 @@
             justify-content: center;
             margin: 0 auto 10px auto;
         }
-
         .popup-greeting {
             font-size: 20px;
             font-weight: 500;
             color: #1f1f1f;
             margin-bottom: 15px;
         }
-
         /* Columnize action in Popup */
         .popup-actions {
             display: flex;
@@ -121,7 +109,6 @@
             gap: 8px;
             margin-top: 15px;
         }
-
         .btn-popup-action {
             width: 100%;
             padding: 10px 16px;
@@ -140,16 +127,13 @@
             transition: all 0.2s ease;
             box-sizing: border-box;
         }
-
         .btn-popup-action:hover {
             background-color: #f1f3f4;
             border-color: #b0b0b0;
         }
-
         .btn-edit-profile {
             color: #2e7d32;
         }
-
         /* --- LOGIN display --- */
         .main-content {
             flex: 1;
@@ -158,7 +142,6 @@
             align-items: center;
             padding: 40px 20px;
         }
-
         .login-card {
             background-color: #ffffff;
             padding: 35px 40px;
@@ -168,25 +151,21 @@
             max-width: 420px;
             box-sizing: border-box;
         }
-
         .login-card h2 {
             margin-top: 0;
             margin-bottom: 8px;
             color: #333333;
             text-align: center;
         }
-
         .login-subtitle {
             font-size: 14px;
             color: #666666;
             text-align: center;
             margin-bottom: 25px;
         }
-
         .form-group {
             margin-bottom: 18px;
         }
-
         .form-group label {
             display: block;
             font-size: 14px;
@@ -194,7 +173,6 @@
             color: #444444;
             margin-bottom: 6px;
         }
-
         /* Footer */
         .site-footer {
             text-align: center;
@@ -202,39 +180,40 @@
             color: #777777;
             font-size: 14px;
         }
+
     </style>
 </head>
+
 <body>
 
 <header class="navbar-header">
     <div class="navbar-container">
+
         <!-- Logo -->
-        <a href="{% url 'learning:home' %}" class="nav-logo">Study Support</a>
+        <a href="{% url 'core:home' %}" class="nav-logo">Study Support</a>
 
         <!-- Avatar Profile -->
+
         {% if user.is_authenticated %}
         <div class="user-profile-wrapper">
             <button class="profile-avatar-btn" id="avatarBtn">
                 {{ user.username|slice:":1"|upper }}
             </button>
-
             <div class="profile-card-popup" id="profilePopup">
                 <div class="popup-email">{{ user.email|default:user.username }}</div>
-                
                 <div class="popup-large-avatar" id="largeAvatar">
                     {{ user.username|slice:":1"|upper }}
                 </div>
-                
                 <div class="popup-greeting">Hi, {{ user.username }}!</div>
-
                 <div class="popup-actions">
+
                     <!--  Edit Profile  -->
                     <a href="#" class="btn-popup-action btn-edit-profile">
                         Edit Profile
                     </a>
 
                     <!--  Sign out  -->
-                    <form method="post" action="{% url 'accounts:login' %}" style="width: 100%; margin: 0;">
+                    <form method="post" action="{% url 'accounts:logout' %}" style="width: 100%; margin: 0;">
                         {% csrf_token %}
                          <button type="submit" class="btn-popup-action">
                             Sign out
@@ -245,48 +224,49 @@
         </div>
         {% else %}
     <a href="{% url 'accounts:login' %}" style="color: white; text-decoration: none; font-weight: bold; font-size: 14px;">Login</a>
+
         {% endif %}
     </div>
+
 </header>
 
 <main class="main-content">
+
     {% block content %}
     {% endblock %}
+
 </main>
 
 <footer class="site-footer">
     © 2026 Phindi-hanhnhan
+
 </footer>
 
 <script>
     const avatarBtn = document.getElementById('avatarBtn');
     const largeAvatar = document.getElementById('largeAvatar');
     const profilePopup = document.getElementById('profilePopup');
-
     const colors = [
-        '#673ab7', '#e91e63', '#9c27b0', '#3f51b5', 
+        '#673ab7', '#e91e63', '#9c27b0', '#3f51b5',
         '#009688', '#00bcd4', '#ff5722', '#795548', '#607d8b'
     ];
-
     if (avatarBtn) {
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
         avatarBtn.style.backgroundColor = randomColor;
         if (largeAvatar) {
             largeAvatar.style.backgroundColor = randomColor;
         }
-
         avatarBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             profilePopup.classList.toggle('show');
         });
-
         document.addEventListener('click', (e) => {
             if (!profilePopup.contains(e.target) && e.target !== avatarBtn) {
                 profilePopup.classList.remove('show');
             }
         });
     }
-</script>
 
+</script>
 </body>
-</html>
+</html> 

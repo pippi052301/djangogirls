@@ -16,7 +16,7 @@ def register(request):
 
             login(request, user)
 
-            return redirect("learning:note_list")
+            return redirect("notes:note_list")
 
     else:
 

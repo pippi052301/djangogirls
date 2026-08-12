@@ -86,3 +86,17 @@ class NoteLinkForm(forms.ModelForm):
             self.fields['to_note'].queryset = Note.objects.filter(
                 owner=user
             )
+
+
+class NoteTagForm(forms.Form):
+    tags = forms.ModelMultipleChoiceField(
+        queryset=Tag.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False
+    )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['tags'].queryset = Tag.objects.filter(owner=user)

@@ -60,4 +60,12 @@ urlpatterns = [
         ),
         name="password_reset_complete"
     ),
+    path(
+        "login/",
+        auth_views.LoginView.as_view(
+            template_name="accounts/login.html",
+            redirect_authenticated_user=True,  # if the User have already logged in 
+        ),
+        name="login",
+    ),
 ]

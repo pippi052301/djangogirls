@@ -127,6 +127,11 @@ STATIC_ROOT = BASE_DIR / 'static'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+LOGIN_REDIRECT_URL = "notes:note_list"
+
+LOGIN_URL = "accounts:login"
+
+LOGOUT_REDIRECT_URL = "core:home"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
