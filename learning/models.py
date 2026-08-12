@@ -55,7 +55,7 @@ class Exercise(models.Model):
             MinValueValidator(0),
             MaxValueValidator(100),
         ],
-        help_text="この問題の難易度（0〜100）",
+        help_text="difficulty of this problem（0〜100）",
     )
     recent_average_score = models.DecimalField(
         max_digits=5,
@@ -65,7 +65,7 @@ class Exercise(models.Model):
             MinValueValidator(0),
             MaxValueValidator(100),
         ],
-        help_text="この問題を生成するときに使った直近5問の平均点",
+        help_text="average score of the last 5 attempts（0〜100）",
     )
     question = models.TextField()
     options = models.JSONField(
@@ -122,18 +122,18 @@ class Exercise(models.Model):
                 or len(self.options) < 2
             ):
                 raise ValidationError(
-                    "選択問題には2つ以上の選択肢が必要です。"
+                    "you need to provide at least 2 options for multiple choice questions."
                 )
 
             if not self.correct_answer:
                 raise ValidationError(
-                    "選択問題には正解が必要です。"
+                    "you need to provide a correct answer for multiple choice questions."
                 )
 
         elif self.question_type == self.QuestionType.SHORT_ANSWER:
             if not self.correct_answer:
                 raise ValidationError(
-                    "短答問題には模範解答が必要です。"
+                    "you need to provide a correct answer for short answer questions."
                 )
 
         elif self.question_type == self.QuestionType.LONG_ANSWER:
@@ -142,7 +142,7 @@ class Exercise(models.Model):
                 or not self.key_points
             ):
                 raise ValidationError(
-                    "記述問題には採点用の要点が必要です。"
+                    "you need to provide key points for long answer questions."
                 )
 
     def save(self, *args, **kwargs):
@@ -150,7 +150,7 @@ class Exercise(models.Model):
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.quiz.title} - 問題{self.order}"
+        return f"{self.quiz.title} - Question {self.order}"
 
 
 class QuizAttempt(models.Model):
@@ -204,9 +204,9 @@ class QuizAttempt(models.Model):
 class AttemptQuerySet(models.QuerySet):
     def recent_average_score_for(self, user, limit=5):
         """
-        ユーザーの直近の採点済み5問から平均点を返す。
+        return the average score of the last `limit` attempts for the given user.
 
-        採点済みの問題がなければ50.00を返す。
+        If no graded questions are available, return 50.00.
         """
 
         average = (
@@ -239,7 +239,7 @@ class Attempt(models.Model):
     )
     user_answer = models.TextField()
     reasoning = models.TextField(
-        help_text="ユーザーが入力した、問題を解くための論理ステップ",
+        help_text="the logical steps the user took to solve the problem",
     )
     score = models.DecimalField(
         max_digits=5,
@@ -292,12 +292,12 @@ class Attempt(models.Model):
         if self.quiz_attempt_id and self.exercise_id:
             if self.quiz_attempt.quiz_id != self.exercise.quiz_id:
                 raise ValidationError(
-                    "受験中のテストに含まれない問題には回答できません。"
+                    "you cantt submit an answer for a question that is not part of the quiz attempt."
                 )
 
             if self.used_hint_count > len(self.exercise.hints):
                 raise ValidationError(
-                    "使用したヒント数が、問題のヒント数を超えています。"
+                    "you cantt use more hints than are available for the question."
                 )
 
     def save(self, *args, **kwargs):

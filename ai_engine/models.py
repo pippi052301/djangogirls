@@ -4,21 +4,21 @@ from pgvector.django import HalfVectorField, HnswIndex
 
 class SemanticCache(models.Model):
     class Purpose(models.TextChoices):
-        QUIZ = "quiz", "問題生成"
-        ADAPTIVE_PRACTICE = "adaptive_practice", "適応型問題生成"
-        GRADING = "grading", "AI採点"
-        KNOWLEDGE_GRAPH = "knowledge_graph", "マップ生成"
+        QUIZ = "quiz", "Question Generation"
+        ADAPTIVE_PRACTICE = "adaptive_practice", "Adaptive Question Generation"
+        GRADING = "grading", "AI Grading"
+        KNOWLEDGE_GRAPH = "knowledge_graph", "Map Generation"
 
     input_hash = models.CharField(
         max_length=64,
-        help_text="完全一致確認用のSHA-256ハッシュ",
+        help_text="SHA-256 hash for exact match verification",
     )
     input_embedding = HalfVectorField(
         dimensions=3072,
-        help_text="意味検索に使用する入力文のEmbedding",
+        help_text="Embedding for semantic search",
     )
     response = models.JSONField(
-        help_text="再利用するAIのJSON応答",
+        help_text="JSON response from the AI model for reuse",
     )
     purpose = models.CharField(
         max_length=30,
