@@ -9,7 +9,7 @@ from learning.models import SemanticAICache, ReferenceSample
 from .services.quiz_service import generate_quiz_from_text
 from .services.graph_service import generate_knowledge_graph
 from .services.adaptive_service import generate_adaptive_practice, advanced_grade_essay, grade_simple_answer
-from .embedding_service import get_text_embedding 
+from .services.embedding_service import get_text_embedding 
 
 # --- HÀM TRỢ THỦ XỬ LÝ CACHING ---
 SIMILARITY_THRESHOLD = 0.05 # Ngưỡng 95% giống nhau
