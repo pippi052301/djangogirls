@@ -7,6 +7,7 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
+from pgvector.django import HalfVectorField, HnswIndex
 
 class Quiz(models.Model):
     class GenerationType(models.TextChoices):
