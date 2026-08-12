@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     "learning",
-    "ai_engine"
+    "ai_engine",
+    "notes",
 ]
 
 MIDDLEWARE = [

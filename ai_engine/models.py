@@ -1,69 +1,42 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from pgvector.django import HalfVectorField, HnswIndex
+from pgvector.django import VectorField
 
+EMBEDDING_DIMENSIONS = 3072
 
-class SemanticCache(models.Model):
-    class Purpose(models.TextChoices):
-        QUIZ = "quiz", "Question Generation"
-        ADAPTIVE_PRACTICE = "adaptive_practice", "Adaptive Question Generation"
-        GRADING = "grading", "AI Grading"
-        KNOWLEDGE_GRAPH = "knowledge_graph", "Map Generation"
+class SemanticAICache(models.Model):
+    "Cache a structured AI response for semantically similar input text."
 
-    input_hash = models.CharField(
-        max_length=64,
-        help_text="SHA-256 hash for exact match verification",
-    )
-    input_embedding = HalfVectorField(
-        dimensions=3072,
-        help_text="Embedding for semantic search",
-    )
-    response = models.JSONField(
-        help_text="JSON response from the AI model for reuse",
-    )
-    purpose = models.CharField(
-        max_length=30,
-        choices=Purpose.choices,
-    )
-    model_name = models.CharField(
-        max_length=100,
-    )
-    prompt_version = models.CharField(
-        max_length=30,
-        default="1",
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
-    last_used_at = models.DateTimeField(
-        auto_now=True,
-    )
-    expires_at = models.DateTimeField(
-        null=True,
-        blank=True,
-    )
+    feature_type = models.CharField(max_length=50, db_index=True)
+    original_text = models.TextField()
+    text_embedding = VectorField(dimensions=EMBEDDING_DIMENSIONS)
+    ai_response = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-last_used_at"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=[
-                    "input_hash",
-                    "purpose",
-                    "model_name",
-                    "prompt_version",
-                ],
-                name="unique_semantic_cache_input",
-            )
-        ]
-        indexes = [
-            HnswIndex(
-                name="semantic_cache_embedding_hnsw",
-                fields=["input_embedding"],
-                m=16,
-                ef_construction=64,
-                opclasses=["halfvec_cosine_ops"],
-            )
-        ]
+        ordering = ["-created_at"]
+        verbose_name = "semantic AI cache"
+        verbose_name_plural = "semantic AI caches"
 
     def __str__(self):
-        return f"{self.purpose} - {self.input_hash[:12]}"
+        return f"{self.feature_type}: {self.original_text[:50]}"
+
+
+class ReferenceSample(models.Model):
+    "Store a teacher-graded answer used as a reference for AI grading."
+
+    exercise_id = models.CharField(max_length=100, db_index=True)
+    content = models.TextField()
+    score = models.FloatField(
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    feedback = models.TextField()
+    embedding = VectorField(dimensions=EMBEDDING_DIMENSIONS)
+
+    class Meta:
+        ordering = ["exercise_id", "id"]
+        verbose_name = "reference sample"
+        verbose_name_plural = "reference samples"
+
+    def __str__(self):
+        return f"Exercise {self.exercise_id}: {self.score:g}/100"
