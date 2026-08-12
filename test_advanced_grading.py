@@ -2,9 +2,15 @@ import json
 from ai_engine.services.adaptive_service import advanced_grade_essay
 
 # 1. DỮ LIỆU ĐẦU VÀO CỐ ĐỊNH (Không cần DB)
-question_text = "Phân tích kiến trúc MVT trong Django."
-standard_answer = "Django tuân theo kiến trúc MVT (Model - View - Template). Trong đó, Model xử lý dữ liệu và giao tiếp cơ sở dữ liệu. View xử lý logic nghiệp vụ. Template lo phần hiển thị giao diện người dùng bằng HTML."
-student_answer = "MVT là kiến trúc của Django. Model lo phần data, còn Template lo phần view, View lo logic."
+question_text = "二次方程式における判別式とは何か。また、判別式の値と実数解の個数との関係を説明しなさい。"
+standard_answer = """判別式とは、二次方程式 ax² + bx + c = 0 において、
+実数解の個数を判別するために用いられる D = b² - 4ac のことである。
+D > 0 のとき異なる2つの実数解をもち、
+D = 0 のとき1つの実数解（重解）をもち、
+D < 0 のとき実数解をもたない。"""
+student_answer = """判別式は D=b²+4ac で求められ、二次方程式の解そのものを計算するための公式である。
+D>0なら実数解はなく、D=0なら異なる2つの実数解をもち、D<0なら1つの実数解をもつ。 
+"""
 
 # 2. GIẢ LẬP DỮ LIỆU TỪ PGVECTOR (Bạn tự viết tay 2 bài mẫu)
 fake_retrieved_samples = """

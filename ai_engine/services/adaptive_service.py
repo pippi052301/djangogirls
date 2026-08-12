@@ -92,6 +92,10 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     2. Tính logic của lập luận (Logical Argumentation) - Tối đa 30 điểm: Sự chặt chẽ, mạch lạc.
     3. Cấu trúc bài viết (Structure) - Tối đa 15 điểm: Mở bài, thân bài, kết luận rõ ràng.
     4. Từ vựng/Thuật ngữ (Vocabulary) - Tối đa 15 điểm: Sử dụng ngôn từ tinh tế, đúng chuyên ngành như một chuyên gia.
+    
+    [NGÔN NGỮ ĐẦU RA] #jp
+    "decomposition", tất cả "rationale", và "overall_feedback" phải được viết bằng tiếng Nhật.
+    Tên key JSON và điểm số giữ nguyên.
 
     TRẢ VỀ 100% JSON THEO CẤU TRÚC SAU (Lưu ý: rationale phải giải thích chi tiết, không nói chung chung):
     {{
