@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - Study Support{% endblock %}
+
+{% block content %}
+<div class="login-card">
+    <h2>Create an Account</h2>
+    <p class="login-subtitle">Sign up to manage your notes and exercises.</p>
+
+    {% if form.errors %}
+        <div class="alert-error" style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+            Please correct the errors below and try again.
+        </div>
+    {% endif %}
+
+    <!--  'accounts:register' -->
+    <form method="post" action="{% url 'accounts:register' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="{{ form.username.id_for_label }}">Username</label>
+            <input type="text" name="username" id="{{ form.username.id_for_label }}" value="{{ form.username.value|default:'' }}" placeholder="Enter your username" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            {% for error in form.username.errors %}
+                <div class="field-error" style="color: #d9534f; font-size: 13px; margin-top: 4px;">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.email.id_for_label }}">Email</label>
+            <input type="email" name="email" id="{{ form.email.id_for_label }}" value="{{ form.email.value|default:'' }}" placeholder="Enter your email" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            {% for error in form.email.errors %}
+                <div class="field-error" style="color: #d9534f; font-size: 13px; margin-top: 4px;">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.password1.id_for_label }}">Password</label>
+            <input type="password" name="password1" id="{{ form.password1.id_for_label }}" placeholder="Enter your password" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            {% for error in form.password1.errors %}
+                <div class="field-error" style="color: #d9534f; font-size: 13px; margin-top: 4px;">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
+            <input type="password" name="password2" id="{{ form.password2.id_for_label }}" placeholder="Confirm your password" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            {% for error in form.password2.errors %}
+                <div class="field-error" style="color: #d9534f; font-size: 13px; margin-top: 4px;">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <button type="submit" class="btn-submit btn-login" style="width: 100%; margin-top: 15px; padding: 12px; background-color: #2e7d32; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+            Sign Up
+        </button>
+    </form>
+
+    <p class="login-footer" style="text-align: center; margin-top: 20px; font-size: 14px; color: #666;">
+        <!-- 'accounts:login' -->
+        Already have an account? <a href="{% url 'accounts:login' %}" style="color: #2e7d32; font-weight: bold; text-decoration: none;">Log in here</a>
+    </p>
+</div>
+{% endblock %}
