@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "learning",
     "ai_engine",
     "notes",
+    "accounts",
 ]
 
 MIDDLEWARE = [

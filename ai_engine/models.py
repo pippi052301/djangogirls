@@ -27,7 +27,9 @@ class ReferenceSample(models.Model):
 
     exercise_id = models.CharField(max_length=100, db_index=True)
     content = models.TextField()
-    score = models.FloatField(
+    score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
         validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
     feedback = models.TextField()
