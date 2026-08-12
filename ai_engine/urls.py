@@ -10,4 +10,7 @@ urlpatterns = [
     
     # API 3: http://localhost:8000/ai/adaptive/
     path('adaptive/', views.create_adaptive_practice_api, name='api_create_adaptive'),
+    
+    # API 4: http://localhost:8000/ai/grade_essay/
+    path('grade_essay/', views.grade_essay_api, name='api_grade_essay'),
 ]

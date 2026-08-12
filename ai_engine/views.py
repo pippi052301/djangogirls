@@ -1,11 +1,11 @@
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-
-# Import các hàm AI từ thư mục services của bạn
+from django.core.exceptions import ValidationError 
 from .services.quiz_service import generate_quiz_from_text
 from .services.graph_service import generate_knowledge_graph
-from .services.adaptive_service import generate_adaptive_practice, grade_user_answer
+from .services.adaptive_service import generate_adaptive_practice, advanced_grade_essay
+from .services.embedding_service import get_text_embedding 
 
 @csrf_exempt # Tạm thời tắt kiểm tra CSRF để Frontend dễ test API
 def create_quiz_api(request):
@@ -76,6 +76,45 @@ def create_adaptive_practice_api(request):
             else:
                 return JsonResponse({"error": "AI đang bận"}, status=503)
                 
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+            
+    return JsonResponse({"error": "Phương thức không hợp lệ"}, status=405)
+
+
+@csrf_exempt
+def grade_essay_api(request):
+    """API Chấm điểm tự luận đa chiều (Có áp dụng AI Rubric)"""
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            question = body.get('question', '')
+            user_answer = body.get('user_answer', '')
+            standard_key_points = body.get('standard_key_points', '')
+            
+            # TODO dành cho Backend: Gọi pgvector và hàm get_text_embedding tại đây để tìm bài mẫu.
+            # Tạm thời để test, chúng ta cho phép truyền bài mẫu trực tiếp từ request body.
+            sample_essays = body.get('sample_essays', None)
+            
+            if not all([question, user_answer, standard_key_points]):
+                return JsonResponse({"error": "Thiếu dữ liệu đầu vào. Bắt buộc phải có: question, user_answer, standard_key_points"}, status=400)
+            
+            # Gọi "Hội đồng AI"
+            grading_result = advanced_grade_essay(
+                question=question, 
+                user_answer=user_answer, 
+                standard_key_points=standard_key_points,
+                sample_essays=sample_essays
+            )
+            
+            if grading_result:
+                return JsonResponse({"status": "success", "data": grading_result}, status=200)
+            else:
+                return JsonResponse({"error": "AI đang bận hoặc lỗi xử lý"}, status=503)
+                
+        except ValidationError as ve:
+            # Bắt lỗi toàn vẹn dữ liệu từ models.py và trả về mã 400
+            return JsonResponse({"error": f"Lỗi dữ liệu Model: {str(ve)}"}, status=400)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
             
