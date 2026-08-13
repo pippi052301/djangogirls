@@ -7,23 +7,16 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
+from django.utils import timezone
+
 
 class Quiz(models.Model):
-    class GenerationType(models.TextChoices):
-        STANDARD = "standard", "標準"
-        ADAPTIVE = "adaptive", "適応型"
-
     note = models.ForeignKey(
         "notes.Note",
         on_delete=models.CASCADE,
         related_name="quizzes",
     )
     title = models.CharField(max_length=100)
-    generation_type = models.CharField(
-        max_length=20,
-        choices=GenerationType.choices,
-        default=GenerationType.ADAPTIVE,
-    )
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -43,7 +36,7 @@ class Exercise(models.Model):
         on_delete=models.CASCADE,
         related_name="exercises",
     )
-    order = models.PositiveSmallIntegerField(default=1)
+    order = models.PositiveSmallIntegerField()
     question_type = models.CharField(
         max_length=20,
         choices=QuestionType.choices,
@@ -164,16 +157,6 @@ class QuizAttempt(models.Model):
         on_delete=models.CASCADE,
         related_name="quiz_attempts",
     )
-    score = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        validators=[
-            MinValueValidator(0),
-            MaxValueValidator(100),
-        ],
-    )
     started_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -184,21 +167,9 @@ class QuizAttempt(models.Model):
 
     class Meta:
         ordering = ["-started_at"]
-        constraints = [
-            models.CheckConstraint(
-                condition=(
-                    models.Q(score__isnull=True)
-                    | models.Q(
-                        score__gte=0,
-                        score__lte=100,
-                    )
-                ),
-                name="quiz_attempt_score_between_0_and_100",
-            )
-        ]
 
     def __str__(self):
-        return f"{self.user} - {self.quiz.title} ({self.score})"
+        return f"{self.user} - {self.quiz.title}"
 
 
 class AttemptQuerySet(models.QuerySet):
@@ -231,7 +202,7 @@ class Attempt(models.Model):
         QuizAttempt,
         on_delete=models.CASCADE,
         related_name="answers",
-        null=True,        
+        null=True,
         blank=True,
     )
     exercise = models.ForeignKey(
@@ -253,15 +224,16 @@ class Attempt(models.Model):
             MaxValueValidator(100),
         ],
     )
-    is_correct = models.BooleanField(
-        blank=True,
-        null=True,
-    )
     used_hint_count = models.PositiveSmallIntegerField(
         default=0,
     )
     feedback = models.TextField(
         blank=True,
+    )
+    rubric_details = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="AIが返した項目別の点数・根拠・要点分解",
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -291,6 +263,11 @@ class Attempt(models.Model):
     def clean(self):
         super().clean()
 
+        if not isinstance(self.rubric_details, dict):
+            raise ValidationError(
+                {"rubric_details": "採点詳細はJSONオブジェクトで保存してください。"}
+            )
+
         if self.quiz_attempt_id and self.exercise_id:
             if self.quiz_attempt.quiz_id != self.exercise.quiz_id:
                 raise ValidationError(
@@ -308,3 +285,124 @@ class Attempt(models.Model):
 
     def __str__(self):
         return f"{self.quiz_attempt.user} - {self.exercise}"
+
+
+class ReferenceSample(models.Model):
+    exercise = models.ForeignKey(
+        Exercise,
+        on_delete=models.CASCADE,
+        related_name="reference_samples",
+    )
+    answer_text = models.TextField(
+        help_text="教師が標準採点した比較用の模範回答",
+    )
+    human_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(100),
+        ],
+    )
+    rubric_details = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="教師による項目別の点数と採点理由",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    human_score__gte=0,
+                    human_score__lte=100,
+                ),
+                name="reference_sample_score_between_0_and_100",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+
+        if not isinstance(self.rubric_details, dict):
+            raise ValidationError(
+                {"rubric_details": "採点詳細はJSONオブジェクトで保存してください。"}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.exercise} - 教師採点 {self.human_score}点"
+
+
+class MapNode(models.Model):
+    note = models.ForeignKey(
+        "notes.Note",
+        on_delete=models.CASCADE,
+        related_name="map_nodes",
+    )
+    key = models.CharField(
+        max_length=100,
+        help_text="AIのnodes[].idに対応するノート内の識別子",
+    )
+    label = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["note", "key"],
+                name="unique_map_node_key_per_note",
+            )
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class MapEdge(models.Model):
+    source = models.ForeignKey(
+        MapNode,
+        on_delete=models.CASCADE,
+        related_name="outgoing_edges",
+    )
+    target = models.ForeignKey(
+        MapNode,
+        on_delete=models.CASCADE,
+        related_name="incoming_edges",
+    )
+    label = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source", "target", "label"],
+                name="unique_map_edge",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+
+        if self.source_id and self.target_id:
+            if self.source_id == self.target_id:
+                raise ValidationError(
+                    "同じノード自身には接続できません。"
+                )
+
+            if self.source.note_id != self.target.note_id:
+                raise ValidationError(
+                    "異なるノートに属するノード同士は接続できません。"
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.source} -> {self.target}"
+
