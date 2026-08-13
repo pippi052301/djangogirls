@@ -1,7 +1,873 @@
 {% extends 'base_notes.html' %}
 
-{% block notes_content %}
+{% block title %}Study Notes - Personal Study Space{% endblock %}
 
-    <h2>Note list</h2>
-    ...
+{% block page_title %}Study Notes{% endblock %}
+
+{% block page_header %}
+<!-- Emoji Icon-->
+<div class="-mt-14 mb-4 inline-block">
+    <span class="text-6xl hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded cursor-pointer transition">📝</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6 relative">
+    <!-- Action Bar / Search Bar -->
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+        <div class="flex items-center gap-2">
+            <i data-lucide="file-text" class="w-4 h-4 text-slate-500"></i>
+            <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">Study Notes</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Search Form (by Title or Tag) -->
+            <form method="GET" action="{% url 'notes:note_list' %}" class="relative flex items-center">
+                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 text-slate-400"></i>
+                <input type="text" name="q" id="note-search-input" value="{{ search_query }}" onkeyup="filterNotesRealtime(this.value)" placeholder="Search by title or tag..." 
+                       class="pl-8 pr-7 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 w-48 focus:w-64 transition-all">
+                {% if search_query %}
+                    <a href="{% url 'notes:note_list' %}" class="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" title="Clear search">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </a>
+                {% endif %}
+            </form>
+
+            <!-- Sort Dropdown Menu (3 Horizontal Bars Icon) -->
+            <div class="relative inline-block text-left">
+                <button type="button" onclick="toggleSortDropdown(event)" class="p-1.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center justify-center" title="Sort Notes">
+                    <i data-lucide="align-justify" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Sort Options Dropdown -->
+                <div id="sort-dropdown-menu" class="hidden absolute right-0 mt-1 w-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-1 z-30 text-xs">
+                    <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        Sort by
+                    </div>
+                    <a href="?sort=recently{% if search_query %}&q={{ search_query }}{% endif %}" 
+                       class="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition font-medium {% if selected_sort == 'recently' %}text-blue-600 dark:text-blue-400 font-semibold bg-blue-50/50 dark:bg-slate-700/50{% endif %}">
+                        <i data-lucide="clock" class="w-3.5 h-3.5"></i> Recently
+                    </a>
+                    <a href="?sort=az{% if search_query %}&q={{ search_query }}{% endif %}" 
+                       class="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition font-medium {% if selected_sort == 'az' %}text-blue-600 dark:text-blue-400 font-semibold bg-blue-50/50 dark:bg-slate-700/50{% endif %}">
+                        <i data-lucide="arrow-down-a-z" class="w-3.5 h-3.5"></i> A - Z
+                    </a>
+                    <a href="?sort=za{% if search_query %}&q={{ search_query }}{% endif %}" 
+                       class="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition font-medium {% if selected_sort == 'za' %}text-blue-600 dark:text-blue-400 font-semibold bg-blue-50/50 dark:bg-slate-700/50{% endif %}">
+                        <i data-lucide="arrow-up-z-a" class="w-3.5 h-3.5"></i> Z - A
+                    </a>
+                </div>
+            </div>
+
+            <!-- New Note Split Button with Dropdown -->
+            <div class="relative inline-block text-left">
+                <div class="inline-flex rounded-md shadow-sm bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition overflow-hidden divide-x divide-blue-500">
+                    <button type="button" onclick="openNoteModal()" class="px-3 py-1.5 flex items-center gap-1 hover:bg-blue-700 transition focus:outline-none">
+                        <span>New</span>
+                    </button>
+                    <button type="button" onclick="toggleNewDropdown(event)" class="px-1.5 py-1.5 hover:bg-blue-700 transition focus:outline-none" title="More options">
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                
+                <!-- Dropdown Menu -->
+                <div id="new-dropdown-menu" class="hidden absolute right-0 mt-1 w-44 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 z-30 text-xs">
+                    <button type="button" onclick="openNoteModal(); hideNewDropdown();" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                        <i data-lucide="plus" class="w-3.5 h-3.5 text-blue-500"></i> New Note
+                    </button>
+                    <button type="button" onclick="toggleSelectionMode(); hideNewDropdown();" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-2 border-t border-slate-100 dark:border-slate-700/60">
+                        <i data-lucide="check-square" class="w-3.5 h-3.5 text-slate-400"></i> Select / Delete Notes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table View & Bulk Delete Form -->
+    <form id="bulk-delete-form" method="POST" action="{% url 'notes:note_bulk_delete' %}">
+        {% csrf_token %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 text-xs font-normal select-none">
+                        <th class="py-2 px-2 w-8 text-center select-checkbox-col hidden">
+                            <input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll(this)" class="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        </th>
+                        <th class="py-2 px-3 font-normal w-4/12">
+                            <div class="flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Name</div>
+                        </th>
+                        <th class="py-2 px-3 font-normal">
+                            <div class="flex items-center gap-1.5"><i data-lucide="tag" class="w-3.5 h-3.5"></i> Tags</div>
+                        </th>
+                        <th class="py-2 px-3 font-normal">
+                            <div class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Date Created</div>
+                        </th>
+                        <th class="py-2 px-3 font-normal">
+                            <div class="flex items-center gap-1.5"><i data-lucide="folder" class="w-3.5 h-3.5"></i> Folder</div>
+                        </th>
+                        <th class="py-2 px-3 font-normal text-right w-20">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for note in notes %}
+                    <tr class="note-row-item hover:bg-slate-50 dark:hover:bg-slate-800/50 group transition" data-note-title="{{ note.title|lower }}" data-note-tags="{% for tag in note.tags.all %}{{ tag.name|lower }} {% endfor %}">
+                        <td class="py-2 px-2 text-center select-checkbox-col hidden">
+                            <input type="checkbox" name="note_ids" value="{{ note.id }}" onchange="updateBulkState()" class="note-item-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        </td>
+                        <td class="py-2 px-3 font-medium text-slate-800 dark:text-slate-200">
+                            <div class="flex items-center gap-2">
+                                <span>✏️</span>
+                                <a href="{% url 'notes:note_detail' pk=note.pk %}" class="hover:underline font-semibold">{{ note.title }}</a>
+                            </div>
+                        </td>
+                        <td class="py-2 px-3">
+                            <div class="flex flex-wrap gap-1">
+                                {% for tag in note.tags.all %}
+                                    <a href="{% url 'notes:note_list' %}?q={{ tag.name }}" class="inline-block {{ tag.color_class }} border text-[11px] px-2 py-0.5 rounded font-medium transition hover:scale-105">
+                                        {{ tag.name }}
+                                    </a>
+                                {% empty %}
+                                    <span class="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="py-2 px-3 text-slate-500 dark:text-slate-400 text-xs">
+                            {{ note.created_at|date:"d M, Y" }}
+                        </td>
+                        <td class="py-2 px-3">
+                            {% if note.folder %}
+                                <span class="inline-block bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded font-medium">
+                                    {{ note.folder.name }}
+                                </span>
+                            {% else %}
+                                <span class="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2 px-3 text-right">
+                            <div class="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition">
+                                <button type="button" 
+                                        onclick="openEditNoteModal('{{ note.pk }}', '{{ note.title|escapejs }}', '{{ note.folder.id|default:'' }}', '{{ note.content_text|escapejs }}', [{% for t in note.tags.all %}'{{ t.id }}'{% if not forloop.last %},{% endif %}{% endfor %}])" 
+                                        class="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition" 
+                                        title="Edit Note">
+                                    <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <a href="{% url 'notes:note_delete' pk=note.pk %}" class="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded transition" title="Delete Note">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-400">
+                            No notes found. Click "New" to create your first note.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Floating Bulk Delete Bar -->
+        <div id="bulk-action-bar" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 dark:bg-slate-800/90 text-white backdrop-blur-md px-5 py-2.5 rounded-full shadow-2xl z-40 flex items-center gap-4 text-xs select-none">
+            <span id="selected-count-text" class="font-medium text-slate-200">0 selected</span>
+            <button type="submit" onclick="return confirm('Are you sure you want to delete the selected notes?');" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-1 rounded-full font-medium transition flex items-center gap-1.5 shadow-sm">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete Selected
+            </button>
+            <button type="button" onclick="toggleSelectionMode(false)" class="p-1 text-slate-400 hover:text-slate-200 transition">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </form>
+
+    <!-- Pagination -->
+    {% if notes.paginator.count > 0 %}
+    <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4 text-xs select-none">
+        <span class="text-slate-400">
+            Showing {{ notes.start_index }} to {{ notes.end_index }} of {{ notes.paginator.count }} notes
+        </span>
+        <div class="flex items-center gap-1">
+            {% if notes.has_previous %}
+                <a href="?page={{ notes.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_folder %}&folder={{ selected_folder }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}" class="p-1.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"><i data-lucide="chevron-left" class="w-4 h-4"></i></a>
+            {% else %}
+                <span class="p-1.5 rounded border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed"><i data-lucide="chevron-left" class="w-4 h-4"></i></span>
+            {% endif %}
+
+            {% for page_num in notes.paginator.page_range %}
+                {% if notes.number == page_num %}
+                    <span class="px-2.5 py-1 rounded bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 font-medium">{{ page_num }}</span>
+                {% else %}
+                    <a href="?page={{ page_num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_folder %}&folder={{ selected_folder }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}" class="px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition">{{ page_num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if notes.has_next %}
+                <a href="?page={{ notes.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_folder %}&folder={{ selected_folder }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}" class="p-1.5 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"><i data-lucide="chevron-right" class="w-4 h-4"></i></a>
+            {% else %}
+                <span class="p-1.5 rounded border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed"><i data-lucide="chevron-right" class="w-4 h-4"></i></span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- SIDE PEEK MODAL (New Note) -->
+<div id="note-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end hidden transition-opacity">
+    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800/80 rounded-l-3xl overflow-y-auto transform transition-transform">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
+            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">New note</span>
+            <button onclick="closeNoteModal()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Form submit to note_create -->
+        <form method="POST" action="{% url 'notes:note_create' %}" class="space-y-6 flex-1 flex flex-col">
+            {% csrf_token %}
+            <div>
+                <input type="text" name="title" placeholder="Untitled" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent">
+            </div>
+
+            <!-- Page Properties -->
+            <div class="space-y-3 text-xs text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-6">
+                <div class="flex items-center gap-4">
+                    <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Date created</span>
+                    <span class="text-slate-700 dark:text-slate-300 font-semibold">{% now "M d, Y" %}</span>
+                </div>
+                
+                <div class="flex items-center gap-4 relative">
+                    <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="folder" class="w-3.5 h-3.5"></i> Class / Folder</span>
+                    <div class="flex items-center gap-2">
+                        <select name="folder" id="modal-folder-select" class="bg-slate-100/80 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 focus:outline-none text-xs font-medium cursor-pointer shadow-sm">
+                            <option value="">Empty</option>
+                            {% for folder in folders %}
+                                <option value="{{ folder.id }}">{{ folder.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" onclick="toggleFolderPopover(event)" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition select-none font-medium">
+                            <i data-lucide="plus" class="w-3 h-3 text-blue-500"></i>
+                            <span>Add folder</span>
+                        </button>
+                    </div>
+
+                    <!-- Quick Folder Create Popover -->
+                    <div id="folder-popover" class="hidden absolute left-28 top-8 z-50 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-3 space-y-2">
+                        <div class="text-xs font-semibold text-slate-700 dark:text-slate-200">Create New Folder / Class</div>
+                        <div class="space-y-2">
+                            <input type="text" id="new-folder-input" placeholder="Folder / Class name..." class="w-full px-2.5 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500">
+                            <div class="flex items-center justify-end gap-1.5 pt-1">
+                                <button type="button" onclick="toggleFolderPopover(event)" class="px-2.5 py-1 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">Cancel</button>
+                                <button type="button" onclick="quickCreateFolder(event)" class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition shadow-sm">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Property: Tags (Notion Popover Style) -->
+                <div class="flex items-start gap-4 relative">
+                    <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium pt-1">
+                        <i data-lucide="tag" class="w-3.5 h-3.5"></i> Tags
+                    </span>
+
+                    <div class="flex-1 space-y-2">
+                        <div class="flex flex-wrap gap-1.5 min-h-[28px] items-center">
+                            <!-- Dedicated chip list container -->
+                            <div id="selected-tag-chips-list" class="flex flex-wrap gap-1.5 items-center"></div>
+
+                            <!-- Popover Trigger Button -->
+                            <button type="button" 
+                                    onclick="toggleTagPopover(event)" 
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition select-none font-medium">
+                                <i data-lucide="plus" class="w-3 h-3 text-blue-500"></i>
+                                <span>Add tag</span>
+                            </button>
+                        </div>
+
+                        <!-- NOTION POPOVER MENU -->
+                        <div id="tag-popover" class="hidden absolute left-28 top-8 z-50 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2.5 space-y-2">
+                            <!-- Search / Create Tag Input -->
+                            <div class="relative">
+                                <input type="text" 
+                                       id="new-tag-input" 
+                                       placeholder="Search or create tag..." 
+                                       onkeyup="filterOrPrepareTag(event)" 
+                                       class="w-full px-2.5 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500">
+                            </div>
+
+                            <!-- Quick Create Button -->
+                            <div id="create-tag-btn-container" class="hidden">
+                                <button type="button" 
+                                        onclick="quickCreateTag(event)" 
+                                        class="w-full text-left px-2 py-1.5 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700/60 rounded-lg flex items-center gap-1.5 font-medium">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                    <span>Create "<span id="new-tag-name-preview"></span>"</span>
+                                </button>
+                            </div>
+
+                            <!-- Available Tags List -->
+                            <div class="text-[11px] font-semibold text-slate-400 px-1 pt-1">Select an option</div>
+                            <div id="tag-options-list" class="max-h-36 overflow-y-auto space-y-1 pr-1">
+                                {% for tag in tags %}
+                                    <label class="flex items-center justify-between px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer select-none group">
+                                        <div class="flex items-center gap-2">
+                                            <input type="checkbox" name="tags" value="{{ tag.id }}" data-tag-name="{{ tag.name }}" onchange="updateSelectedTagsDisplay()" class="tag-checkbox hidden">
+                                            <span class="inline-block px-2 py-0.5 rounded-md text-xs border {{ tag.color_class }} font-medium">
+                                                {{ tag.name }}
+                                            </span>
+                                        </div>
+                                        <i data-lucide="check" class="w-3.5 h-3.5 text-blue-600 hidden check-icon"></i>
+                                    </label>
+                                {% empty %}
+                                    <div id="no-tags-msg" class="text-xs text-slate-400 px-2 py-1 italic">No tags found</div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Footer: Manage Tags Button -->
+                            <div class="border-t border-slate-100 dark:border-slate-700 pt-1.5 mt-1">
+                                <button type="button" 
+                                        onclick="openTagManager()" 
+                                        class="w-full text-left px-2 py-1 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg flex items-center justify-between transition font-medium">
+                                    <span class="flex items-center gap-1.5">
+                                        <i data-lucide="settings" class="w-3.5 h-3.5"></i> Manage tags
+                                    </span>
+                                    <i data-lucide="external-link" class="w-3 h-3 text-slate-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area with True WYSIWYG Rich Editor Container -->
+            <div class="flex-1 flex flex-col p-4 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 focus-within:border-blue-500/80 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                <!-- Rich Text Formatting Toolbar (MS Teams / Notion Style Pill Box) -->
+                <div class="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm text-slate-600 dark:text-slate-300 select-none mb-3">
+                    <button type="button" id="btn-format-bold" onclick="executeRichCommand('bold')" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center w-7 h-7 transition shadow-none" title="Bold (In đậm)">
+                        B
+                    </button>
+                    <button type="button" id="btn-format-italic" onclick="executeRichCommand('italic')" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 italic font-serif text-xs flex items-center justify-center w-7 h-7 transition shadow-none" title="Italic (In nghiêng)">
+                        I
+                    </button>
+                    <button type="button" id="btn-format-underline" onclick="executeRichCommand('underline')" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 underline text-xs flex items-center justify-center w-7 h-7 transition shadow-none" title="Underline (Gạch chân)">
+                        U
+                    </button>
+                    <button type="button" id="btn-format-strike" onclick="executeRichCommand('strikeThrough')" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 line-through text-xs flex items-center justify-center w-7 h-7 transition shadow-none" title="Strikethrough (Gạch ngang)">
+                        S
+                    </button>
+                    <div class="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                    <button type="button" id="btn-format-ul" onclick="executeRichCommand('insertUnorderedList')" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Bullet List">
+                        <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" id="btn-format-ol" onclick="executeRichCommand('insertOrderedList')" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Numbered List">
+                        <i data-lucide="list-ordered" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" onclick="executeRichCommand('formatBlock', 'blockquote')" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Quote">
+                        <i data-lucide="quote" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" onclick="executeRichCommand('createLink')" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Insert Link">
+                        <i data-lucide="link" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <!-- True ContentEditable Editor Area -->
+                <div id="rich-note-editor" contenteditable="true" oninput="syncRichContent()" onkeyup="updateToolbarButtonStates()" onmouseup="updateToolbarButtonStates()" class="w-full flex-1 min-h-[180px] outline-none text-slate-700 dark:text-slate-200 text-sm leading-relaxed overflow-y-auto prose dark:prose-invert max-w-none"></div>
+                <input type="hidden" name="content" id="hidden-note-content">
+            </div>
+
+            <div class="flex justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onclick="closeNoteModal()" class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition font-medium">Cancel</button>
+                <button type="submit" class="px-5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">Save note</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TAG MANAGER MODAL (Nhúng trang tag_list.html vào iframe) -->
+<div id="tag-manager-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex justify-end hidden transition-opacity">
+    <div class="w-full max-w-lg bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+                <i data-lucide="tags" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Tag Storage</span>
+            </div>
+            <button type="button" onclick="closeTagManager()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- iframe load nội dung tag_list.html -->
+        <iframe id="tag-manager-frame" class="w-full flex-1 border-none bg-transparent"></iframe>
+    </div>
+</div>
+
+<!-- JS Modal & Popover Script -->
+<script>
+    function openNoteModal() {
+        const modal = document.getElementById('note-modal');
+        const form = modal.querySelector('form');
+        const headerTitle = modal.querySelector('.pb-4 span');
+
+        if (headerTitle) headerTitle.textContent = 'New note';
+        if (form) form.action = "{% url 'notes:note_create' %}";
+
+        const titleInput = modal.querySelector('input[name="title"]');
+        if (titleInput) titleInput.value = '';
+
+        const folderSelect = modal.querySelector('select[name="folder"]');
+        if (folderSelect) folderSelect.value = '';
+
+        const editor = document.getElementById('rich-note-editor');
+        if (editor) editor.innerHTML = '';
+        syncRichContent();
+
+        document.querySelectorAll('.tag-checkbox').forEach(cb => cb.checked = false);
+        updateSelectedTagsDisplay();
+
+        modal.classList.remove('hidden');
+    }
+
+    function openEditNoteModal(noteId, title, folderId, contentText, tagIds) {
+        const modal = document.getElementById('note-modal');
+        const form = modal.querySelector('form');
+        const headerTitle = modal.querySelector('.pb-4 span');
+
+        if (headerTitle) headerTitle.textContent = 'Edit note';
+        if (form) form.action = '/notes/' + noteId + '/edit/?next={% url "notes:note_list" %}';
+
+        const titleInput = modal.querySelector('input[name="title"]');
+        if (titleInput) titleInput.value = title;
+
+        const folderSelect = modal.querySelector('select[name="folder"]');
+        if (folderSelect) folderSelect.value = folderId || '';
+
+        const editor = document.getElementById('rich-note-editor');
+        if (editor) editor.innerHTML = contentText || '';
+        syncRichContent();
+
+        const tagIdStrs = (tagIds || []).map(String);
+        document.querySelectorAll('.tag-checkbox').forEach(cb => {
+            cb.checked = tagIdStrs.includes(String(cb.value));
+        });
+        updateSelectedTagsDisplay();
+
+        modal.classList.remove('hidden');
+    }
+
+    window.openNoteSidePeek = openEditNoteModal;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const openNoteId = urlParams.get('open_note');
+            if (openNoteId) {
+                const btn = Array.from(document.querySelectorAll('button[onclick*="openEditNoteModal"]'))
+                    .find(b => b.getAttribute('onclick') && (b.getAttribute('onclick').includes(`'${openNoteId}'`) || b.getAttribute('onclick').includes(`"${openNoteId}"`)));
+                if (btn) {
+                    btn.click();
+                }
+            }
+        } catch(e) {
+            console.error("Auto open note error:", e);
+        }
+    });
+
+    function closeNoteModal() {
+        document.getElementById('note-modal').classList.add('hidden');
+    }
+
+    // Toggle Popover Menu
+    function toggleTagPopover(event) {
+        if (event) event.stopPropagation();
+        const popover = document.getElementById('tag-popover');
+        if (popover) {
+            popover.classList.toggle('hidden');
+        }
+    }
+
+    // Close Popover when clicking outside
+    document.addEventListener('click', function(e) {
+        const popover = document.getElementById('tag-popover');
+        const addBtn = e.target.closest('button[onclick="toggleTagPopover(event)"]');
+        if (popover && !popover.contains(e.target) && !addBtn) {
+            popover.classList.add('hidden');
+        }
+    });
+
+    // OPEN & CLOSE TAG STORAGE IFRAME MODAL
+    const tagListUrl = "{% url 'notes:tag_list' %}";
+
+    function openTagManager() {
+        const popover = document.getElementById('tag-popover');
+        if (popover) popover.classList.add('hidden');
+
+        const frame = document.getElementById('tag-manager-frame');
+        if (frame) {
+            frame.src = tagListUrl;
+        }
+
+        document.getElementById('tag-manager-modal').classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeTagManager() {
+        document.getElementById('tag-manager-modal').classList.add('hidden');
+    }
+
+    const tagColors = [
+        "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800",
+        "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-800",
+        "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800",
+        "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800",
+        "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:border-rose-800",
+        "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800",
+        "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/40 dark:text-pink-300 dark:border-pink-800",
+        "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/40 dark:text-teal-300 dark:border-teal-800",
+        "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-800",
+        "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/40 dark:text-cyan-300 dark:border-cyan-800",
+    ];
+
+    function getTagColorClass(tagId, tagName) {
+        let val = 0;
+        const str = (tagId || '') + (tagName || '');
+        for (let i = 0; i < str.length; i++) val += str.charCodeAt(i);
+        return tagColors[val % tagColors.length];
+    }
+
+    // Update Selected Tag Chips
+    function updateSelectedTagsDisplay() {
+        const chipsContainer = document.getElementById('selected-tag-chips-list');
+        if (!chipsContainer) return;
+
+        chipsContainer.innerHTML = '';
+
+        const checkboxes = document.querySelectorAll('.tag-checkbox:checked');
+        checkboxes.forEach(cb => {
+            const tagId = cb.value;
+            const tagName = cb.getAttribute('data-tag-name');
+            
+            const checkIcon = cb.closest('label')?.querySelector('.check-icon');
+            if (checkIcon) checkIcon.classList.remove('hidden');
+
+            const colorClass = getTagColorClass(tagId, tagName);
+            const chip = document.createElement('span');
+            chip.className = `inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs border font-medium ${colorClass}`;
+            chip.innerHTML = `
+                ${tagName}
+                <button type="button" onclick="uncheckTag('${tagId}')" class="hover:opacity-75">
+                    <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+            `;
+            chipsContainer.appendChild(chip);
+        });
+
+        document.querySelectorAll('.tag-checkbox:not(:checked)').forEach(cb => {
+            const checkIcon = cb.closest('label')?.querySelector('.check-icon');
+            if (checkIcon) checkIcon.classList.add('hidden');
+        });
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function uncheckTag(tagId) {
+        const cb = document.querySelector(`.tag-checkbox[value="${tagId}"]`);
+        if (cb) {
+            cb.checked = false;
+            updateSelectedTagsDisplay();
+        }
+    }
+
+    // Filter / Search Tag Options & Handle Enter Key
+    function filterOrPrepareTag(event) {
+        if (event && event.key === 'Enter') {
+            event.preventDefault();
+            const createContainer = document.getElementById('create-tag-btn-container');
+            if (!createContainer.classList.contains('hidden')) {
+                quickCreateTag(event);
+                return;
+            }
+        }
+
+        const input = document.getElementById('new-tag-input');
+        const keyword = input ? input.value.trim().toLowerCase() : '';
+        const createBtnContainer = document.getElementById('create-tag-btn-container');
+        const newTagNamePreview = document.getElementById('new-tag-name-preview');
+        const labels = document.querySelectorAll('#tag-options-list label');
+
+        let matchCount = 0;
+        labels.forEach(label => {
+            const name = label.querySelector('span').textContent.trim().toLowerCase();
+            if (name.includes(keyword)) {
+                label.classList.remove('hidden');
+                matchCount++;
+            } else {
+                label.classList.add('hidden');
+            }
+        });
+
+        if (keyword !== '' && matchCount === 0) {
+            createBtnContainer.classList.remove('hidden');
+            if (newTagNamePreview) newTagNamePreview.textContent = input.value.trim();
+        } else {
+            createBtnContainer.classList.add('hidden');
+        }
+    }
+
+    // Quick Tag Creation via AJAX
+    function quickCreateTag(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        const input = document.getElementById('new-tag-input');
+        const tagName = input ? input.value.trim() : '';
+        if (!tagName) return;
+
+        const formData = new FormData();
+        formData.append('name', tagName);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch("{% url 'notes:tag_create' %}", {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            const optionsList = document.getElementById('tag-options-list');
+            const noTagsMsg = document.getElementById('no-tags-msg');
+            if (noTagsMsg) noTagsMsg.remove();
+
+            const newLabel = document.createElement('label');
+            newLabel.className = 'flex items-center justify-between px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer select-none group';
+            const newColorClass = getTagColorClass(data.id, data.name);
+            newLabel.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="tags" value="${data.id}" data-tag-name="${data.name}" checked onchange="updateSelectedTagsDisplay()" class="tag-checkbox hidden">
+                    <span class="inline-block px-2 py-0.5 rounded text-xs border ${newColorClass} font-medium">
+                        ${data.name}
+                    </span>
+                </div>
+                <i data-lucide="check" class="w-3.5 h-3.5 text-blue-600 check-icon"></i>
+            `;
+            
+            optionsList.appendChild(newLabel);
+            
+            input.value = '';
+            document.getElementById('create-tag-btn-container').classList.add('hidden');
+            document.querySelectorAll('#tag-options-list label').forEach(l => l.classList.remove('hidden'));
+
+            updateSelectedTagsDisplay();
+            if (window.lucide) lucide.createIcons();
+        })
+        .catch(err => {
+            console.error("Tag Creation Failed:", err);
+        });
+    }
+
+    // True ContentEditable Rich Editor Command Executer
+    function executeRichCommand(cmd, arg = null) {
+        const editor = document.getElementById('rich-note-editor');
+        if (!editor) return;
+        editor.focus();
+
+        if (cmd === 'createLink') {
+            const url = prompt('Enter URL link:', 'https://');
+            if (url) document.execCommand('createLink', false, url);
+        } else {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0 && sel.isCollapsed) {
+                const range = sel.getRangeAt(0);
+                let tag = '';
+                if (cmd === 'bold') tag = 'b';
+                else if (cmd === 'italic') tag = 'i';
+                else if (cmd === 'underline') tag = 'u';
+                else if (cmd === 'strikeThrough') tag = 'strike';
+
+                if (tag) {
+                    let parent = range.commonAncestorContainer;
+                    if (parent.nodeType === 3) parent = parent.parentNode;
+                    let targetNode = parent.closest ? parent.closest(tag) : null;
+
+                    if (targetNode) {
+                        const afterRange = document.createRange();
+                        afterRange.setStartAfter(targetNode);
+                        afterRange.collapse(true);
+                        sel.removeAllRanges();
+                        sel.addRange(afterRange);
+                    } else {
+                        const el = document.createElement(tag);
+                        el.appendChild(document.createTextNode('\u200B'));
+                        range.insertNode(el);
+                        const newRange = document.createRange();
+                        newRange.setStart(el.firstChild, 1);
+                        newRange.collapse(true);
+                        sel.removeAllRanges();
+                        sel.addRange(newRange);
+                    }
+                } else {
+                    document.execCommand(cmd, false, arg);
+                }
+            } else {
+                document.execCommand(cmd, false, arg);
+            }
+        }
+        syncRichContent();
+        updateToolbarButtonStates();
+    }
+
+    function updateToolbarButtonStates() {
+        const commands = [
+            { name: 'bold', btnId: 'btn-format-bold' },
+            { name: 'italic', btnId: 'btn-format-italic' },
+            { name: 'underline', btnId: 'btn-format-underline' },
+            { name: 'strikeThrough', btnId: 'btn-format-strike' },
+            { name: 'insertUnorderedList', btnId: 'btn-format-ul' },
+            { name: 'insertOrderedList', btnId: 'btn-format-ol' }
+        ];
+
+        commands.forEach(cmd => {
+            const btn = document.getElementById(cmd.btnId);
+            if (!btn) return;
+            let isActive = false;
+            try {
+                isActive = document.queryCommandState(cmd.name);
+            } catch(e) {}
+
+            if (isActive) {
+                btn.classList.add('bg-blue-600', 'text-white', 'shadow-sm', 'scale-105');
+                btn.classList.remove('hover:bg-white', 'dark:hover:bg-slate-700', 'text-slate-700', 'dark:text-slate-200');
+            } else {
+                btn.classList.remove('bg-blue-600', 'text-white', 'shadow-sm', 'scale-105');
+                btn.classList.add('text-slate-700', 'dark:text-slate-200');
+            }
+        });
+    }
+
+    function syncRichContent() {
+        const editor = document.getElementById('rich-note-editor');
+        const hiddenInput = document.getElementById('hidden-note-content');
+        if (editor && hiddenInput) {
+            hiddenInput.value = editor.innerHTML;
+        }
+    }
+
+    document.addEventListener('selectionchange', function() {
+        const editor = document.getElementById('rich-note-editor');
+        if (editor && (document.activeElement === editor || editor.contains(document.activeElement))) {
+            updateToolbarButtonStates();
+        }
+    });
+
+    function filterNotesRealtime(query) {
+        const q = query.toLowerCase().trim();
+        document.querySelectorAll('.note-row-item').forEach(row => {
+            const title = row.getAttribute('data-note-title') || '';
+            const tags = row.getAttribute('data-note-tags') || '';
+            if (title.includes(q) || tags.includes(q)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Folder Popover & Quick Creation Handlers
+    function toggleFolderPopover(event) {
+        if (event) event.stopPropagation();
+        const popover = document.getElementById('folder-popover');
+        if (popover) popover.classList.toggle('hidden');
+    }
+
+    function quickCreateFolder(event) {
+        if (event) event.stopPropagation();
+        const input = document.getElementById('new-folder-input');
+        const name = input ? input.value.trim() : '';
+        if (!name) return;
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch("{% url 'notes:folder_create' %}", {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            const select = document.getElementById('modal-folder-select');
+            if (select) {
+                const opt = document.createElement('option');
+                opt.value = data.id;
+                opt.textContent = data.name;
+                opt.selected = true;
+                select.appendChild(opt);
+            }
+            input.value = '';
+            toggleFolderPopover(null);
+        })
+        .catch(err => console.error("Folder creation failed:", err));
+    }
+
+    // New & Sort Dropdown & Bulk Selection Handlers
+    function toggleSortDropdown(e) {
+        if (e) e.stopPropagation();
+        hideNewDropdown();
+        const menu = document.getElementById('sort-dropdown-menu');
+        if (menu) menu.classList.toggle('hidden');
+    }
+
+    function hideSortDropdown() {
+        const menu = document.getElementById('sort-dropdown-menu');
+        if (menu) menu.classList.add('hidden');
+    }
+
+    function toggleNewDropdown(e) {
+        if (e) e.stopPropagation();
+        hideSortDropdown();
+        const menu = document.getElementById('new-dropdown-menu');
+        if (menu) menu.classList.toggle('hidden');
+    }
+
+    function hideNewDropdown() {
+        const menu = document.getElementById('new-dropdown-menu');
+        if (menu) menu.classList.add('hidden');
+    }
+
+    document.addEventListener('click', function() {
+        hideNewDropdown();
+        hideSortDropdown();
+    });
+
+    let selectionModeActive = false;
+    function toggleSelectionMode(forceState) {
+        selectionModeActive = typeof forceState === 'boolean' ? forceState : !selectionModeActive;
+        const cols = document.querySelectorAll('.select-checkbox-col');
+        cols.forEach(el => el.classList.toggle('hidden', !selectionModeActive));
+        if (!selectionModeActive) {
+            document.querySelectorAll('.note-item-checkbox').forEach(cb => cb.checked = false);
+            const selectAll = document.getElementById('select-all-checkbox');
+            if (selectAll) selectAll.checked = false;
+            updateBulkState();
+        }
+    }
+
+    function toggleSelectAll(masterCb) {
+        document.querySelectorAll('.note-item-checkbox').forEach(cb => cb.checked = masterCb.checked);
+        updateBulkState();
+    }
+
+    function updateBulkState() {
+        const checked = document.querySelectorAll('.note-item-checkbox:checked');
+        const bar = document.getElementById('bulk-action-bar');
+        const countText = document.getElementById('selected-count-text');
+        if (checked.length > 0) {
+            if (bar) bar.classList.remove('hidden');
+            if (countText) countText.textContent = checked.length + ' selected';
+        } else {
+            if (bar) bar.classList.add('hidden');
+        }
+    }
+</script>
 {% endblock %}

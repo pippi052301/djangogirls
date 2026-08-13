@@ -1,71 +1,27 @@
-from django.contrib.auth import views as auth_views
 from django.urls import path
+from django.contrib.auth import views as auth_views
+from . import views
 
-from .views import register
-
-
-app_name = "accounts"
-
+app_name = 'accounts'
 
 urlpatterns = [
-
-    path(
-        "register/",
-        register,
-        name="register"
-    ),
-
+    path('', views.home, name='accounts_home'),
+    path('profile/', views.profile_view, name='profile'),
     path(
         "login/",
         auth_views.LoginView.as_view(
-            template_name="accounts/login.html"  
+            template_name="accounts/login.html", 
+            redirect_authenticated_user=True
         ),
         name="login"
     ),
-
-    path(
-        "logout/",
-        auth_views.LogoutView.as_view(),
-        name="logout"
-    ),
-
+    path("register/", views.register, name="register"),
     path(
         "password-reset/",
         auth_views.PasswordResetView.as_view(
-            template_name="accounts/password_reset_form.html"
+            template_name="accounts/password_reset_form.html" 
         ),
-        name="password_reset"
+        name="password_reset_form" 
     ),
-
-    path(
-        "password-reset/done/",
-        auth_views.PasswordResetDoneView.as_view(
-            template_name="accounts/password_reset_done.html"
-        ),
-        name="password_reset_done"
-    ),
-
-    path(
-        "password-reset/<uidb64>/<token>/",
-        auth_views.PasswordResetConfirmView.as_view(
-            template_name="accounts/password_reset_confirm.html"
-        ),
-        name="password_reset_confirm"
-    ),
-
-    path(
-        "password-reset/complete/",
-        auth_views.PasswordResetCompleteView.as_view(
-            template_name="accounts/password_reset_complete.html"
-        ),
-        name="password_reset_complete"
-    ),
-    path(
-        "login/",
-        auth_views.LoginView.as_view(
-            template_name="accounts/login.html",
-            redirect_authenticated_user=True,  # if the User have already logged in 
-        ),
-        name="login",
-    ),
+    path('logout/', auth_views.LogoutView.as_view(next_page='learning:home'), name='logout'),
 ]

@@ -22,6 +22,11 @@ class FolderForm(forms.ModelForm):
                 owner=user
             )
 class NoteForm(forms.ModelForm):
+    content = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Start typing...'}),
+        required=False
+    )
+
     class Meta:
         model = Note
         fields = [
@@ -35,7 +40,7 @@ class NoteForm(forms.ModelForm):
             'title': forms.TextInput(
                 attrs={
                     'class': 'form-control',
-                    'placeholder': 'Nhập tiêu đề...'
+                    'placeholder': 'Add title...'
                 }
             ),
 
@@ -45,6 +50,16 @@ class NoteForm(forms.ModelForm):
                 }
             ),
         }
+
+    def clean_content(self):
+        content = self.cleaned_data.get('content')
+        if isinstance(content, str):
+            import json
+            try:
+                return json.loads(content)
+            except (json.JSONDecodeError, TypeError):
+                return {'body': content}
+        return content or {}
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)

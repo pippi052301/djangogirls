@@ -36,6 +36,12 @@ urlpatterns = [
         views.note_delete,
         name="note_delete"
     ),
+
+    path(
+        "bulk-delete/",
+        views.note_bulk_delete,
+        name="note_bulk_delete"
+    ),
     # folder
     path(
         "folders/",
@@ -65,6 +71,12 @@ urlpatterns = [
         views.folder_delete,
         name="folder_delete"
     ),
+
+    path(
+        "folders/bulk-delete/",
+        views.folder_bulk_delete,
+        name="folder_bulk_delete"
+    ),
     
     
     # TAG
@@ -84,6 +96,12 @@ urlpatterns = [
         "tags/<int:pk>/",
         views.tag_detail,
         name="tag_detail"
+    ),
+
+    path(
+        "tags/<int:pk>/edit/",
+        views.tag_edit,
+        name="tag_update"
     ),
 
     path(
