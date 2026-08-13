@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ profile.name|default:user.username }} | Profile</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff007f;
+            --neon-purple: #7c5cff;
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
+            --border-color: #30363d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.08);
+            position: relative;
+        }
+
+        .nav-header {
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .nav-header a {
+            color: var(--neon-cyan);
+            text-decoration: none;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.2s;
+        }
+
+        .nav-header a:hover {
+            color: #58a6ff;
+        }
+
+        /* Layout Grid */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        @media (max-width: 850px) {
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Left Column: Avatar & Details */
+        .sidebar-col {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .avatar-container {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid var(--border-color);
+            background: #21262d;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-name-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f0f6fc;
+            line-height: 1.2;
+        }
+
+        .user-username {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-bottom: 1rem;
+        }
+
+        .btn-edit-profile {
+            width: 100%;
+            padding: 7px 16px;
+            background: #21262d;
+            border: 1px solid rgba(240, 246, 252, 0.1);
+            color: #c9d1d9;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .btn-edit-profile:hover {
+            background: #30363d;
+            border-color: #8b949e;
+        }
+
+        .btn-save-profile {
+            padding: 6px 16px;
+            background: #238636;
+            border: 1px solid rgba(240, 246, 252, 0.1);
+            color: #ffffff;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn-save-profile:hover {
+            background: #2ea043;
+        }
+
+        .btn-cancel-profile {
+            padding: 6px 16px;
+            background: #21262d;
+            border: 1px solid rgba(240, 246, 252, 0.1);
+            color: #c9d1d9;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+
+        .btn-cancel-profile:hover {
+            background: #30363d;
+        }
+
+        /* Sidebar Info List */
+        .info-list {
+            list-style: none;
+            space-y: 0.6rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .info-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 0.6rem;
+        }
+
+        .info-list i {
+            width: 16px;
+            color: #8b949e;
+            text-align: center;
+        }
+
+        .info-list a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        .info-list a:hover {
+            text-decoration: underline;
+        }
+
+        /* GitHub Style Form Controls */
+        .form-group {
+            margin-bottom: 0.9rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.3rem;
+        }
+
+        .form-control {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        textarea.form-control {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .input-with-icon {
+            position: relative;
+        }
+
+        .input-with-icon i {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .input-with-icon input {
+            padding-left: 32px;
+        }
+
+        /* Banner & Content */
+        .banner-container {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.15);
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.15rem;
+            color: var(--neon-cyan);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin: 1.5rem 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        p.bio-text {
+            color: var(--text-muted);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        /* GitHub Contribution Grid Graphic */
+        .contribution-box {
+            background: #0d1117;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .contribution-header {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .contrib-cells {
+            display: grid;
+            grid-template-columns: repeat(28, 1fr);
+            gap: 4px;
+        }
+
+        .cell {
+            aspect-ratio: 1/1;
+            border-radius: 2px;
+            background: #161b22;
+        }
+        .cell.lvl-1 { background: #0e4429; }
+        .cell.lvl-2 { background: #006d32; }
+        .cell.lvl-3 { background: #26a641; }
+        .cell.lvl-4 { background: #39d353; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Navigation Header -->
+        <div class="nav-header">
+            <a href="{% url 'notes:note_list' %}">
+                <i class="fa-solid fa-arrow-left"></i> Back to Study Space
+            </a>
+            <span style="font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--text-muted);">
+                User: {{ user.username }}
+            </span>
+        </div>
+
+        <div class="profile-grid">
+            <!-- Left Sidebar (Avatar & Profile Details / Edit Form) -->
+            <div class="sidebar-col">
+                <!-- Avatar Image -->
+                <div class="avatar-container">
+                    {% if profile.avatar_url %}
+                        <img src="{{ profile.avatar_url }}" alt="Avatar" class="avatar-img" id="avatar-preview">
+                    {% else %}
+                        <!-- Default GitHub-style Pixel Identicon SVG -->
+                        <svg id="avatar-preview" width="260" height="260" viewBox="0 0 5 5" xmlns="http://www.w3.org/2000/svg" style="background: #f0e6df; width: 100%; height: 100%;">
+                            <rect x="1" y="0" width="1" height="1" fill="#d97736"/>
+                            <rect x="3" y="0" width="1" height="1" fill="#d97736"/>
+                            <rect x="1" y="1" width="1" height="1" fill="#d97736"/>
+                            <rect x="3" y="1" width="1" height="1" fill="#d97736"/>
+                            <rect x="0" y="2" width="5" height="1" fill="#d97736"/>
+                            <rect x="1" y="3" width="1" height="1" fill="#d97736"/>
+                            <rect x="3" y="3" width="1" height="1" fill="#d97736"/>
+                            <rect x="1" y="4" width="1" height="1" fill="#d97736"/>
+                            <rect x="3" y="4" width="1" height="1" fill="#d97736"/>
+                        </svg>
+                    {% endif %}
+                </div>
+
+                <!-- VIEW MODE -->
+                <div id="profile-view-mode">
+                    <div class="user-name-title" id="display-name-view">
+                        {{ profile.name|default:user.username }}
+                    </div>
+                    <div class="user-username">
+                        {{ user.username }}
+                    </div>
+
+                    <button type="button" class="btn-edit-profile" onclick="toggleEditMode(true)">
+                        Edit profile
+                    </button>
+
+                    {% if profile.bio %}
+                    <p style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 1rem; line-height: 1.4;" id="display-bio-view">
+                        {{ profile.bio }}
+                    </p>
+                    {% endif %}
+
+                    <ul class="info-list">
+                        {% if profile.pronouns and profile.pronouns != "Don't specify" %}
+                        <li><i class="fa-solid fa-user"></i> {{ profile.pronouns }}</li>
+                        {% endif %}
+                        {% if profile.company %}
+                        <li><i class="fa-solid fa-building"></i> {{ profile.company }}</li>
+                        {% endif %}
+                        {% if profile.location %}
+                        <li><i class="fa-solid fa-location-dot"></i> {{ profile.location }}</li>
+                        {% endif %}
+                        {% if profile.website %}
+                        <li><i class="fa-solid fa-link"></i> <a href="{{ profile.website }}" target="_blank">{{ profile.website }}</a></li>
+                        {% endif %}
+                        {% if profile.social_1 %}
+                        <li><i class="fa-solid fa-hashtag"></i> <a href="{{ profile.social_1 }}" target="_blank">{{ profile.social_1 }}</a></li>
+                        {% endif %}
+                        {% if profile.social_2 %}
+                        <li><i class="fa-solid fa-hashtag"></i> <a href="{{ profile.social_2 }}" target="_blank">{{ profile.social_2 }}</a></li>
+                        {% endif %}
+                        {% if profile.social_3 %}
+                        <li><i class="fa-solid fa-hashtag"></i> <a href="{{ profile.social_3 }}" target="_blank">{{ profile.social_3 }}</a></li>
+                        {% endif %}
+                        {% if profile.social_4 %}
+                        <li><i class="fa-solid fa-hashtag"></i> <a href="{{ profile.social_4 }}" target="_blank">{{ profile.social_4 }}</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- EDIT MODE FORM -->
+                <div id="profile-edit-mode" style="display: none;">
+                    <form method="POST" action="{% url 'accounts:profile' %}">
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label class="form-label">Avatar Image URL</label>
+                            <input type="text" name="avatar_url" value="{{ profile.avatar_url }}" placeholder="https://example.com/avatar.png" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Name</label>
+                            <input type="text" name="name" value="{{ profile.name|default:user.username }}" placeholder="Name" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Bio</label>
+                            <textarea name="bio" placeholder="Add a bio" class="form-control">{{ profile.bio }}</textarea>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">You can @mention other users to link to them.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Pronouns</label>
+                            <select name="pronouns" class="form-control">
+                                <option value="Don't specify" {% if profile.pronouns == "Don't specify" %}selected{% endif %}>Don't specify</option>
+                                <option value="they/them" {% if profile.pronouns == "they/them" %}selected{% endif %}>they/them</option>
+                                <option value="she/her" {% if profile.pronouns == "she/her" %}selected{% endif %}>she/her</option>
+                                <option value="he/him" {% if profile.pronouns == "he/him" %}selected{% endif %}>he/him</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Company</label>
+                            <div class="input-with-icon">
+                                <i class="fa-solid fa-building"></i>
+                                <input type="text" name="company" value="{{ profile.company }}" placeholder="Company" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Location</label>
+                            <div class="input-with-icon">
+                                <i class="fa-solid fa-location-dot"></i>
+                                <input type="text" name="location" value="{{ profile.location }}" placeholder="Location" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Website</label>
+                            <div class="input-with-icon">
+                                <i class="fa-solid fa-link"></i>
+                                <input type="text" name="website" value="{{ profile.website }}" placeholder="Website" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Social accounts</label>
+                            <div class="space-y-1.5" style="display: flex; flex-direction: column; gap: 6px;">
+                                <div class="input-with-icon">
+                                    <i class="fa-solid fa-link"></i>
+                                    <input type="text" name="social_1" value="{{ profile.social_1 }}" placeholder="Link to social profile 1" class="form-control">
+                                </div>
+                                <div class="input-with-icon">
+                                    <i class="fa-solid fa-link"></i>
+                                    <input type="text" name="social_2" value="{{ profile.social_2 }}" placeholder="Link to social profile 2" class="form-control">
+                                </div>
+                                <div class="input-with-icon">
+                                    <i class="fa-solid fa-link"></i>
+                                    <input type="text" name="social_3" value="{{ profile.social_3 }}" placeholder="Link to social profile 3" class="form-control">
+                                </div>
+                                <div class="input-with-icon">
+                                    <i class="fa-solid fa-link"></i>
+                                    <input type="text" name="social_4" value="{{ profile.social_4 }}" placeholder="Link to social profile 4" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.2rem; display: flex; align-items: center;">
+                            <button type="submit" class="btn-save-profile">Save</button>
+                            <button type="button" class="btn-cancel-profile" onclick="toggleEditMode(false)">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Main Column (Banner & Activity) -->
+            <div class="main-col">
+                <!-- Neon Banner Graphic -->
+                <div class="banner-container">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+                      <defs>
+                        <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#08070c"/>
+                          <stop offset="100%" stop-color="#0f0e17"/>
+                        </linearGradient>
+
+                        <linearGradient id="np-spectrum" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stop-color="#ff00d9"/>
+                          <stop offset="50%" stop-color="#7c5cff"/>
+                          <stop offset="100%" stop-color="#00d9ff"/>
+                          <animate attributeName="x1" values="0;-1;0" dur="9s" repeatCount="indefinite"/>
+                          <animate attributeName="x2" values="1;2;1" dur="9s" repeatCount="indefinite"/>
+                        </linearGradient>
+
+                        <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feGaussianBlur stdDeviation="6" result="blur1" />
+                          <feGaussianBlur stdDeviation="20" result="blur2" />
+                          <feMerge>
+                            <feMergeNode in="blur2" />
+                            <feMergeNode in="blur1" />
+                            <feMergeNode in="SourceGraphic" />
+                          </feMerge>
+                        </filter>
+                      </defs>
+
+                      <rect width="1200" height="400" fill="url(#bg-grad)" />
+
+                      <!-- Wave Background Graphics -->
+                      <path d="M0,320 C350,270 700,360 1200,300 L1200,400 L0,400 Z" fill="url(#np-spectrum)" opacity="0.15">
+                          <animate attributeName="d" dur="7s" repeatCount="indefinite"
+                              values="M0,320 C350,270 700,360 1200,300 L1200,400 L0,400 Z;
+                                      M0,290 C500,350 800,260 1200,330 L1200,400 L0,400 Z;
+                                      M0,320 C350,270 700,360 1200,300 L1200,400 L0,400 Z" />
+                      </path>
+
+                      <!-- Banner Text -->
+                      <text x="60" y="140" font-family="'Fira Code', monospace" font-size="44" font-weight="700" fill="url(#np-spectrum)" filter="url(#neon-glow)" opacity="0.8">
+                          {{ profile.name|default:user.username|upper }}
+                      </text>
+                      <text x="60" y="140" font-family="'Fira Code', monospace" font-size="44" font-weight="700" fill="#ffffff">
+                          {{ profile.name|default:user.username|upper }}
+                      </text>
+                      <text x="62" y="185" font-family="'Inter', sans-serif" font-size="18" fill="#8b949e">
+                          PERSONAL STUDY &amp; KNOWLEDGE SPACE
+                      </text>
+                    </svg>
+                </div>
+
+                <!-- GitHub Style Contribution Activity -->
+                <div class="contribution-box">
+                    <div class="contribution-header">
+                        <span>Study Activity Grid</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">2026</span>
+                    </div>
+                    <div class="contrib-cells">
+                        <div class="cell lvl-1"></div>
+                        <div class="cell lvl-3"></div>
+                        <div class="cell lvl-4"></div>
+                        <div class="cell lvl-2"></div>
+                        <div class="cell"></div>
+                        <div class="cell lvl-1"></div>
+                        <div class="cell lvl-3"></div>
+                        <div class="cell lvl-2"></div>
+                        <div class="cell lvl-4"></div>
+                        <div class="cell lvl-1"></div>
+                        <div class="cell"></div>
+                        <div class="cell lvl-3"></div>
+                        <div class="cell lvl-2"></div>
+                        <div class="cell lvl-4"></div>
+                        <div class="cell lvl-1"></div>
+                        <div class="cell lvl-2"></div>
+                        <div class="cell lvl-3"></div>
+                        <div class="cell lvl-4"></div>
+                        <div class="cell lvl-2"></div>
+                        <div class="cell lvl-1"></div>
+                        <div class="cell lvl-3"></div>
+                        <div class="cell lvl-4"></div>
+                        <div class="cell lvl-2"></div>
+                        <div class="cell lvl-1"></div>
+                        <div class="cell lvl-3"></div>
+                        <div class="cell lvl-4"></div>
+                        <div class="cell lvl-2"></div>
+                        <div class="cell lvl-3"></div>
+                    </div>
+                </div>
+
+                <!-- Details Section -->
+                <h2><i class="fa-solid fa-terminal"></i> whoami</h2>
+                <p class="bio-text">
+                    {{ profile.bio|default:"No bio available yet. Click 'Edit profile' to add your bio and personal details." }}
+                </p>
+
+                <h2><i class="fa-solid fa-bolt"></i> currently</h2>
+                <ul style="list-style: none; padding: 0;" class="currently-list">
+                    <li style="position: relative; padding-left: 1.5rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                        <span style="position: absolute; left: 0; color: var(--neon-pink);">▹</span> Building study notes and managing knowledge space.
+                    </li>
+                    <li style="position: relative; padding-left: 1.5rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                        <span style="position: absolute; left: 0; color: var(--neon-pink);">▹</span> Customizing profile, avatar, and personal tags.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleEditMode(show) {
+            const viewMode = document.getElementById('profile-view-mode');
+            const editMode = document.getElementById('profile-edit-mode');
+            if (show) {
+                viewMode.style.display = 'none';
+                editMode.style.display = 'block';
+            } else {
+                viewMode.style.display = 'block';
+                editMode.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
