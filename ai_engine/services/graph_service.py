@@ -33,7 +33,7 @@ def generate_knowledge_graph(text_content):
     """
     
     try:
-        response = get_client.models.generate_content(
+        response = get_client().models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")

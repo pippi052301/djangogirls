@@ -30,7 +30,7 @@ def generate_quiz_from_text(text_content, num_questions=3):
     """
     
     try:
-        response = get_client.models.generate_content(
+        response = get_client().models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")

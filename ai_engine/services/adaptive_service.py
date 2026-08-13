@@ -50,7 +50,7 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
     \"\"\"{text_content}\"\"\"
     """
     try:
-        response = get_client.models.generate_content(
+        response = get_client().models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
@@ -87,10 +87,12 @@ def grade_simple_answer(question_type, question, user_answer, correct_answer, ex
     }}
     """
     try:
-        response = get_client.models.generate_content(
+        response = get_client().models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1)
+            config=types.GenerateContentConfig(response_mime_type="application/json",
+            system_instruction="Bạn là máy chấm điểm tự động. Chấm bài hoàn toàn khách quan, khô khan, dựa trên logic toán học và đối chiếu từ khóa ngữ nghĩa. Tuyệt đối không thay đổi kết quả qua các lần chấm nếu đầu vào không đổi. Trả lời trực tiếp bằng JSON."
+            )
         )
         return json.loads(response.text)
     except Exception as e:
@@ -143,12 +145,12 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     """
     
     try:
-        response = get_client.models.generate_content(
+        response = get_client().models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                temperature=0.2 
+                system_instruction="Bạn là một Chuyên gia Đánh giá Giáo dục cấp cao. Nhiệm vụ của bạn là chấm điểm bài làm của học sinh một cách tinh vi, khoa học và công tâm nhất. Bạn phải hoạt động với độ chính xác và nhất quán tuyệt đối như một cỗ máy, không để cảm xúc hay yếu tố ngẫu nhiên làm thay đổi thang điểm. Bám sát barem một cách cực đoan."
             )
         )
         return json.loads(response.text)

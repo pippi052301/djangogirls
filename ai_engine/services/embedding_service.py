@@ -7,7 +7,7 @@ def get_text_embedding(text):
     Sử dụng mô hình text-embedding-004 chuyên dụng.
     """
     try:
-        result = get_client.models.embed_content(
+        result = get_client().models.embed_content(
             model="gemini-embedding-2",
             contents=text,
         )
