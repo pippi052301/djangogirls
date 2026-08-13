@@ -1,5 +1,5 @@
 import json
-from .ai_config import client, types # Nhập Client dùng chung từ file cấu hình
+from .ai_config import get_client, types # Nhập Client dùng chung từ file cấu hình
 
 def generate_quiz_from_text(text_content, num_questions=3):
     """Sinh câu hỏi trắc nghiệm thông thường."""
@@ -30,7 +30,7 @@ def generate_quiz_from_text(text_content, num_questions=3):
     """
     
     try:
-        response = client.models.generate_content(
+        response = get_client.models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")

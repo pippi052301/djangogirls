@@ -1,15 +1,20 @@
 import json
-from .ai_config import client, types
+from .ai_config import get_client, types
 
 def generate_adaptive_practice(text_content, recent_average_score=50, total_questions=5):
     """Sinh câu hỏi thích ứng độ khó (Có kèm lời giải chi tiết)."""
+    # 1. Thiết lập tỷ lệ dựa trên năng lực học sinh
     if recent_average_score < 40:
-        mc_count, short_count, long_count = 4, 1, 0
+        ratio_mc, ratio_short = 0.8, 0.2  # Yếu: 80% Dễ, 20% Trung bình, 0% Khó
     elif recent_average_score < 75:
-        mc_count, short_count, long_count = 2, 2, 1
+        ratio_mc, ratio_short = 0.4, 0.4  # Khá: 40% Dễ, 40% Trung bình, 20% Khó
     else:
-        mc_count, short_count, long_count = 1, 2, 2
+        ratio_mc, ratio_short = 0.2, 0.4  # Giỏi: 20% Dễ, 40% Trung bình, 40% Khó
 
+    # 2. Tính toán số lượng thực tế (Xử lý triệt để sai số làm tròn)
+    mc_count = round(total_questions * ratio_mc)
+    short_count = round(total_questions * ratio_short)
+    long_count = total_questions - mc_count - short_count  # Luôn khớp tổng số câu
     prompt = f"""
     Bạn là chuyên gia giáo dục. Tạo {total_questions} câu hỏi luyện tập bằng tiếng Anh.
     PHÂN BỔ ĐỘ KHÓ:
@@ -45,7 +50,7 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
     \"\"\"{text_content}\"\"\"
     """
     try:
-        response = client.models.generate_content(
+        response = get_client.models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
@@ -82,7 +87,7 @@ def grade_simple_answer(question_type, question, user_answer, correct_answer, ex
     }}
     """
     try:
-        response = client.models.generate_content(
+        response = get_client.models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1)
@@ -138,7 +143,7 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     """
     
     try:
-        response = client.models.generate_content(
+        response = get_client.models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(

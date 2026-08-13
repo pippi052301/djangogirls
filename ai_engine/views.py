@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError 
 from pgvector.django import CosineDistance
 
-from learning.models import SemanticAICache, ReferenceSample 
+from .models import SemanticAICache, ReferenceSample 
 
 from .services.quiz_service import generate_quiz_from_text
 from .services.graph_service import generate_knowledge_graph
@@ -49,18 +49,20 @@ def create_quiz_api(request):
         try:
             body = json.loads(request.body)
             text_content = body.get('text', '')
-            num_questions = body.get('num_questions', 3)
+            num_questions = int(body.get('num_questions', 3))
             
             if not text_content:
                 return JsonResponse({"error": "Thiếu nội dung văn bản"}, status=400)
             
-            matched_cache, input_vector = check_semantic_cache(text_content, "quiz")
+            feature_key = f"quiz_n{num_questions}"
+
+            matched_cache, input_vector = check_semantic_cache(text_content, feature_key)
             if matched_cache:
                 return JsonResponse({"status": "success", "data": matched_cache.ai_response}, status=200)
             
             quiz_data = generate_quiz_from_text(text_content, num_questions)
             if quiz_data:
-                save_to_cache(text_content, "quiz", input_vector, quiz_data)
+                save_to_cache(text_content, feature_key , input_vector, quiz_data)
                 return JsonResponse({"status": "success", "data": quiz_data}, status=200)
             
             return JsonResponse({"error": "AI đang bận"}, status=503)
@@ -102,20 +104,28 @@ def create_adaptive_practice_api(request):
         try:
             body = json.loads(request.body)
             text_content = body.get('text', '')
-            recent_score = body.get('recent_score', 50)
+            recent_score = int(body.get('recent_score', 50))
             
             if not text_content:
                 return JsonResponse({"error": "Thiếu nội dung văn bản"}, status=400)
             
-            cache_key = f"{text_content}_{recent_score}"
+            # --- TẠO KHÓA PHÂN BIỆT THEO NHÓM NĂNG LỰC ---
+            if recent_score < 40:
+                level = "easy"
+            elif recent_score < 75:
+                level = "medium"
+            else:
+                level = "hard"
+
+            feature_key = f"adaptive_{level}"
             
-            matched_cache, input_vector = check_semantic_cache(cache_key, "adaptive")
+            matched_cache, input_vector = check_semantic_cache(text_content, feature_key)
             if matched_cache:
                 return JsonResponse({"status": "success", "data": matched_cache.ai_response}, status=200)
             
             practice_data = generate_adaptive_practice(text_content, recent_score)
             if practice_data:
-                save_to_cache(cache_key, "adaptive", input_vector, practice_data)
+                save_to_cache(text_content, feature_key, input_vector, practice_data)
                 return JsonResponse({"status": "success", "data": practice_data}, status=200)
             
             return JsonResponse({"error": "AI đang bận"}, status=503)

@@ -1,5 +1,5 @@
 import json
-from .ai_config import client, types
+from .ai_config import get_client, types
 
 def generate_knowledge_graph(text_content):
     """Bóc tách kiến thức thành Nút (Nodes) và Đường nối (Edges) cho Obsidian."""
@@ -33,7 +33,7 @@ def generate_knowledge_graph(text_content):
     """
     
     try:
-        response = client.models.generate_content(
+        response = get_client.models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
