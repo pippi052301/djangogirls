@@ -33,11 +33,7 @@
                 {% endif %}
             </form>
 
-            <!-- Ask AI Tutor Button (Navigates directly to AI Assistant Workspace) -->
-            <a href="{% url 'ai_home' %}" class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-90 rounded-lg transition shadow-sm hover:shadow group" title="Open AI Study Assistant">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5 group-hover:rotate-12 transition-transform"></i>
-                <span>Ask AI Tutor</span>
-            </a>
+
 
             <!-- Sort Dropdown Menu (3 Horizontal Bars Icon) -->
             <div class="relative inline-block text-left">
@@ -116,7 +112,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     {% for note in notes %}
-                    <tr class="note-row-item hover:bg-slate-50 dark:hover:bg-slate-800/50 group transition" data-note-title="{{ note.title|lower }}" data-note-tags="{% for tag in note.tags.all %}{{ tag.name|lower }} {% endfor %}">
+                    <tr class="note-row-item hover:bg-slate-50 dark:hover:bg-slate-800/50 group transition cursor-pointer" oncontextmenu="showNoteContextMenu(event, '{{ note.title|escapejs }}')" data-note-title="{{ note.title|lower }}" data-note-tags="{% for tag in note.tags.all %}{{ tag.name|lower }} {% endfor %}">
                         <td class="py-2 px-2 text-center select-checkbox-col hidden">
                             <input type="checkbox" name="note_ids" value="{{ note.id }}" onchange="updateBulkState()" class="note-item-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer">
                         </td>
@@ -875,5 +871,51 @@
             if (bar) bar.classList.add('hidden');
         }
     }
+</script>
+
+<!-- Custom Context Menu for Right Click on Note -->
+<div id="note-context-menu" class="hidden fixed bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1 z-50 text-xs w-56 select-none">
+    <div class="px-3 py-1.5 border-b border-slate-100 dark:border-slate-700 text-[11px] font-semibold text-slate-400 dark:text-slate-500 truncate" id="context-note-title">
+        Selected Note
+    </div>
+    <button type="button" onclick="goToAIPageWithNote()" class="w-full text-left flex items-center gap-2.5 px-3 py-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 font-medium transition">
+        <i data-lucide="sparkles" class="w-4 h-4 text-purple-500"></i>
+        <span>Text with AI about this</span>
+    </button>
+</div>
+
+<script>
+    let selectedContextNoteTitle = '';
+
+    function showNoteContextMenu(e, title) {
+        e.preventDefault();
+        selectedContextNoteTitle = title;
+        
+        const menu = document.getElementById('note-context-menu');
+        const titleEl = document.getElementById('context-note-title');
+        if (titleEl) titleEl.textContent = title;
+        
+        if (menu) {
+            menu.style.left = Math.min(e.clientX, window.innerWidth - 230) + 'px';
+            menu.style.top = Math.min(e.clientY, window.innerHeight - 100) + 'px';
+            menu.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function goToAIPageWithNote() {
+        if (selectedContextNoteTitle) {
+            window.location.href = "{% url 'ai_home' %}?prompt=" + encodeURIComponent("Let's analyze and discuss my study note: " + selectedContextNoteTitle);
+        } else {
+            window.location.href = "{% url 'ai_home' %}";
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('note-context-menu');
+        if (menu && !menu.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
 </script>
 {% endblock %}
