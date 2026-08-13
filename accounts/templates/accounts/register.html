@@ -35,7 +35,35 @@
 
         <div class="form-group">
             <label for="{{ form.password1.id_for_label }}">Password</label>
-            <input type="password" name="password1" id="{{ form.password1.id_for_label }}" placeholder="Enter your password" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            <div style="position: relative; width: 100%;">
+                <input type="password" name="password1" id="{{ form.password1.id_for_label }}" oninput="checkPasswordRequirements(this.value)" placeholder="Enter your password" required style="width: 100%; padding: 10px 40px 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                <button type="button" onclick="togglePasswordVisibility('{{ form.password1.id_for_label }}', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center;" title="Show/Hide password">
+                    <svg class="eye-open-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="eye-closed-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                </button>
+            </div>
+            
+            <!-- Password Guidelines / Checklist Box (English) -->
+            <div id="password-requirements-box" style="margin-top: 8px; padding: 10px 12px; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; font-size: 12px; color: #555; line-height: 1.6;">
+                <div style="font-weight: 600; color: #2e7d32; margin-bottom: 4px;">
+                    Password Requirements &amp; Guidelines:
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li id="req-len" style="display: flex; align-items: center; gap: 6px; color: #666;">
+                        <span class="req-icon" style="font-weight: bold;">•</span> Minimum 8 characters long
+                    </li>
+                    <li id="req-username" style="display: flex; align-items: center; gap: 6px; color: #666;">
+                        <span class="req-icon" style="font-weight: bold;">•</span> Cannot contain username or email
+                    </li>
+                    <li id="req-common" style="display: flex; align-items: center; gap: 6px; color: #666;">
+                        <span class="req-icon" style="font-weight: bold;">•</span> Cannot be a commonly used password (e.g. 12345678, password...)
+                    </li>
+                    <li id="req-mix" style="display: flex; align-items: center; gap: 6px; color: #666;">
+                        <span class="req-icon" style="font-weight: bold;">•</span> Recommended combination of uppercase, lowercase, numbers or symbols
+                    </li>
+                </ul>
+            </div>
+
             {% for error in form.password1.errors %}
                 <div class="field-error" style="color: #d9534f; font-size: 13px; margin-top: 4px;">{{ error }}</div>
             {% endfor %}
@@ -43,7 +71,13 @@
 
         <div class="form-group">
             <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
-            <input type="password" name="password2" id="{{ form.password2.id_for_label }}" placeholder="Confirm your password" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            <div style="position: relative; width: 100%;">
+                <input type="password" name="password2" id="{{ form.password2.id_for_label }}" placeholder="Confirm your password" required style="width: 100%; padding: 10px 40px 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                <button type="button" onclick="togglePasswordVisibility('{{ form.password2.id_for_label }}', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center;" title="Show/Hide password">
+                    <svg class="eye-open-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="eye-closed-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                </button>
+            </div>
             {% for error in form.password2.errors %}
                 <div class="field-error" style="color: #d9534f; font-size: 13px; margin-top: 4px;">{{ error }}</div>
             {% endfor %}
@@ -59,4 +93,85 @@
         Already have an account? <a href="{% url 'accounts:login' %}" style="color: #2e7d32; font-weight: bold; text-decoration: none;">Log in here</a>
     </p>
 </div>
+
+<script>
+function checkPasswordRequirements(val) {
+    const username = document.getElementById('{{ form.username.id_for_label }}')?.value || '';
+    const email = document.getElementById('{{ form.email.id_for_label }}')?.value || '';
+
+    const reqLen = document.getElementById('req-len');
+    const reqUsername = document.getElementById('req-username');
+    const reqCommon = document.getElementById('req-common');
+    const reqMix = document.getElementById('req-mix');
+
+    if (!reqLen || !reqUsername || !reqCommon || !reqMix) return;
+
+    // Length check (8+ chars)
+    if (val.length >= 8) {
+        reqLen.style.color = '#2e7d32';
+        reqLen.querySelector('.req-icon').textContent = '✓';
+    } else {
+        reqLen.style.color = '#666';
+        reqLen.querySelector('.req-icon').textContent = '•';
+    }
+
+    // Username / Email check
+    const userPart = username.trim().toLowerCase();
+    const emailPart = email.trim().split('@')[0].toLowerCase();
+    const valLower = val.toLowerCase();
+
+    if (valLower.length > 0 && ((userPart && valLower.includes(userPart)) || (emailPart && valLower.includes(emailPart)))) {
+        reqUsername.style.color = '#d9534f';
+        reqUsername.querySelector('.req-icon').textContent = '✕';
+    } else if (valLower.length > 0) {
+        reqUsername.style.color = '#2e7d32';
+        reqUsername.querySelector('.req-icon').textContent = '✓';
+    } else {
+        reqUsername.style.color = '#666';
+        reqUsername.querySelector('.req-icon').textContent = '•';
+    }
+
+    // Common passwords check
+    const commonList = ['12345678', 'password', '123456789', 'qwertyuiop', 'admin123', 'password123'];
+    if (commonList.includes(valLower)) {
+        reqCommon.style.color = '#d9534f';
+        reqCommon.querySelector('.req-icon').textContent = '✕';
+    } else if (valLower.length > 0) {
+        reqCommon.style.color = '#2e7d32';
+        reqCommon.querySelector('.req-icon').textContent = '✓';
+    } else {
+        reqCommon.style.color = '#666';
+        reqCommon.querySelector('.req-icon').textContent = '•';
+    }
+
+    // Combination check
+    const hasUpper = /[A-Z]/.test(val);
+    const hasLower = /[a-z]/.test(val);
+    const hasNumOrSpec = /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val);
+    if (val.length > 0 && ((hasUpper && hasLower) || hasNumOrSpec)) {
+        reqMix.style.color = '#2e7d32';
+        reqMix.querySelector('.req-icon').textContent = '✓';
+    } else {
+        reqMix.style.color = '#666';
+        reqMix.querySelector('.req-icon').textContent = '•';
+    }
+}
+
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const openIcon = btn.querySelector('.eye-open-icon');
+    const closedIcon = btn.querySelector('.eye-closed-icon');
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (openIcon) openIcon.style.display = 'none';
+        if (closedIcon) closedIcon.style.display = 'inline-block';
+    } else {
+        input.type = 'password';
+        if (openIcon) openIcon.style.display = 'inline-block';
+        if (closedIcon) closedIcon.style.display = 'none';
+    }
+}
+</script>
 {% endblock %}
