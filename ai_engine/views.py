@@ -12,7 +12,7 @@ from .services.adaptive_service import generate_adaptive_practice, advanced_grad
 from .services.embedding_service import get_text_embedding 
 
 # --- HÀM TRỢ THỦ XỬ LÝ CACHING ---
-SIMILARITY_THRESHOLD = 0.05 # Ngưỡng 95% giống nhau
+SIMILARITY_THRESHOLD = 0.035 # Ngưỡng 95% giống nhau
 
 def check_semantic_cache(text_content, feature_type):
     """Dịch văn bản thành Vector và quét CSDL tìm kết quả giống 95%"""
