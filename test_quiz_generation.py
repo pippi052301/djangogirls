@@ -72,10 +72,11 @@ print("TEST 2: Adaptive問題生成")
 print("======================================")
 
 adaptive_result = generate_adaptive_practice(
-    topic_name="Django MVT",
-    recent_average_score=80,
-    source_text=sample_text
+    text_content=sample_text,
+    recent_average_score=44,
+    total_questions=5
 )
+
 
 if adaptive_result is None:
     print("❌ FAIL: Adaptive問題を生成できませんでした")
@@ -157,7 +158,7 @@ else:
 
 
     # score=80 の期待値
-    if mc_count == 1:
+    if mc_count == 2:
         print("✅ 選択式: PASS")
     else:
         print("❌ 選択式: FAIL")
@@ -167,7 +168,7 @@ else:
     else:
         print("❌ 短答式: FAIL")
 
-    if long_count == 2:
+    if long_count == 1:
         print("✅ 長答式: PASS")
     else:
         print("❌ 長答式: FAIL")
