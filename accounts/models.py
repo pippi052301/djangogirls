@@ -43,3 +43,25 @@ class PasswordResetOTP(models.Model):
 
     def __str__(self):
         return f"Password reset OTP for {self.user}"
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="profile"
+    )
+    name = models.CharField(max_length=255, blank=True, default="")
+    avatar_url = models.CharField(max_length=500, blank=True, default="")
+    bio = models.TextField(blank=True, default="")
+    pronouns = models.CharField(max_length=100, blank=True, default="Don't specify")
+    company = models.CharField(max_length=255, blank=True, default="")
+    location = models.CharField(max_length=255, blank=True, default="")
+    website = models.CharField(max_length=255, blank=True, default="")
+    social_1 = models.CharField(max_length=255, blank=True, default="")
+    social_2 = models.CharField(max_length=255, blank=True, default="")
+    social_3 = models.CharField(max_length=255, blank=True, default="")
+    social_4 = models.CharField(max_length=255, blank=True, default="")
+
+    def __str__(self):
+        return f"Profile of {self.user.username}"

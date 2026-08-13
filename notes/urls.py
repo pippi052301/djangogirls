@@ -36,6 +36,12 @@ urlpatterns = [
         views.note_delete,
         name="note_delete"
     ),
+
+    path(
+        "bulk-delete/",
+        views.note_bulk_delete,
+        name="note_bulk_delete"
+    ),
     # folder
     path(
         "folders/",
@@ -64,6 +70,12 @@ urlpatterns = [
         "folders/<int:pk>/delete/",
         views.folder_delete,
         name="folder_delete"
+    ),
+
+    path(
+        "folders/bulk-delete/",
+        views.folder_bulk_delete,
+        name="folder_bulk_delete"
     ),
     
     

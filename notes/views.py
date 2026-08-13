@@ -1,14 +1,54 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.db.models import Q
 from .models import Note, Folder, Tag, Attachment, NoteLink
 from .forms import NoteForm, FolderForm, TagForm, NoteTagForm
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
+
+from django.utils import timezone
+
+# ================= CONTEXT PROCESSORS =================
+def notes_processor(request):
+    if request.user.is_authenticated:
+        today_date = timezone.localtime(timezone.now()).date()
+        today_notes = Note.objects.filter(owner=request.user, created_at__date=today_date).order_by('-created_at')
+        sidebar_notes = Note.objects.filter(owner=request.user).order_by('-created_at')[:30]
+        sidebar_folders = Folder.objects.filter(owner=request.user).order_by('-created_at')[:10]
+        return {
+            'today_notes': today_notes,
+            'sidebar_notes': sidebar_notes,
+            'sidebar_folders': sidebar_folders,
+        }
+    return {}
+
+
 # ================= NOTES VIEWS =================
 @login_required
 def note_list(request):
-    notes_queryset = Note.objects.filter(owner=request.user).prefetch_related('tags', 'folder').order_by('-created_at')
+    notes_queryset = Note.objects.filter(owner=request.user).prefetch_related('tags', 'folder')
+
+    search_query = request.GET.get('q', '').strip()
+    tag_id = request.GET.get('tag', '').strip()
+    sort_by = request.GET.get('sort', 'recently').strip()
+
+    if tag_id:
+        notes_queryset = notes_queryset.filter(tags__id=tag_id)
+
+    if search_query:
+        notes_queryset = notes_queryset.filter(
+            Q(title__icontains=search_query) |
+            Q(tags__name__icontains=search_query)
+        ).distinct()
+
+    if sort_by == 'az':
+        notes_queryset = notes_queryset.order_by('title')
+    elif sort_by == 'za':
+        notes_queryset = notes_queryset.order_by('-title')
+    else:
+        notes_queryset = notes_queryset.order_by('-updated_at')
+
     folders = Folder.objects.filter(owner=request.user)
     tags = Tag.objects.filter(owner=request.user)
 
@@ -26,6 +66,8 @@ def note_list(request):
             "folders": folders,
             "tags": tags,
             "form": form,
+            "search_query": search_query,
+            "selected_sort": sort_by,
         }
     )
 
@@ -84,9 +126,12 @@ def note_edit(request, pk):
         if form.is_valid():
             note = form.save()
             tag_ids = request.POST.getlist('tags')
-            if tag_ids:
-                valid_tags = Tag.objects.filter(id__in=tag_ids, owner=request.user)
-                note.tags.set(valid_tags)
+            valid_tags = Tag.objects.filter(id__in=tag_ids, owner=request.user)
+            note.tags.set(valid_tags)
+
+            next_url = request.POST.get("next") or request.GET.get("next")
+            if next_url:
+                return redirect(next_url)
             return redirect(
                 "notes:note_detail",
                 pk=note.pk
@@ -124,17 +169,32 @@ def note_delete(request, pk):
         {"note": note, "object": note}
     )
 
+@login_required
+def note_bulk_delete(request):
+    if request.method == "POST":
+        note_ids = request.POST.getlist("note_ids")
+        if note_ids:
+            Note.objects.filter(id__in=note_ids, owner=request.user).delete()
+    return redirect("notes:note_list")
+
 
 # ================= FOLDERS VIEWS =================
 @login_required
 def folder_list(request):
+    search_query = request.GET.get('q', '').strip()
     folders = Folder.objects.filter(owner=request.user).prefetch_related('notes')
+    tags = Tag.objects.filter(owner=request.user)
     
+    if search_query:
+        folders = folders.filter(name__icontains=search_query)
+
     return render(
         request,
         "folders/folder_list.html", 
         {
             "folders": folders,
+            "tags": tags,
+            "search_query": search_query,
         }
     )
 
@@ -150,6 +210,24 @@ def folder_create(request):
             folder = form.save(commit=False)
             folder.owner = request.user
             folder.save()
+
+            # Create initial note if provided inside New Folder modal
+            note_title = request.POST.get('note_title', '').strip()
+            note_content = request.POST.get('note_content', '').strip()
+            if note_title:
+                new_note = Note.objects.create(
+                    title=note_title,
+                    content={"body": note_content},
+                    owner=request.user,
+                    folder=folder
+                )
+                tag_ids = request.POST.getlist('note_tags')
+                if tag_ids:
+                    tag_objs = Tag.objects.filter(id__in=tag_ids, owner=request.user)
+                    new_note.tags.set(tag_objs)
+
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"id": folder.id, "name": folder.name})
 
             return redirect("notes:folder_list")
 
@@ -240,6 +318,15 @@ def folder_delete(request, pk):
     )
 
 
+@login_required
+def folder_bulk_delete(request):
+    if request.method == "POST":
+        folder_ids = request.POST.getlist("folder_ids")
+        if folder_ids:
+            Folder.objects.filter(id__in=folder_ids, owner=request.user).delete()
+    return redirect("notes:folder_list")
+
+
 # ================= TAGS VIEWS =================
 @login_required
 def tag_create(request):
@@ -283,20 +370,7 @@ def tag_detail(request, pk):
         pk=pk,
         owner=request.user
     )
-
-    notes = Note.objects.filter(
-        owner=request.user,
-        tags=tag
-    )
-
-    return render(
-        request,
-        "notes/tags/tag_detail.html",
-        {
-            "tag": tag,
-            "notes": notes
-        }
-    )
+    return redirect(f"/notes/?q={tag.name}")
 
 @login_required
 def tag_edit(request, pk):

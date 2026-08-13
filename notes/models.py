@@ -74,6 +74,12 @@ class Note(models.Model):
     )
     
 
+    @property
+    def content_text(self):
+        if isinstance(self.content, dict):
+            return self.content.get("body", "")
+        return str(self.content or "")
+
     def __str__(self):
         return self.title
 

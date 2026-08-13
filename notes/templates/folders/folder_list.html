@@ -13,15 +13,27 @@
     <div class="flex items-center justify-between">
         <h1 class="text-4xl font-bold text-slate-800 dark:text-slate-100">Library</h1>
         
-        <!-- Notion Split Button (New Folder) -->
-        <div class="inline-flex rounded-md shadow-sm bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition overflow-hidden divide-x divide-blue-500">
-            <button type="button" onclick="openFolderModal()" class="px-3 py-1.5 flex items-center gap-1.5 hover:bg-blue-700 transition focus:outline-none">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                <span>New folder</span>
-            </button>
-            <button type="button" class="px-1.5 py-1.5 hover:bg-blue-700 transition focus:outline-none">
-                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
-            </button>
+        <!-- New Folder Split Button with Dropdown Menu -->
+        <div class="relative inline-block text-left">
+            <div class="inline-flex rounded-md shadow-sm bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition overflow-hidden divide-x divide-blue-500">
+                <button type="button" onclick="openFolderModal()" class="px-3 py-1.5 flex items-center gap-1.5 hover:bg-blue-700 transition focus:outline-none">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>New folder</span>
+                </button>
+                <button type="button" onclick="toggleFolderDropdown(event)" class="px-1.5 py-1.5 hover:bg-blue-700 transition focus:outline-none" title="More options">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+            
+            <!-- Dropdown Menu -->
+            <div id="folder-dropdown-menu" class="hidden absolute right-0 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 z-30 text-xs">
+                <button type="button" onclick="openFolderModal(); hideFolderDropdown();" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                    <i data-lucide="plus" class="w-3.5 h-3.5 text-blue-500"></i> New Folder
+                </button>
+                <button type="button" onclick="toggleFolderSelectionMode(); hideFolderDropdown();" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-2 border-t border-slate-100 dark:border-slate-700/60">
+                    <i data-lucide="check-square" class="w-3.5 h-3.5 text-slate-400"></i> Select / Delete Folders
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -29,130 +41,162 @@
 
 {% block content %}
 <div class="space-y-6 relative">
-    <!-- Navigation Tabs & Search Bar -->
-    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-        <div class="flex items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400 overflow-x-auto">
-            <button class="flex items-center gap-1.5 pb-2 border-b-2 border-slate-900 dark:border-slate-100 text-slate-900 dark:text-slate-100 font-semibold">
-                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-                <span>Recents</span>
-            </button>
-            <button class="flex items-center gap-1.5 pb-2 hover:text-slate-800 dark:hover:text-slate-200 transition">
-                <i data-lucide="star" class="w-3.5 h-3.5"></i>
-                <span>Favorites</span>
-            </button>
-            <button class="flex items-center gap-1.5 pb-2 hover:text-slate-800 dark:hover:text-slate-200 transition">
-                <i data-lucide="users" class="w-3.5 h-3.5"></i>
-                <span>Shared</span>
-            </button>
-            <button class="flex items-center gap-1.5 pb-2 hover:text-slate-800 dark:hover:text-slate-200 transition">
-                <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-                <span>Private</span>
-            </button>
-        </div>
-
-        <div class="flex items-center gap-2">
-            <div class="relative">
-                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2 top-2 text-slate-400"></i>
-                <input type="text" placeholder="Search folder..." class="pl-7 pr-2 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 focus:outline-none focus:bg-white dark:focus:bg-slate-900 text-slate-700 dark:text-slate-200 w-36 focus:w-48 transition-all">
+    <!-- Header Controls: View Mode Switcher (Google Drive Style) & Search -->
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+        <div class="flex items-center gap-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Folders View</span>
+            <!-- Google Drive 2-Mode Toggle -->
+            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                <button type="button" id="btn-grid-view" onclick="setFolderViewMode('grid')" class="px-2.5 py-1 text-xs rounded-md font-medium flex items-center gap-1.5 transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm">
+                    <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                    <span>Grid</span>
+                </button>
+                <button type="button" id="btn-list-view" onclick="setFolderViewMode('list')" class="px-2.5 py-1 text-xs rounded-md font-medium flex items-center gap-1.5 transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                    <span>List</span>
+                </button>
             </div>
         </div>
+
+        <!-- Search Form (by Folder / Class name) -->
+        <form method="GET" action="{% url 'notes:folder_list' %}" class="relative flex items-center">
+            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 text-slate-400"></i>
+            <input type="text" name="q" value="{{ search_query }}" id="folder-search-input" onkeyup="filterFolders(this.value)" placeholder="Search folder or class..." class="pl-8 pr-7 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 w-44 focus:w-60 transition-all">
+            {% if search_query %}
+                <a href="{% url 'notes:folder_list' %}" class="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" title="Clear search">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </a>
+            {% endif %}
+        </form>
     </div>
 
-    <!-- Database Table View -->
-    <div class="overflow-x-auto">
+    <!-- MODE 1: GRID VIEW (Google Drive Cards Grid) -->
+    <div id="folders-grid-view" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {% for folder in folders %}
+        <div class="folder-card-item group relative bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-xl p-4 hover:shadow-lg hover:border-blue-500/50 transition-all flex flex-col justify-between" data-folder-name="{{ folder.name|lower }}">
+            <div>
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <!-- Selection Checkbox on Cards -->
+                        <div class="folder-checkbox-col hidden pr-1">
+                            <input type="checkbox" name="folder_ids" value="{{ folder.id }}" onchange="updateFolderBulkState()" class="folder-item-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200/50 dark:border-blue-800/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                            <i data-lucide="folder" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
+                            {{ folder.notes.count }} note{{ folder.notes.count|pluralize }}
+                        </span>
+
+                        <!-- Delete Folder Button (Routes to folder_confirm_delete.html) -->
+                        <a href="{% url 'notes:folder_delete' pk=folder.pk %}" class="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Delete folder">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </a>
+                    </div>
+                </div>
+                <a href="{% url 'notes:folder_detail' pk=folder.pk %}" class="font-semibold text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition text-sm line-clamp-1">
+                    {{ folder.name }}
+                </a>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
+                <span class="truncate">Owner: {{ request.user.username }}</span>
+                <a href="{% url 'notes:folder_detail' pk=folder.pk %}" class="text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center gap-1 shrink-0">
+                    Open <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full py-12 text-center text-slate-400 dark:text-slate-500">
+            <i data-lucide="folder-open" class="w-12 h-12 mx-auto mb-2 opacity-40"></i>
+            <p class="text-xs">No folders found in library.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- MODE 2: LIST VIEW (Google Drive Horizontal Table List) -->
+    <div id="folders-list-view" class="hidden overflow-x-auto">
         <table class="w-full text-left text-sm border-collapse">
             <thead>
                 <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 text-xs font-normal select-none">
-                    <th class="py-2 px-3 font-normal w-5/12">
-                        <div class="flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Name</div>
+                    <th class="py-2 px-2 w-8 text-center folder-checkbox-col hidden">
+                        <input type="checkbox" id="select-all-folders-checkbox" onchange="toggleSelectAllFolders(this)" class="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer">
                     </th>
-                    <th class="py-2 px-3 font-normal">
-                        <div class="flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i> Created by</div>
-                    </th>
-                    <th class="py-2 px-3 font-normal">
-                        <div class="flex items-center gap-1.5"><i data-lucide="folder" class="w-3.5 h-3.5"></i> Source</div>
-                    </th>
-                    <th class="py-2 px-3 font-normal">
-                        <div class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Last edited</div>
-                    </th>
+                    <th class="py-2.5 px-3 font-normal w-5/12">Name</th>
+                    <th class="py-2.5 px-3 font-normal">Owner</th>
+                    <th class="py-2.5 px-3 font-normal">Notes Count</th>
+                    <th class="py-2.5 px-3 font-normal text-right">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                 {% for folder in folders %}
-                <!-- Folder Row -->
-                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 group cursor-pointer transition">
-                    <td class="py-2 px-3 font-medium text-slate-800 dark:text-slate-200">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="folder" class="w-4 h-4 text-slate-500"></i>
-                            <a href="{% url 'notes:folder_detail' pk=folder.pk %}" class="hover:underline font-semibold">{{ folder.name }}</a>
+                <tr class="folder-row-item hover:bg-slate-50 dark:hover:bg-slate-800/50 group transition" data-folder-name="{{ folder.name|lower }}">
+                    <td class="py-2 px-2 text-center folder-checkbox-col hidden">
+                        <input type="checkbox" name="folder_ids" value="{{ folder.id }}" onchange="updateFolderBulkState()" class="folder-item-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                    </td>
+                    <td class="py-2.5 px-3 font-medium text-slate-800 dark:text-slate-200">
+                        <div class="flex items-center gap-2.5">
+                            <i data-lucide="folder" class="w-4 h-4 text-blue-500"></i>
+                            <a href="{% url 'notes:folder_detail' pk=folder.pk %}" class="hover:text-blue-600 dark:hover:text-blue-400 font-semibold">{{ folder.name }}</a>
                         </div>
                     </td>
-                    <td class="py-2 px-3 text-slate-600 dark:text-slate-400 text-xs">
+                    <td class="py-2.5 px-3 text-slate-600 dark:text-slate-400 text-xs">
                         <div class="flex items-center gap-1.5">
-                            <div class="w-4 h-4 rounded-full bg-slate-700 dark:bg-slate-300 text-white dark:text-slate-900 flex items-center justify-center text-[10px] font-bold">
+                            <div class="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
                                 {{ request.user.username|slice:":1"|upper }}
                             </div>
                             <span>{{ request.user.username }}</span>
                         </div>
                     </td>
-                    <td class="py-2 px-3 text-xs">
-                        <span class="inline-flex items-center gap-1 text-slate-400">
-                            <i data-lucide="lock" class="w-3 h-3"></i> Private
-                        </span>
+                    <td class="py-2.5 px-3 text-xs text-slate-500 dark:text-slate-400">
+                        {{ folder.notes.count }} note{{ folder.notes.count|pluralize }}
                     </td>
-                    <td class="py-2 px-3 text-slate-400 text-xs">
-                        {{ folder.updated_at|default:folder.created_at|timesince }} ago
-                    </td>
-                </tr>
-
-                <!-- Notes Inside Folder -->
-                {% for note in folder.notes.all %}
-                <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 group cursor-pointer transition">
-                    <td class="py-2 px-3 pl-8 text-slate-700 dark:text-slate-300">
-                        <div class="flex items-center gap-2">
-                            <span>📝</span>
-                            <a href="{% url 'notes:note_detail' pk=note.pk %}" class="hover:underline truncate">{{ note.title }}</a>
+                    <td class="py-2.5 px-3 text-right text-xs">
+                        <div class="flex items-center justify-end gap-2">
+                            <a href="{% url 'notes:folder_detail' pk=folder.pk %}" class="text-blue-600 dark:text-blue-400 hover:underline font-medium">View</a>
+                            <a href="{% url 'notes:folder_delete' pk=folder.pk %}" class="text-slate-400 hover:text-red-600 dark:hover:text-red-400" title="Delete folder">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </a>
                         </div>
                     </td>
-                    <td class="py-2 px-3 text-slate-600 dark:text-slate-400 text-xs">
-                        <div class="flex items-center gap-1.5">
-                            <div class="w-4 h-4 rounded-full bg-slate-700 dark:bg-slate-300 text-white dark:text-slate-900 flex items-center justify-center text-[10px] font-bold">
-                                {{ request.user.username|slice:":1"|upper }}
-                            </div>
-                            <span>{{ request.user.username }}</span>
-                        </div>
-                    </td>
-                    <td class="py-2 px-3 text-xs">
-                        <span class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300">
-                            <i data-lucide="folder" class="w-3 h-3 text-slate-400"></i>
-                            {{ folder.name }}
-                        </span>
-                    </td>
-                    <td class="py-2 px-3 text-slate-400 text-xs">
-                        {{ note.updated_at|timesince }} ago
-                    </td>
                 </tr>
-                {% endfor %}
-
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="py-8 text-center text-slate-400">
-                        No folders found in library. Click "New folder" to create one.
-                    </td>
+                    <td colspan="5" class="py-8 text-center text-slate-400 dark:text-slate-500 text-xs">No folders found in library.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+
+    <!-- Floating Bulk Action Bar for Folders -->
+    <div id="folder-bulk-action-bar" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 dark:bg-slate-800/95 backdrop-blur text-white px-4 py-2.5 rounded-xl shadow-2xl z-40 border border-slate-700 flex items-center gap-4 text-xs">
+        <span id="folder-selected-count-text" class="font-medium text-slate-200">0 selected</span>
+        <div class="h-4 w-px bg-slate-700"></div>
+        <form method="POST" action="{% url 'notes:folder_bulk_delete' %}" id="folder-bulk-delete-form" class="inline">
+            {% csrf_token %}
+            <div id="folder-hidden-inputs"></div>
+            <button type="button" onclick="confirmFolderBulkDelete()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md font-medium transition flex items-center gap-1.5">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>Delete Selected</span>
+            </button>
+        </form>
+        <button type="button" onclick="toggleFolderSelectionMode(false)" class="text-slate-400 hover:text-white transition">
+            <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+    </div>
 </div>
 
 <!-- NOTION SIDE PEEK MODAL (New Folder) -->
-<div id="folder-modal" class="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex justify-end hidden transition-opacity">
-    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800 overflow-y-auto transform transition-transform">
+<div id="folder-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end hidden transition-opacity">
+    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800/80 rounded-l-3xl overflow-y-auto transform transition-transform">
         <!-- Close Modal Button -->
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
-            <span class="text-xs text-slate-400 font-medium">New folder</span>
-            <button onclick="closeFolderModal()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">New folder or class</span>
+            <button onclick="closeFolderModal()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
@@ -161,38 +205,234 @@
         <form method="POST" action="{% url 'notes:folder_create' %}" class="space-y-6 flex-1 flex flex-col">
             {% csrf_token %}
             <div>
-                <input type="text" name="name" placeholder="Folder Name" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent">
+                <input type="text" name="name" placeholder="Folder or Class Name" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent">
             </div>
 
             <!-- Folder Properties -->
             <div class="space-y-3 text-xs text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-6">
                 <div class="flex items-center gap-4">
-                    <span class="w-24 flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Date created</span>
-                    <span class="text-slate-700 dark:text-slate-300 font-medium">{% now "M d, Y" %}</span>
+                    <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Date created</span>
+                    <span class="text-slate-700 dark:text-slate-300 font-semibold">{% now "M d, Y" %}</span>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="file-plus" class="w-3.5 h-3.5"></i> Initial note</span>
+                    <button type="button" id="btn-toggle-folder-note" onclick="toggleFolderNoteForm()" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition font-medium select-none shadow-sm">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        <span>Add note in this folder</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- Description / Note Area -->
-            <div class="flex-1">
-                <textarea name="description" placeholder="Folder description or notes..." class="w-full h-full min-h-[180px] border-none outline-none resize-none bg-transparent text-slate-700 dark:text-slate-300 placeholder-slate-400 text-sm"></textarea>
+            <!-- Expandable Initial Note Section (New Note Interface inside New Folder) -->
+            <div id="folder-note-section" class="hidden flex-1 flex flex-col space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Note details</span>
+                    <button type="button" onclick="toggleFolderNoteForm(false)" class="text-xs text-slate-400 hover:text-red-500 transition font-medium">Remove note</button>
+                </div>
+
+                <div>
+                    <input type="text" name="note_title" id="folder-note-title" placeholder="Note Title (e.g. Lesson 1)" class="w-full text-xl font-bold border-b border-slate-200 dark:border-slate-700 pb-2 outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent">
+                </div>
+
+                <!-- Content Area with Rich Formatting Toolbar -->
+                <div class="flex-1 flex flex-col p-4 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 focus-within:border-blue-500/80 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                    <!-- Rich Text Formatting Toolbar -->
+                    <div class="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm text-slate-600 dark:text-slate-300 select-none mb-3">
+                        <button type="button" onclick="formatFolderNoteContent('bold')" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center w-7 h-7 transition shadow-none hover:shadow-sm" title="Bold">B</button>
+                        <button type="button" onclick="formatFolderNoteContent('italic')" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 italic font-serif text-xs flex items-center justify-center w-7 h-7 transition shadow-none hover:shadow-sm" title="Italic">I</button>
+                        <button type="button" onclick="formatFolderNoteContent('underline')" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 underline text-xs flex items-center justify-center w-7 h-7 transition shadow-none hover:shadow-sm" title="Underline">U</button>
+                        <button type="button" onclick="formatFolderNoteContent('strikethrough')" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 line-through text-xs flex items-center justify-center w-7 h-7 transition shadow-none hover:shadow-sm" title="Strikethrough">S</button>
+                        <div class="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                        <button type="button" onclick="formatFolderNoteContent('ul')" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition hover:shadow-sm" title="Bullet List"><i data-lucide="list" class="w-3.5 h-3.5"></i></button>
+                        <button type="button" onclick="formatFolderNoteContent('ol')" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition hover:shadow-sm" title="Numbered List"><i data-lucide="list-ordered" class="w-3.5 h-3.5"></i></button>
+                        <button type="button" onclick="formatFolderNoteContent('quote')" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition hover:shadow-sm" title="Quote"><i data-lucide="quote" class="w-3.5 h-3.5"></i></button>
+                        <button type="button" onclick="formatFolderNoteContent('code')" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition hover:shadow-sm" title="Code block"><i data-lucide="code" class="w-3.5 h-3.5"></i></button>
+                        <button type="button" onclick="formatFolderNoteContent('link')" class="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition hover:shadow-sm" title="Insert Link"><i data-lucide="link" class="w-3.5 h-3.5"></i></button>
+                    </div>
+                    <textarea name="note_content" id="folder-note-content" placeholder="Press Enter to start typing your note..." class="w-full flex-1 min-h-[140px] border-none outline-none resize-none bg-transparent text-slate-700 dark:text-slate-200 placeholder-slate-400 text-sm leading-relaxed"></textarea>
+                </div>
             </div>
 
-            <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <button type="button" onclick="closeFolderModal()" class="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition">Cancel</button>
-                <button type="submit" class="px-4 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition">Save folder</button>
+            <div class="flex justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onclick="closeFolderModal()" class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition font-medium">Cancel</button>
+                <button type="submit" class="px-5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">Save folder</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- JS Modal Script -->
+<!-- JS Handlers -->
 <script>
+    function toggleFolderDropdown(e) {
+        if (e) e.stopPropagation();
+        const menu = document.getElementById('folder-dropdown-menu');
+        if (menu) menu.classList.toggle('hidden');
+    }
+
+    function hideFolderDropdown() {
+        const menu = document.getElementById('folder-dropdown-menu');
+        if (menu) menu.classList.add('hidden');
+    }
+
+    document.addEventListener('click', hideFolderDropdown);
+
+    let folderSelectionModeActive = false;
+    function toggleFolderSelectionMode(forceState) {
+        folderSelectionModeActive = typeof forceState === 'boolean' ? forceState : !folderSelectionModeActive;
+        const cols = document.querySelectorAll('.folder-checkbox-col');
+        cols.forEach(el => el.classList.toggle('hidden', !folderSelectionModeActive));
+
+        if (!folderSelectionModeActive) {
+            document.querySelectorAll('.folder-item-checkbox').forEach(cb => cb.checked = false);
+            const selectAll = document.getElementById('select-all-folders-checkbox');
+            if (selectAll) selectAll.checked = false;
+            updateFolderBulkState();
+        }
+    }
+
+    function toggleSelectAllFolders(masterCb) {
+        document.querySelectorAll('.folder-item-checkbox').forEach(cb => cb.checked = masterCb.checked);
+        updateFolderBulkState();
+    }
+
+    function updateFolderBulkState() {
+        const checked = document.querySelectorAll('.folder-item-checkbox:checked');
+        const bar = document.getElementById('folder-bulk-action-bar');
+        const countText = document.getElementById('folder-selected-count-text');
+        if (checked.length > 0) {
+            if (bar) bar.classList.remove('hidden');
+            if (countText) countText.textContent = checked.length + ' folder(s) selected';
+        } else {
+            if (bar) bar.classList.add('hidden');
+        }
+    }
+
+    function confirmFolderBulkDelete() {
+        const checked = document.querySelectorAll('.folder-item-checkbox:checked');
+        if (checked.length === 0) return;
+
+        if (confirm(`Are you sure you want to delete these ${checked.length} folder(s)?`)) {
+            const hiddenContainer = document.getElementById('folder-hidden-inputs');
+            hiddenContainer.innerHTML = '';
+            checked.forEach(cb => {
+                const inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'folder_ids';
+                inp.value = cb.value;
+                hiddenContainer.appendChild(inp);
+            });
+            document.getElementById('folder-bulk-delete-form').submit();
+        }
+    }
+
+    function setFolderViewMode(mode) {
+        const grid = document.getElementById('folders-grid-view');
+        const list = document.getElementById('folders-list-view');
+        const btnGrid = document.getElementById('btn-grid-view');
+        const btnList = document.getElementById('btn-list-view');
+
+        if (mode === 'grid') {
+            grid.classList.remove('hidden');
+            list.classList.add('hidden');
+            btnGrid.className = 'px-2.5 py-1 text-xs rounded-md font-medium flex items-center gap-1.5 transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm';
+            btnList.className = 'px-2.5 py-1 text-xs rounded-md font-medium flex items-center gap-1.5 transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            localStorage.setItem('folder_view_mode', 'grid');
+        } else {
+            grid.classList.add('hidden');
+            list.classList.remove('hidden');
+            btnList.className = 'px-2.5 py-1 text-xs rounded-md font-medium flex items-center gap-1.5 transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm';
+            btnGrid.className = 'px-2.5 py-1 text-xs rounded-md font-medium flex items-center gap-1.5 transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            localStorage.setItem('folder_view_mode', 'list');
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function filterFolders(query) {
+        const q = query.toLowerCase().trim();
+        document.querySelectorAll('.folder-card-item').forEach(el => {
+            const name = el.getAttribute('data-folder-name') || '';
+            el.style.display = name.includes(q) ? 'flex' : 'none';
+        });
+        document.querySelectorAll('.folder-row-item').forEach(el => {
+            const name = el.getAttribute('data-folder-name') || '';
+            el.style.display = name.includes(q) ? 'table-row' : 'none';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedMode = localStorage.getItem('folder_view_mode') || 'grid';
+        setFolderViewMode(savedMode);
+    });
+
     function openFolderModal() {
         document.getElementById('folder-modal').classList.remove('hidden');
     }
 
     function closeFolderModal() {
         document.getElementById('folder-modal').classList.add('hidden');
+    }
+
+    function toggleFolderNoteForm(forceState) {
+        const sec = document.getElementById('folder-note-section');
+        const btn = document.getElementById('btn-toggle-folder-note');
+        if (!sec) return;
+
+        const isShowing = typeof forceState === 'boolean' ? forceState : sec.classList.contains('hidden');
+        if (isShowing) {
+            sec.classList.remove('hidden');
+            if (btn) btn.classList.add('hidden');
+        } else {
+            sec.classList.add('hidden');
+            if (btn) btn.classList.remove('hidden');
+            const input = document.getElementById('folder-note-title');
+            const ta = document.getElementById('folder-note-content');
+            if (input) input.value = '';
+            if (ta) ta.value = '';
+        }
+    }
+
+    function formatFolderNoteContent(formatType) {
+        const textarea = document.getElementById('folder-note-content');
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+        let replacement = '';
+
+        switch (formatType) {
+            case 'bold':
+                replacement = `**${selectedText || 'bold text'}**`;
+                break;
+            case 'italic':
+                replacement = `*${selectedText || 'italic text'}*`;
+                break;
+            case 'underline':
+                replacement = `<u>${selectedText || 'underlined text'}</u>`;
+                break;
+            case 'strikethrough':
+                replacement = `~~${selectedText || 'strikethrough text'}~~`;
+                break;
+            case 'ul':
+                replacement = selectedText ? selectedText.split('\n').map(l => `- ${l}`).join('\n') : '- List item';
+                break;
+            case 'ol':
+                replacement = selectedText ? selectedText.split('\n').map((l, i) => `${i + 1}. ${l}`).join('\n') : '1. List item';
+                break;
+            case 'quote':
+                replacement = selectedText ? selectedText.split('\n').map(l => `> ${l}`).join('\n') : '> Quote text';
+                break;
+            case 'code':
+                replacement = `\`\`\`\n${selectedText || 'code here'}\n\`\`\``;
+                break;
+            case 'link':
+                replacement = `[${selectedText || 'link text'}](url)`;
+                break;
+        }
+
+        textarea.setRangeText(replacement, start, end, 'select');
+        textarea.focus();
     }
 </script>
 {% endblock %}

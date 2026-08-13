@@ -1,13 +1,19 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from .views import register, custom_logout
+from .views import register, custom_logout, profile
 
 
 app_name = "accounts"
 
 
 urlpatterns = [
+
+    path(
+        "profile/",
+        profile,
+        name="profile"
+    ),
 
     path(
         "register/",

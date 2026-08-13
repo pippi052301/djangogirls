@@ -68,7 +68,7 @@ class NotesAppTests(TestCase):
 
         detail_url = reverse("notes:tag_detail", kwargs={"pk": self.tag.pk})
         res_detail = self.client.get(detail_url)
-        self.assertEqual(res_detail.status_code, 200)
+        self.assertEqual(res_detail.status_code, 302)
 
         edit_url = reverse("notes:tag_update", kwargs={"pk": self.tag.pk})
         res_edit = self.client.get(edit_url)
@@ -77,3 +77,21 @@ class NotesAppTests(TestCase):
         delete_url = reverse("notes:tag_delete", kwargs={"pk": self.tag.pk})
         res_del_get = self.client.get(delete_url)
         self.assertEqual(res_del_get.status_code, 200)
+
+    def test_search_by_title_or_tag(self):
+        url = reverse("notes:note_list")
+        res_title = self.client.get(url + "?q=First")
+        self.assertEqual(res_title.status_code, 200)
+        self.assertContains(res_title, "First Note")
+
+        res_tag = self.client.get(url + "?q=Python")
+        self.assertEqual(res_tag.status_code, 200)
+        self.assertContains(res_tag, "First Note")
+
+    def test_bulk_delete_notes(self):
+        note2 = Note.objects.create(title="Note 2 to delete", owner=self.user)
+        response = self.client.post(reverse("notes:note_bulk_delete"), {
+            "note_ids": [self.note.id, note2.id]
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Note.objects.filter(id__in=[self.note.id, note2.id]).exists())

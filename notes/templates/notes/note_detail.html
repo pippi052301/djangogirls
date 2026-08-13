@@ -59,7 +59,7 @@
         </span>
         <div class="flex flex-wrap gap-1">
             {% for tag in note.tags.all %}
-                <a href="{% url 'notes:tag_detail' pk=tag.pk %}" class="inline-block {{ tag.color_class }} text-xs px-2.5 py-0.5 rounded border font-medium transition hover:scale-105">
+                <a href="{% url 'notes:note_list' %}?q={{ tag.name }}" class="inline-block {{ tag.color_class }} text-xs px-2.5 py-0.5 rounded border font-medium transition hover:scale-105">
                     # {{ tag.name }}
                 </a>
             {% empty %}
@@ -71,12 +71,12 @@
 {% endblock %}
 
 {% block content %}
-<!-- Note Content Display -->
-<div class="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+<!-- Note Content Display with Rich HTML/Markdown Rendering -->
+<div class="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
     {% if note.content.body %}
-        {{ note.content.body }}
+        {{ note.content.body|safe }}
     {% elif note.content %}
-        {{ note.content }}
+        {{ note.content|safe }}
     {% else %}
         <p class="text-slate-400 italic">No content in this note yet.</p>
     {% endif %}
