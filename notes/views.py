@@ -244,9 +244,14 @@ def folder_create(request):
             note_title = request.POST.get('note_title', '').strip()
             note_content = request.POST.get('note_content', '').strip()
             if note_title:
+                template_type = request.POST.get('template_type', 'blank')
+                if not template_type or template_type == 'blank':
+                    if '.pdf' in note_title.lower():
+                        template_type = 'pdf'
                 new_note = Note.objects.create(
                     title=note_title,
                     content={"body": note_content},
+                    template_type=template_type,
                     owner=request.user,
                     folder=folder
                 )

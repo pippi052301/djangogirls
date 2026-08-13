@@ -32,6 +32,9 @@ class PasswordResetOTP(models.Model):
 
     @classmethod
     def generate_otp(cls, user):
+        # Invalidate previous unused OTP codes for this user so only the latest is active
+        cls.objects.filter(user=user, used_at__isnull=True).update(used_at=timezone.now())
+
         code = f"{secrets.randbelow(1_000_000):06d}"
 
         cls.objects.create(

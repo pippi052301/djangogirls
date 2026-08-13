@@ -233,6 +233,15 @@
             <!-- Page Properties -->
             <div class="space-y-3 text-xs text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-6">
                 <div class="flex items-center gap-4">
+                    <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="file-up" class="w-3.5 h-3.5 text-blue-500"></i> Import file</span>
+                    <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 text-xs text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition font-medium select-none shadow-sm group">
+                        <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-blue-500 group-hover:scale-110 transition-transform"></i>
+                        <span>Upload .txt file</span>
+                        <input type="file" accept=".txt" class="hidden" onchange="handleNoteModalFileImport(event)">
+                    </label>
+                </div>
+
+                <div class="flex items-center gap-4">
                     <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Date created</span>
                     <span class="text-slate-700 dark:text-slate-300 font-semibold">{% now "M d, Y" %}</span>
                 </div>
@@ -917,5 +926,57 @@
             menu.classList.add('hidden');
         }
     });
+
+    async function handleNoteModalFileImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const titleInput = document.querySelector('input[name="title"]');
+        const editor = document.getElementById('rich-note-editor');
+        const hiddenContent = document.getElementById('hidden-note-content');
+
+        const rawName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+        const formattedTitle = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+        if (titleInput && (!titleInput.value || titleInput.value.trim() === '' || titleInput.value === 'Untitled')) {
+            titleInput.value = formattedTitle;
+        }
+
+        const fileExt = file.name.split('.').pop().toLowerCase();
+
+        try {
+            let textContent = '';
+            if (fileExt === 'txt') {
+                textContent = await file.text();
+                showImportToast(`Imported TXT file: ${file.name}`);
+            } else if (fileExt === 'pdf') {
+                showImportToast(`Reading PDF: ${file.name}...`);
+                const arrayBuffer = await file.arrayBuffer();
+                if (window.pdfjsLib) {
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    let fullText = '';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContentObj = await page.getTextContent();
+                        const pageText = textContentObj.items.map(item => item.str).join(' ');
+                        fullText += pageText + '\n\n';
+                    }
+                    textContent = fullText.trim();
+                    showImportToast(`Imported ${pdf.numPages} pages from ${file.name}!`);
+                } else {
+                    alert('PDF reader module is loading. Please try again.');
+                    return;
+                }
+            }
+
+            if (editor) {
+                const formattedHtml = textContent.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '<br>').join('');
+                editor.innerHTML = formattedHtml;
+                if (hiddenContent) hiddenContent.value = editor.innerHTML;
+            }
+        } catch (err) {
+            console.error('File import error:', err);
+            alert('Could not import file: ' + err.message);
+        }
+    }
 </script>
 {% endblock %}

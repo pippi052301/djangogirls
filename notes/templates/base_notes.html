@@ -19,6 +19,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Marked.js Markdown Parser CDN -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- PDF.js CDN for client-side PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         html.dark, html.dark body {
             background-color: #0f172a !important;
@@ -308,6 +310,87 @@
                 });
             }
         });
+    </script>
+
+    <!-- Global File Import Utility (.txt and .pdf) -->
+    <script>
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        async function handleFileImport(event, titleInputId, contentInputId) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const titleInput = document.getElementById(titleInputId);
+            const contentInput = document.getElementById(contentInputId);
+            
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const rawName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+            let formattedTitle = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+            if (fileExt === 'pdf' && !formattedTitle.toLowerCase().endsWith('.pdf')) {
+                formattedTitle += '.pdf';
+            }
+
+            if (titleInput && (!titleInput.value || titleInput.value.trim() === '' || titleInput.value === 'Untitled' || titleInput.value.toLowerCase().includes('note title'))) {
+                titleInput.value = formattedTitle;
+            }
+
+            const templateTypeInput = document.getElementById('folder-note-template-type');
+            if (templateTypeInput && fileExt === 'pdf') {
+                templateTypeInput.value = 'pdf';
+            }
+
+            try {
+                if (fileExt === 'txt') {
+                    const text = await file.text();
+                    if (contentInput) {
+                        contentInput.value = text;
+                    }
+                    showImportToast(`Imported TXT file: ${file.name}`);
+                } else if (fileExt === 'pdf') {
+                    showImportToast(`Processing PDF: ${file.name}...`);
+                    const dataUrlReader = new FileReader();
+                    dataUrlReader.readAsDataURL(file);
+                    dataUrlReader.onload = async function(e) {
+                        const pdfDataUri = e.target.result;
+                        const arrayBuffer = await file.arrayBuffer();
+                        let fullText = '';
+                        if (window.pdfjsLib) {
+                            try {
+                                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                                for (let i = 1; i <= pdf.numPages; i++) {
+                                    const page = await pdf.getPage(i);
+                                    const textContent = await page.getTextContent();
+                                    fullText += textContent.items.map(item => item.str).join(' ') + '\n\n';
+                                }
+                            } catch (err) {
+                                console.log('PDF text extract fallback:', err);
+                            }
+                        }
+                        if (contentInput) {
+                            contentInput.value = JSON.stringify({
+                                pdf_data: pdfDataUri,
+                                body: fullText.trim()
+                            });
+                        }
+                        showImportToast(`Successfully imported PDF document: ${file.name}!`);
+                    };
+                }
+            } catch (err) {
+                console.error('File import error:', err);
+                alert('Could not import file: ' + err.message);
+            }
+        }
+
+        function showImportToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-5 right-5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl z-50 flex items-center gap-2 transition-all border border-slate-700 dark:border-slate-300';
+            toast.innerHTML = `<i data-lucide="file-check-2" class="w-4 h-4 text-emerald-400 dark:text-emerald-600"></i> <span>${message}</span>`;
+            document.body.appendChild(toast);
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => toast.remove(), 4000);
+        }
     </script>
 </body>
 </html>
