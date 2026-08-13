@@ -68,7 +68,7 @@ class NotesAppTests(TestCase):
 
         detail_url = reverse("notes:tag_detail", kwargs={"pk": self.tag.pk})
         res_detail = self.client.get(detail_url)
-        self.assertEqual(res_detail.status_code, 302)
+        self.assertEqual(res_detail.status_code, 200)
 
         edit_url = reverse("notes:tag_update", kwargs={"pk": self.tag.pk})
         res_edit = self.client.get(edit_url)

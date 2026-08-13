@@ -120,3 +120,10 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     except Exception as e:
         print(f"Lỗi khi gọi API Grading Nâng cao: {e}")
         return None
+
+
+def grade_user_answer(question, user_answer, correct_criteria):
+    res = advanced_grade_essay(question, user_answer, correct_criteria)
+    if res and "total_score" in res:
+        return {"score": res["total_score"], "feedback": res.get("overall_feedback", "")}
+    return res

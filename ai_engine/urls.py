@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('', views.home, name='ai_home'),
+    
     # API 1: http://localhost:8000/ai/quiz/
     path('quiz/', views.create_quiz_api, name='api_create_quiz'),
     

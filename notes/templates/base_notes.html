@@ -99,6 +99,16 @@
                             </div>
                         </div>
 
+                        <!-- Ask AI Tutor Navigation Item (Links to Gemini AI Workspace) -->
+                        <a href="{% url 'ai_home' %}" 
+                           class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'ai_home' %}bg-purple-100 dark:bg-purple-950/80 text-purple-900 dark:text-purple-200 font-semibold{% else %}text-slate-600 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300{% endif %}">
+                            <div class="flex items-center gap-2 truncate">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500 group-hover:scale-110 transition-transform"></i>
+                                <span class="font-medium">🤖 Ask AI Tutor</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 font-mono font-semibold">AI</span>
+                        </a>
+
                         <!-- Study Plan Navigation Item -->
                         <a href="#" 
                            class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'study_plan' %}bg-slate-200/80 dark:bg-slate-700 text-slate-900 dark:text-white font-medium{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60{% endif %}">

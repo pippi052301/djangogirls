@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Study Assistant - Gemini Workspace{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        tailwind = { config: { darkMode: 'class' } };
+    </script>
+    <!-- Lucide Icons & Fonts -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'Fira Code', monospace; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        html.dark ::-webkit-scrollbar-thumb { background: #334155; }
+
+        /* Gemini Glowing Gradients */
+        .gemini-gradient-text {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gemini-gradient-bg {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+        }
+        .gemini-glow {
+            box-shadow: 0 0 25px -5px rgba(124, 58, 237, 0.3);
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex h-screen overflow-hidden text-sm antialiased transition-colors duration-200">
+
+    <!-- LEFT SIDEBAR (Gemini / ChatGPT Style) -->
+    <aside id="ai-sidebar" class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-all duration-300 z-30 select-none">
+        
+        <!-- Sidebar Top Header -->
+        <div class="p-3 space-y-3">
+            <!-- App Brand & New Chat Button -->
+            <div class="flex items-center justify-between px-2 py-1">
+                <a href="{% url 'notes:note_list' %}" class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100 hover:opacity-80 transition">
+                    <div class="w-8 h-8 rounded-xl gemini-gradient-bg flex items-center justify-center text-white shadow-md">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    </div>
+                    <span class="text-base tracking-tight font-semibold">Gemini <span class="text-xs px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 font-mono font-medium border border-purple-200 dark:border-purple-800/60">AI</span></span>
+                </a>
+                <button type="button" onclick="toggleAISidebar()" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition md:hidden">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- New Chat Button -->
+            <button type="button" onclick="startNewAIChat()" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium transition shadow-sm hover:shadow group">
+                <i data-lucide="plus" class="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:rotate-90 transition-transform duration-200"></i>
+                <span>New conversation</span>
+            </button>
+
+            <!-- Quick Navigation Features -->
+            <div class="space-y-1 pt-2">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2.5 pb-1">AI Tools</div>
+                <a href="{% url 'notes:note_list' %}" class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-xs font-medium">
+                    <i data-lucide="book-open" class="w-4 h-4 text-blue-500"></i>
+                    <span>Study Notes</span>
+                </a>
+                <a href="#" onclick="triggerAIFeature('summary')" class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-xs font-medium">
+                    <i data-lucide="file-text" class="w-4 h-4 text-purple-500"></i>
+                    <span>Summarize Notes</span>
+                </a>
+                <a href="#" onclick="triggerAIFeature('quiz')" class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-xs font-medium">
+                    <i data-lucide="help-circle" class="w-4 h-4 text-emerald-500"></i>
+                    <span>Generate Quiz</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Chat History List -->
+        <div class="flex-1 px-3 overflow-y-auto space-y-1">
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2.5 py-1">Recent Chats</div>
+            <div id="ai-history-list" class="space-y-1">
+                {% block sidebar_history %}
+                <button type="button" class="w-full text-left px-2.5 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between group transition">
+                    <span class="truncate pr-2">Python Django Data Models</span>
+                    <i data-lucide="message-square" class="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition"></i>
+                </button>
+                <button type="button" class="w-full text-left px-2.5 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between group transition">
+                    <span class="truncate pr-2">Web Development Concepts</span>
+                    <i data-lucide="message-square" class="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition"></i>
+                </button>
+                {% endblock %}
+            </div>
+        </div>
+
+        <!-- Sidebar Footer: Theme Toggle & User Info -->
+        <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+            <button type="button" id="ai-theme-toggle" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <span class="flex items-center gap-2">
+                    <i data-lucide="moon" id="ai-dark-icon" class="w-4 h-4 text-purple-500"></i>
+                    <i data-lucide="sun" id="ai-light-icon" class="w-4 h-4 text-amber-500 hidden"></i>
+                    <span id="ai-theme-text">Dark mode</span>
+                </span>
+                <span class="text-[10px] text-slate-400 uppercase font-mono">Theme</span>
+            </button>
+
+            <div class="flex items-center justify-between px-2 pt-1">
+                <div class="flex items-center gap-2 truncate">
+                    <div class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200">
+                        {{ user.username|slice:":1"|upper }}
+                    </div>
+                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{{ user.username }}</span>
+                </div>
+                <a href="{% url 'notes:note_list' %}" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Back to Notes">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CHAT & CONTENT AREA -->
+    <main class="flex-1 flex flex-col h-full bg-white dark:bg-slate-950 relative overflow-hidden">
+        
+        <!-- Top Navbar Header -->
+        <header class="h-14 border-b border-slate-200/80 dark:border-slate-800/80 px-4 flex items-center justify-between select-none bg-white/80 dark:bg-slate-950/80 backdrop-blur-md z-20">
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="toggleAISidebar()" class="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    <i data-lucide="panel-left" class="w-5 h-5"></i>
+                </button>
+
+                <!-- Model Selector Pill (ChatGPT / Gemini Style) -->
+                <div class="relative inline-block text-left">
+                    <button type="button" onclick="toggleModelDropdown()" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/80 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="selected-model-name">Gemini 1.5 Pro</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div id="model-dropdown" class="hidden absolute left-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-1.5 space-y-1">
+                        <button type="button" onclick="selectAIModel('Gemini 1.5 Pro')" class="w-full text-left px-3 py-2 text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between font-medium">
+                            <span class="flex items-center gap-2"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500"></i> Gemini 1.5 Pro</span>
+                            <span class="text-[10px] text-slate-400 font-mono">Fast &amp; Smart</span>
+                        </button>
+                        <button type="button" onclick="selectAIModel('ChatGPT 4o')" class="w-full text-left px-3 py-2 text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between font-medium">
+                            <span class="flex items-center gap-2"><i data-lucide="bot" class="w-3.5 h-3.5 text-emerald-500"></i> ChatGPT 4o</span>
+                            <span class="text-[10px] text-slate-400 font-mono">Advanced</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Actions -->
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="clearAIChat()" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition font-medium flex items-center gap-1.5">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Reset Chat</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- CHAT FEED CONTAINER -->
+        <div id="ai-chat-feed" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 max-w-4xl w-full mx-auto">
+            {% block chat_content %}
+            <!-- Welcome Hero Screen -->
+            <div id="ai-welcome-screen" class="my-auto pt-10 text-center space-y-6 max-w-2xl mx-auto">
+                <div class="w-16 h-16 rounded-3xl gemini-gradient-bg mx-auto flex items-center justify-center text-white shadow-xl gemini-glow">
+                    <i data-lucide="sparkles" class="w-8 h-8"></i>
+                </div>
+                
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                        Hello, <span class="gemini-gradient-text">{{ user.username }}</span>
+                    </h1>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm mt-2">
+                        How can I assist your study and knowledge management today?
+                    </p>
+                </div>
+
+                <!-- AI Suggestion Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-left pt-4">
+                    <button type="button" onclick="sendSuggestedPrompt('Summarize my study notes from today into bullet points')" class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 hover:border-purple-400 dark:hover:border-purple-600 transition group space-y-2">
+                        <div class="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                        </div>
+                        <div class="font-semibold text-xs text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition">Summarize Today's Notes</div>
+                        <div class="text-[11px] text-slate-400 leading-snug">Extract key takeaways and summary points.</div>
+                    </button>
+
+                    <button type="button" onclick="sendSuggestedPrompt('Generate 5 multiple-choice quiz questions from my study notes')" class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 hover:border-emerald-400 dark:hover:border-emerald-600 transition group space-y-2">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                            <i data-lucide="help-circle" class="w-4 h-4"></i>
+                        </div>
+                        <div class="font-semibold text-xs text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">Create Practice Quiz</div>
+                        <div class="text-[11px] text-slate-400 leading-snug">Test your memory with instant questions.</div>
+                    </button>
+
+                    <button type="button" onclick="sendSuggestedPrompt('Explain a difficult concept in simple terms')" class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 hover:border-blue-400 dark:hover:border-blue-600 transition group space-y-2">
+                        <div class="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                            <i data-lucide="brain-circuit" class="w-4 h-4"></i>
+                        </div>
+                        <div class="font-semibold text-xs text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">Explain Complex Topic</div>
+                        <div class="text-[11px] text-slate-400 leading-snug">Get clear, easy-to-understand explanations.</div>
+                    </button>
+
+                    <button type="button" onclick="sendSuggestedPrompt('Help me create an effective daily study plan')" class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 hover:border-amber-400 dark:hover:border-amber-600 transition group space-y-2">
+                        <div class="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                        </div>
+                        <div class="font-semibold text-xs text-slate-800 dark:text-slate-200 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition">Plan Study Schedule</div>
+                        <div class="text-[11px] text-slate-400 leading-snug">Organize revision and study goals.</div>
+                    </button>
+                </div>
+            </div>
+            {% endblock %}
+        </div>
+
+        <!-- BOTTOM FLOATING INPUT BAR (Gemini / ChatGPT Style Pill Bar) -->
+        <div class="p-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800/80">
+            <div class="max-w-4xl mx-auto space-y-2">
+                
+                <form id="ai-input-form" onsubmit="handleAISubmit(event)" class="relative flex items-center bg-slate-100 dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 p-1.5 transition-all shadow-lg">
+                    <button type="button" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition" title="Attach file or note">
+                        <i data-lucide="paperclip" class="w-4 h-4"></i>
+                    </button>
+
+                    <textarea id="ai-user-prompt" rows="1" placeholder="Ask Gemini AI or request a summary/quiz..." onkeydown="handleTextareaKeydown(event)" class="flex-1 bg-transparent border-none outline-none resize-none px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 leading-relaxed max-h-32 min-h-[40px]"></textarea>
+
+                    <button type="submit" id="ai-send-btn" class="w-9 h-9 rounded-full gemini-gradient-bg text-white flex items-center justify-center hover:opacity-90 transition shadow-md disabled:opacity-50">
+                        <i data-lucide="arrow-up" class="w-5 h-5"></i>
+                    </button>
+                </form>
+
+                <div class="text-[11px] text-center text-slate-400 dark:text-slate-500">
+                    Gemini AI may provide suggestions. Verify important study facts.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JS SCRIPTS FOR AI INTERACTION & THEME -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.lucide) lucide.createIcons();
+            syncAIThemeUI();
+
+            const themeBtn = document.getElementById('ai-theme-toggle');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    if (document.documentElement.classList.contains('dark')) {
+                        document.documentElement.classList.remove('dark');
+                        localStorage.setItem('color-theme', 'light');
+                    } else {
+                        document.documentElement.classList.add('dark');
+                        localStorage.setItem('color-theme', 'dark');
+                    }
+                    syncAIThemeUI();
+                });
+            }
+        });
+
+        function syncAIThemeUI() {
+            const darkIcon = document.getElementById('ai-dark-icon');
+            const lightIcon = document.getElementById('ai-light-icon');
+            const themeText = document.getElementById('ai-theme-text');
+            if (document.documentElement.classList.contains('dark')) {
+                if (lightIcon) lightIcon.classList.remove('hidden');
+                if (darkIcon) darkIcon.classList.add('hidden');
+                if (themeText) themeText.textContent = 'Light mode';
+            } else {
+                if (darkIcon) darkIcon.classList.add('hidden');
+                if (lightIcon) lightIcon.classList.remove('hidden');
+                if (themeText) themeText.textContent = 'Dark mode';
+            }
+        }
+
+        function toggleAISidebar() {
+            const sidebar = document.getElementById('ai-sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('-ml-64');
+            }
+        }
+
+        function toggleModelDropdown() {
+            const dropdown = document.getElementById('model-dropdown');
+            if (dropdown) dropdown.classList.toggle('hidden');
+        }
+
+        function selectAIModel(modelName) {
+            const nameEl = document.getElementById('selected-model-name');
+            if (nameEl) nameEl.textContent = modelName;
+            toggleModelDropdown();
+        }
+
+        function handleTextareaKeydown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('ai-input-form').requestSubmit();
+            }
+        }
+
+        function sendSuggestedPrompt(promptText) {
+            const input = document.getElementById('ai-user-prompt');
+            if (input) {
+                input.value = promptText;
+                document.getElementById('ai-input-form').requestSubmit();
+            }
+        }
+
+        function startNewAIChat() {
+            clearAIChat();
+        }
+
+        function clearAIChat() {
+            const feed = document.getElementById('ai-chat-feed');
+            if (feed) {
+                feed.innerHTML = `
+                <div id="ai-welcome-screen" class="my-auto pt-10 text-center space-y-6 max-w-2xl mx-auto">
+                    <div class="w-16 h-16 rounded-3xl gemini-gradient-bg mx-auto flex items-center justify-center text-white shadow-xl gemini-glow">
+                        <i data-lucide="sparkles" class="w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                            Hello, <span class="gemini-gradient-text">${'{{ user.username }}'}</span>
+                        </h1>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm mt-2">
+                            How can I assist your study and knowledge management today?
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-left pt-4">
+                        <button type="button" onclick="sendSuggestedPrompt('Summarize my study notes from today into bullet points')" class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 hover:border-purple-400 dark:hover:border-purple-600 transition group space-y-2">
+                            <div class="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center"><i data-lucide="file-text" class="w-4 h-4"></i></div>
+                            <div class="font-semibold text-xs text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition">Summarize Today's Notes</div>
+                            <div class="text-[11px] text-slate-400 leading-snug">Extract key takeaways and summary points.</div>
+                        </button>
+                        <button type="button" onclick="sendSuggestedPrompt('Generate 5 multiple-choice quiz questions from my study notes')" class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 hover:border-emerald-400 dark:hover:border-emerald-600 transition group space-y-2">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center"><i data-lucide="help-circle" class="w-4 h-4"></i></div>
+                            <div class="font-semibold text-xs text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">Create Practice Quiz</div>
+                            <div class="text-[11px] text-slate-400 leading-snug">Test your memory with instant questions.</div>
+                        </button>
+                    </div>
+                </div>`;
+                if (window.lucide) lucide.createIcons();
+            }
+        }
+
+        function handleAISubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('ai-user-prompt');
+            if (!input) return;
+            const text = input.value.trim();
+            if (!text) return;
+
+            const welcome = document.getElementById('ai-welcome-screen');
+            if (welcome) welcome.remove();
+
+            const feed = document.getElementById('ai-chat-feed');
+
+            // Render User Bubble
+            const userMsgHtml = `
+            <div class="flex items-start justify-end gap-3">
+                <div class="bg-purple-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm max-w-xl shadow-md">
+                    ${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                </div>
+                <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 flex-shrink-0">
+                    ${'{{ user.username|slice:":1"|upper }}'}
+                </div>
+            </div>`;
+            feed.insertAdjacentHTML('beforeend', userMsgHtml);
+            input.value = '';
+
+            // Render AI Loading Bubble
+            const aiLoadingId = 'ai-msg-' + Date.now();
+            const aiMsgHtml = `
+            <div id="${aiLoadingId}" class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-xl gemini-gradient-bg text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                </div>
+                <div class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 text-slate-800 dark:text-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 text-sm max-w-2xl space-y-2 shadow-sm">
+                    <div class="flex items-center gap-2 text-xs text-slate-400 font-medium">
+                        <span>Gemini AI</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping"></span>
+                    </div>
+                    <div class="ai-body text-slate-700 dark:text-slate-300 leading-relaxed">
+                        Thinking...
+                    </div>
+                </div>
+            </div>`;
+            feed.insertAdjacentHTML('beforeend', aiMsgHtml);
+            feed.scrollTop = feed.scrollHeight;
+            if (window.lucide) lucide.createIcons();
+
+            // Simulate Smart AI Response
+            setTimeout(() => {
+                const aiBubble = document.getElementById(aiLoadingId);
+                if (aiBubble) {
+                    const bodyEl = aiBubble.querySelector('.ai-body');
+                    let aiResponseText = `Here is what I found for **"${text}"**:\n\n- **Key Insight**: Study notes and key concepts have been analyzed.\n- **Recommendation**: Review your practice quizzes periodically for better long-term retention.\n\n\`\`\`python\n# Example Study Automation Snippet\ndef review_flashcards(topic):\n    return f"Reviewing {topic} with spaced repetition"\n\`\`\``;
+                    if (window.marked) {
+                        bodyEl.innerHTML = marked.parse(aiResponseText);
+                    } else {
+                        bodyEl.innerHTML = aiResponseText.replace(/\n/g, '<br>');
+                    }
+                    feed.scrollTop = feed.scrollHeight;
+                }
+            }, 1000);
+        }
+
+        function triggerAIFeature(type) {
+            if (type === 'summary') {
+                sendSuggestedPrompt('Summarize all my study notes into key topics');
+            } else if (type === 'quiz') {
+                sendSuggestedPrompt('Generate 5 quiz questions for my notes');
+            }
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

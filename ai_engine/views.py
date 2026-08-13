@@ -1,4 +1,5 @@
 import json
+from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -6,6 +7,10 @@ from django.views.decorators.csrf import csrf_exempt
 from .services.quiz_service import generate_quiz_from_text
 from .services.graph_service import generate_knowledge_graph
 from .services.adaptive_service import generate_adaptive_practice #, grade_user_answer
+
+
+def home(request):
+    return render(request, "ai_engine_base.html")
 
 @csrf_exempt # Tạm thời tắt kiểm tra CSRF để Frontend dễ test API
 def create_quiz_api(request):
