@@ -52,24 +52,22 @@ for test_name, student_answer in multiple_choice_tests:
 # ==========================================
 
 question = """
-DjangoのMVTにおけるModelの役割を簡潔に説明してください。
+Briefly explain the role of the Model in Django's MVT architecture.
 """
 
 correct_answer = """
-Modelはデータを管理し、
-データベースとのやり取りを担当する。
+The Model manages data and handles interactions with the database.
 """
 
 explanation = """
-Modelはアプリケーションのデータ構造を定義し、
-データベースへの保存や取得などを担当する。
+The Model defines the data structure of an application and is responsible for operations such as storing and retrieving data from the database.
 """
 
 
 short_answer_tests = [
     (
-        "SA-05 明確な誤答",
-        "ModelはHTMLを使ってユーザーに表示するWebページを作成する役割を持つ。"
+        "SA-06 Blank Answer",
+        ""
     )
 ]
 
