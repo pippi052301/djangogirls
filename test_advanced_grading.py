@@ -11,10 +11,7 @@ If D > 0, the equation has two distinct real solutions.
 If D = 0, the equation has one repeated real solution.
 If D < 0, the equation has no real solutions."""
 
-student_answer = """The discriminant is D = b² - 4ac, which is used to determine the number of real solutions of a quadratic equation ax² + bx + c = 0.
-
-If D > 0, the equation has two distinct real solutions. If D = 0, the equation has one real solution (a repeated root). If D < 0, the equation has no real solutions.
-  
+student_answer = """
 """
 
 # 2. GIẢ LẬP DỮ LIỆU TỪ PGVECTOR (Bạn tự viết tay 2 bài mẫu)
