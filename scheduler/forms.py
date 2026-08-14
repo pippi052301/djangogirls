@@ -11,8 +11,16 @@ class QuizScheduleForm(forms.ModelForm):
         fields = [
             "topic",
             "frequency",
+<<<<<<< Updated upstream
             "time",
             "question_count",
+=======
+            "weekly_days",
+            "specific_date",
+            "start_time",
+            "end_time",
+            "priority",
+>>>>>>> Stashed changes
             "difficulty",
         ]
 

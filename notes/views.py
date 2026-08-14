@@ -141,25 +141,64 @@ def folder_create(request):
 
             folder.save()
 
-            # Create initial note if provided inside New Folder modal
-            note_title = request.POST.get('note_title', '').strip()
-            note_content = request.POST.get('note_content', '').strip()
-            if note_title:
-                template_type = request.POST.get('template_type', 'blank')
-                if not template_type or template_type == 'blank':
-                    if '.pdf' in note_title.lower():
-                        template_type = 'pdf'
-                new_note = Note.objects.create(
-                    title=note_title,
-                    content={"body": note_content},
-                    template_type=template_type,
-                    owner=request.user,
-                    folder=folder
-                )
-                tag_ids = request.POST.getlist('note_tags')
-                if tag_ids:
-                    tag_objs = Tag.objects.filter(id__in=tag_ids, owner=request.user)
-                    new_note.tags.set(tag_objs)
+            # Create notes provided inside New Folder modal (supports multiple notes or single note)
+            modal_notes_json = request.POST.get('modal_notes_json', '').strip()
+            if modal_notes_json and modal_notes_json != '[]':
+                try:
+                    notes_arr = json.loads(modal_notes_json)
+                    if isinstance(notes_arr, list):
+                        for item in notes_arr:
+                            n_title = (item.get('title') or 'Untitled Note').strip()
+                            n_content = item.get('content', '')
+                            n_template = item.get('template_type', 'blank')
+                            
+                            c_dict = {"body": n_content}
+                            if isinstance(n_content, dict):
+                                c_dict = n_content
+                            elif isinstance(n_content, str) and n_content.startswith('{') and 'pdf_data' in n_content:
+                                try:
+                                    c_dict = json.loads(n_content)
+                                    n_template = 'pdf'
+                                except Exception:
+                                    pass
+
+                            Note.objects.create(
+                                title=n_title,
+                                content=c_dict,
+                                template_type=n_template,
+                                owner=request.user,
+                                folder=folder
+                            )
+                except Exception as e:
+                    print('Error parsing modal_notes_json:', e)
+            else:
+                note_title = request.POST.get('note_title', '').strip()
+                note_content = request.POST.get('note_content', '').strip()
+                if note_title:
+                    template_type = request.POST.get('template_type', 'blank')
+                    if not template_type or template_type == 'blank':
+                        if '.pdf' in note_title.lower():
+                            template_type = 'pdf'
+
+                    content_dict = {"body": note_content}
+                    if note_content.startswith('{') and 'pdf_data' in note_content:
+                        try:
+                            content_dict = json.loads(note_content)
+                            template_type = 'pdf'
+                        except Exception:
+                            pass
+
+                    new_note = Note.objects.create(
+                        title=note_title,
+                        content=content_dict,
+                        template_type=template_type,
+                        owner=request.user,
+                        folder=folder
+                    )
+                    tag_ids = request.POST.getlist('note_tags')
+                    if tag_ids:
+                        tag_objs = Tag.objects.filter(id__in=tag_ids, owner=request.user)
+                        new_note.tags.set(tag_objs)
 
             if request.headers.get("x-requested-with") == "XMLHttpRequest":
                 return JsonResponse({"id": folder.id, "name": folder.name})
@@ -281,6 +320,17 @@ def folder_list(request):
     if search_query:
         folders = folders.filter(name__icontains=search_query)
 
+    for folder in folders:
+        notes_data = []
+        for n in folder.notes.all():
+            notes_data.append({
+                "id": n.id,
+                "title": n.title,
+                "content": n.content if isinstance(n.content, (dict, str)) else str(n.content),
+                "template_type": n.template_type or ('pdf' if '.pdf' in n.title.lower() else 'blank')
+            })
+        folder.notes_json = json.dumps(notes_data)
+
     return render(
         request,
         "folders/folder_list.html", 
@@ -374,10 +424,50 @@ def folder_edit(request, pk):
 
         if form.is_valid():
             folder = form.save()
-            return redirect(
-                "notes:folder_detail",
-                pk=folder.pk
-            )
+
+            # Batch process modal_notes_json if submitted from side drawer
+            modal_notes_json = request.POST.get('modal_notes_json', '').strip()
+            if modal_notes_json:
+                try:
+                    notes_arr = json.loads(modal_notes_json)
+                    if isinstance(notes_arr, list):
+                        for item in notes_arr:
+                            n_id = item.get('id')
+                            n_title = (item.get('title') or 'Untitled Note').strip()
+                            n_content = item.get('content', '')
+                            n_template = item.get('template_type', 'blank')
+
+                            c_dict = {"body": n_content}
+                            if isinstance(n_content, dict):
+                                c_dict = n_content
+                            elif isinstance(n_content, str) and n_content.startswith('{') and 'pdf_data' in n_content:
+                                try:
+                                    c_dict = json.loads(n_content)
+                                    n_template = 'pdf'
+                                except Exception:
+                                    pass
+
+                            if n_id and str(n_id).isdigit():
+                                existing_note = Note.objects.filter(id=n_id, owner=request.user).first()
+                                if existing_note:
+                                    existing_note.title = n_title
+                                    existing_note.content = c_dict
+                                    existing_note.template_type = n_template
+                                    existing_note.folder = folder
+                                    existing_note.save()
+                                    continue
+
+                            Note.objects.create(
+                                title=n_title,
+                                content=c_dict,
+                                template_type=n_template,
+                                owner=request.user,
+                                folder=folder
+                            )
+                except Exception as e:
+                    print('Error in folder_edit modal_notes_json:', e)
+
+            return redirect("notes:folder_list")
     else:
         form = FolderForm(
             instance=folder,

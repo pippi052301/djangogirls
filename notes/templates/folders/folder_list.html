@@ -48,21 +48,10 @@
 
 {% block content %}
 <div class="space-y-6 relative">
-    <!-- Header Controls: View Mode Switcher (Google Drive Style) & Search -->
+    <!-- Header Controls: Search & List Title -->
     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
         <div class="flex items-center gap-3">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Folders View</span>
-            <!-- Google Drive 2-Mode Toggle -->
-            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                <button type="button" id="btn-grid-view" onclick="setFolderViewMode('grid')" class="px-2.5 py-1 text-xs rounded-md font-medium flex items-center gap-1.5 transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm">
-                    <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
-                    <span>Grid</span>
-                </button>
-                <button type="button" id="btn-list-view" onclick="setFolderViewMode('list')" class="px-2.5 py-1 text-xs rounded-md font-medium flex items-center gap-1.5 transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-                    <i data-lucide="list" class="w-3.5 h-3.5"></i>
-                    <span>List</span>
-                </button>
-            </div>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Folders List</span>
         </div>
 
         <!-- Search Form (by Folder / Class name) -->
@@ -77,55 +66,8 @@
         </form>
     </div>
 
-    <!-- MODE 1: GRID VIEW (Google Drive Cards Grid) -->
-    <div id="folders-grid-view" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {% for folder in folders %}
-        <div class="folder-card-item group relative bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-xl p-4 hover:shadow-lg hover:border-blue-500/50 transition-all flex flex-col justify-between" data-folder-name="{{ folder.name|lower }}">
-            <div>
-                <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <!-- Selection Checkbox on Cards -->
-                        <div class="folder-checkbox-col hidden pr-1">
-                            <input type="checkbox" name="folder_ids" value="{{ folder.id }}" onchange="updateFolderBulkState()" class="folder-item-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer">
-                        </div>
-                        <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200/50 dark:border-blue-800/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                            <i data-lucide="folder" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-                            {{ folder.notes.count }} note{{ folder.notes.count|pluralize }}
-                        </span>
-
-                        <!-- Delete Folder Button (Routes to folder_confirm_delete.html) -->
-                        <a href="{% url 'notes:folder_delete' pk=folder.pk %}" class="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Delete folder">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        </a>
-                    </div>
-                </div>
-                <a href="{% url 'notes:folder_detail' pk=folder.pk %}" class="font-semibold text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition text-sm line-clamp-1">
-                    {{ folder.name }}
-                </a>
-            </div>
-
-            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
-                <span class="truncate">Owner: {{ request.user.username }}</span>
-                <a href="{% url 'notes:folder_detail' pk=folder.pk %}" class="text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center gap-1 shrink-0">
-                    Open <i data-lucide="arrow-right" class="w-3 h-3"></i>
-                </a>
-            </div>
-        </div>
-        {% empty %}
-        <div class="col-span-full py-12 text-center text-slate-400 dark:text-slate-500">
-            <i data-lucide="folder-open" class="w-12 h-12 mx-auto mb-2 opacity-40"></i>
-            <p class="text-xs">No folders found in library.</p>
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- MODE 2: LIST VIEW (Google Drive Horizontal Table List) -->
-    <div id="folders-list-view" class="hidden overflow-x-auto">
+    <!-- LIST VIEW (Google Drive Horizontal Table List) -->
+    <div id="folders-list-view" class="overflow-x-auto">
         <table class="w-full text-left text-sm border-collapse">
             <thead>
                 <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 text-xs font-normal select-none">
@@ -140,14 +82,14 @@
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                 {% for folder in folders %}
-                <tr class="folder-row-item hover:bg-slate-50 dark:hover:bg-slate-800/50 group transition" data-folder-name="{{ folder.name|lower }}">
-                    <td class="py-2 px-2 text-center folder-checkbox-col hidden">
+                <tr class="folder-row-item cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 group transition select-none" data-folder-name="{{ folder.name|lower }}" onclick="openExistingFolderDrawer('{{ folder.id }}', '{{ folder.name|escapejs }}', '{{ folder.parent.id|default:'' }}', {{ folder.notes_json|default:'[]' }})">
+                    <td class="py-2 px-2 text-center folder-checkbox-col hidden" onclick="event.stopPropagation()">
                         <input type="checkbox" name="folder_ids" value="{{ folder.id }}" onchange="updateFolderBulkState()" class="folder-item-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer">
                     </td>
                     <td class="py-2.5 px-3 font-medium text-slate-800 dark:text-slate-200">
                         <div class="flex items-center gap-2.5">
                             <i data-lucide="folder" class="w-4 h-4 text-blue-500"></i>
-                            <a href="{% url 'notes:folder_detail' pk=folder.pk %}" class="hover:text-blue-600 dark:hover:text-blue-400 font-semibold">{{ folder.name }}</a>
+                            <span class="group-hover:text-blue-600 dark:group-hover:text-blue-400 font-semibold">{{ folder.name }}</span>
                         </div>
                     </td>
                     <td class="py-2.5 px-3 text-slate-600 dark:text-slate-400 text-xs">
@@ -163,8 +105,8 @@
                     </td>
                     <td class="py-2.5 px-3 text-right text-xs">
                         <div class="flex items-center justify-end gap-2">
-                            <a href="{% url 'notes:folder_detail' pk=folder.pk %}" class="text-blue-600 dark:text-blue-400 hover:underline font-medium">View</a>
-                            <a href="{% url 'notes:folder_delete' pk=folder.pk %}" class="text-slate-400 hover:text-red-600 dark:hover:text-red-400" title="Delete folder">
+                            <button type="button" onclick="event.stopPropagation(); openExistingFolderDrawer('{{ folder.id }}', '{{ folder.name|escapejs }}', '{{ folder.parent.id|default:'' }}', {{ folder.notes_json|default:'[]' }})" class="text-blue-600 dark:text-blue-400 hover:underline font-medium">View</button>
+                            <a href="{% url 'notes:folder_delete' pk=folder.pk %}" onclick="event.stopPropagation()" class="text-slate-400 hover:text-red-600 dark:hover:text-red-400" title="Delete folder">
                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                             </a>
                         </div>
@@ -198,21 +140,21 @@
 </div>
 
 <!-- NOTION SIDE PEEK MODAL (New Folder) -->
-<div id="folder-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end hidden transition-opacity">
-    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800/80 rounded-l-3xl overflow-y-auto transform transition-transform">
+<div id="folder-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end hidden drawer-backdrop">
+    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800/80 rounded-l-3xl overflow-y-auto drawer-panel">
         <!-- Close Modal Button -->
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
-            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">New folder or class</span>
+            <span id="modal-folder-header-title" class="text-xs text-slate-400 font-semibold uppercase tracking-wider">New folder or class</span>
             <button onclick="closeFolderModal()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
 
         <!-- Create Folder Form -->
-        <form method="POST" action="{% url 'notes:folder_create' %}" class="space-y-6 flex-1 flex flex-col">
+        <form method="POST" action="{% url 'notes:folder_create' %}" id="new-folder-modal-form" class="space-y-6 flex-1 flex flex-col">
             {% csrf_token %}
             <div>
-                <input type="text" name="name" placeholder="Folder or Class Name" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent">
+                <input type="text" name="name" autocomplete="off" placeholder="Folder or Class Name" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent dark:bg-transparent">
             </div>
 
             <div>
@@ -225,6 +167,10 @@
                 </select>
             </div>
 
+<<<<<<< Updated upstream
+=======
+            <div id="initial-note-import-options" class="space-y-3 text-xs text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-6">
+>>>>>>> Stashed changes
                 <div class="flex items-center gap-4">
                     <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="file-plus" class="w-3.5 h-3.5"></i> Initial note</span>
                     <button type="button" id="btn-toggle-folder-note" onclick="toggleFolderNoteForm()" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition font-medium select-none shadow-sm">
@@ -243,20 +189,47 @@
                 </div>
             </div>
 
-            <!-- Expandable Initial Note Section (New Note Interface inside New Folder) -->
+            <!-- Hidden Input for Batch Modal Notes -->
+            <input type="hidden" name="modal_notes_json" id="modal-notes-json-input" value="[]">
+
+            <!-- Attached Saved Notes List Section -->
+            <div id="attached-notes-container" class="hidden space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Attached Notes (<span id="attached-notes-count">0</span>)</span>
+                    <button type="button" id="btn-add-another-note" onclick="openNewNoteInModal()" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add another note
+                    </button>
+                </div>
+                <div id="attached-notes-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    <!-- Cards rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- Active Note Editing Form Section -->
             <div id="folder-note-section" class="hidden flex-1 flex flex-col space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <input type="hidden" name="template_type" id="folder-note-template-type" value="blank">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Note details</span>
-                    <button type="button" onclick="toggleFolderNoteForm(false)" class="text-xs text-slate-400 hover:text-red-500 transition font-medium">Remove note</button>
+                    <div class="flex items-center gap-2">
+                        <label class="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition font-medium select-none shadow-sm group">
+                            <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-blue-500"></i>
+                            <span>Upload .txt or .pdf</span>
+                            <input type="file" accept=".txt,.pdf" class="hidden" onchange="handleFileImport(event, 'folder-note-title', 'folder-note-content');">
+                        </label>
+                        <button type="button" id="btn-preview-pdf-gd" onclick="triggerGdPdfPreviewFromModal()" class="hidden inline-flex items-center gap-1.5 px-3 py-1 text-xs text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition font-semibold shadow-md">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            <span>Preview PDF</span>
+                        </button>
+                        <button type="button" onclick="toggleFolderNoteForm(false)" class="text-xs text-slate-400 hover:text-red-500 transition font-medium">Remove note</button>
+                    </div>
                 </div>
 
                 <div>
-                    <input type="text" name="note_title" id="folder-note-title" placeholder="Note Title (e.g. Lesson 1)" class="w-full text-xl font-bold border-b border-slate-200 dark:border-slate-700 pb-2 outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent">
+                    <input type="text" name="note_title" id="folder-note-title" autocomplete="off" placeholder="Note Title (e.g. Lesson 1)" class="w-full text-xl font-bold border-b border-slate-200 dark:border-slate-700 pb-2 outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent dark:bg-transparent">
                 </div>
 
                 <!-- Content Area with Rich Formatting Toolbar -->
-                <div class="flex-1 flex flex-col p-4 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 focus-within:border-blue-500/80 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                <div id="folder-note-editor-container" class="flex-1 flex flex-col p-4 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 focus-within:border-blue-500/80 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
                     <!-- Rich Text Formatting Toolbar -->
                     <div class="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm text-slate-600 dark:text-slate-300 select-none mb-3">
                         <button type="button" onclick="formatFolderNoteContent('bold')" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center w-7 h-7 transition shadow-none hover:shadow-sm" title="Bold">B</button>
@@ -274,9 +247,13 @@
                 </div>
             </div>
 
-            <div class="flex justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div class="flex justify-end items-center gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button type="button" onclick="closeFolderModal()" class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition font-medium">Cancel</button>
-                <button type="submit" class="px-5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">Save folder</button>
+                <button type="button" id="btn-save-note" onclick="confirmSaveNoteInModal()" class="hidden px-4 py-2 text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                    <span id="save-note-btn-text">Save</span>
+                </button>
+                <button type="submit" id="btn-save-folder" class="px-5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">Save folder</button>
             </div>
         </form>
     </div>
@@ -386,30 +363,364 @@
     });
 
     function openFolderModal() {
-        document.getElementById('folder-modal').classList.remove('hidden');
+        const modal = document.getElementById('folder-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.remove('active');
+            doubleRAF(() => {
+                modal.classList.add('active');
+            });
+        }
+        
+        const headerTitle = document.getElementById('modal-folder-header-title');
+        if (headerTitle) headerTitle.textContent = 'NEW FOLDER OR CLASS';
+
+        const form = document.getElementById('new-folder-modal-form');
+        if (form) {
+            form.action = "{% url 'notes:folder_create' %}";
+            const nameInput = form.querySelector('input[name="name"]');
+            const parentSelect = form.querySelector('select[name="parent"]');
+            if (nameInput) nameInput.value = '';
+            if (parentSelect) parentSelect.value = '';
+        }
+
+        modalNotesList = [];
+        editingNoteId = null;
+        toggleFolderNoteForm(false);
+        updateModalUIState();
+    }
+
+    function openExistingFolderDrawer(folderId, folderName, parentId, notesArray) {
+        const modal = document.getElementById('folder-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.remove('active');
+            doubleRAF(() => {
+                modal.classList.add('active');
+            });
+        }
+
+        const headerTitle = document.getElementById('modal-folder-header-title');
+        if (headerTitle) headerTitle.textContent = 'FOLDER DETAILS: ' + folderName.toUpperCase();
+
+        const form = document.getElementById('new-folder-modal-form');
+        if (form) {
+            form.action = `/notes/folders/${folderId}/edit/`;
+            const nameInput = form.querySelector('input[name="name"]');
+            const parentSelect = form.querySelector('select[name="parent"]');
+            if (nameInput) nameInput.value = folderName;
+            if (parentSelect) parentSelect.value = parentId || '';
+        }
+
+        modalNotesList = Array.isArray(notesArray) ? notesArray : [];
+        editingNoteId = null;
+
+        const sec = document.getElementById('folder-note-section');
+        if (sec) sec.classList.add('hidden');
+
+        const topOptions = document.getElementById('initial-note-import-options');
+        if (topOptions) delete topOptions.dataset.forceShow;
+
+        renderAttachedNotesList();
     }
 
     function closeFolderModal() {
-        document.getElementById('folder-modal').classList.add('hidden');
+        const modal = document.getElementById('folder-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            doubleRAF(() => {
+                setTimeout(() => {
+                    if (!modal.classList.contains('active')) {
+                        modal.classList.add('hidden');
+                    }
+                }, 350);
+            });
+        }
+        toggleFolderNoteForm(false);
     }
 
-    function toggleFolderNoteForm(forceState) {
+    let modalNotesList = [];
+    let editingNoteId = null;
+
+    function updateModalUIState() {
+        const topOptions = document.getElementById('initial-note-import-options');
+        const container = document.getElementById('attached-notes-container');
+        const countEl = document.getElementById('attached-notes-count');
+        const hiddenInput = document.getElementById('modal-notes-json-input');
+        const sec = document.getElementById('folder-note-section');
+        const saveNoteBtn = document.getElementById('btn-save-note');
+        const saveFolderBtn = document.getElementById('btn-save-folder');
+        const addAnotherBtn = document.getElementById('btn-add-another-note');
+
+        if (hiddenInput) {
+            hiddenInput.value = JSON.stringify(modalNotesList);
+        }
+        if (countEl) countEl.textContent = modalNotesList.length;
+
+        const isFormActive = sec && !sec.classList.contains('hidden');
+
+        // 1. Attached Notes Container
+        if (modalNotesList.length > 0) {
+            if (container) container.classList.remove('hidden');
+        } else {
+            if (container) container.classList.add('hidden');
+        }
+
+        // 2. Top Options (Initial note & Import file): ONLY shown when 0 notes exist AND form is not active
+        if (topOptions) {
+            if (modalNotesList.length === 0 && !isFormActive) {
+                topOptions.classList.remove('hidden');
+            } else {
+                topOptions.classList.add('hidden');
+            }
+        }
+
+        // 3. Add Another Note button: ONLY shown when notes exist (1+) AND form is NOT active
+        if (addAnotherBtn) {
+            if (modalNotesList.length > 0 && !isFormActive) {
+                addAnotherBtn.classList.remove('hidden');
+            } else {
+                addAnotherBtn.classList.add('hidden');
+            }
+        }
+
+        // 4. Save note button logic: ONLY visible when form is active!
+        if (saveNoteBtn) {
+            if (isFormActive) {
+                saveNoteBtn.classList.remove('hidden');
+            } else {
+                saveNoteBtn.classList.add('hidden');
+            }
+        }
+
+        // 5. Save folder button logic: Enabled when no active form is being edited
+        if (saveFolderBtn) {
+            if (isFormActive) {
+                saveFolderBtn.disabled = true;
+                saveFolderBtn.classList.add('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+            } else {
+                saveFolderBtn.disabled = false;
+                saveFolderBtn.classList.remove('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+            }
+        }
+    }
+
+    function renderAttachedNotesList() {
+        const listEl = document.getElementById('attached-notes-list');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+
+        modalNotesList.forEach((n, idx) => {
+            const isPdf = n.template_type === 'pdf' || (typeof n.content === 'object' && n.content && n.content.pdf_data) || (typeof n.content === 'string' && n.content.includes('pdf_data'));
+            const card = document.createElement('div');
+            card.className = 'flex items-center justify-between p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs shadow-sm';
+            
+            card.innerHTML = `
+            <div class="flex items-center gap-2.5 truncate max-w-[60%]">
+                <span class="p-1 rounded-lg ${isPdf ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'} font-bold shrink-0">
+                    <i data-lucide="${isPdf ? 'file-text' : 'file-edit'}" class="w-3.5 h-3.5"></i>
+                </span>
+                <span class="font-semibold text-slate-800 dark:text-slate-100 truncate" title="${n.title}">${n.title}</span>
+                ${isPdf ? '<span class="px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 font-bold text-[10px]">PDF</span>' : ''}
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+                ${isPdf ? `<button type="button" onclick="previewPdfFromList(${idx})" class="p-1.5 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition" title="Preview PDF"><i data-lucide="eye" class="w-3.5 h-3.5"></i></button>` : ''}
+                <button type="button" onclick="editModalNote(${idx})" class="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition flex items-center gap-1 font-medium" title="Edit note">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                    <span>Edit</span>
+                </button>
+                <button type="button" onclick="deleteModalNote(${idx})" class="p-1.5 rounded-lg text-red-500 hover:bg-red-100 dark:hover:bg-red-950/60 transition flex items-center gap-1 font-medium" title="Delete note">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    <span>Delete</span>
+                </button>
+            </div>`;
+
+            listEl.appendChild(card);
+        });
+
+        if (window.lucide) lucide.createIcons();
+        updateModalUIState();
+    }
+
+    function confirmSaveNoteInModal() {
+        const titleInput = document.getElementById('folder-note-title');
+        const contentInput = document.getElementById('folder-note-content');
+        const templateInput = document.getElementById('folder-note-template-type');
+
+        if (!titleInput || !titleInput.value.trim()) {
+            alert('Please enter a note title before saving.');
+            if (titleInput) titleInput.focus();
+            return;
+        }
+
+        const title = titleInput.value.trim();
+        let content = contentInput ? contentInput.value.trim() : '';
+        if (contentInput && contentInput.dataset.pdfPayload) {
+            content = contentInput.dataset.pdfPayload;
+        }
+
+        const template_type = templateInput ? templateInput.value : 'blank';
+
+        if (editingNoteId !== null && modalNotesList[editingNoteId]) {
+            modalNotesList[editingNoteId] = {
+                title: title,
+                content: content,
+                template_type: template_type
+            };
+            editingNoteId = null;
+        } else {
+            modalNotesList.push({
+                title: title,
+                content: content,
+                template_type: template_type
+            });
+        }
+
+        const topOptions = document.getElementById('initial-note-import-options');
+        if (topOptions) delete topOptions.dataset.forceShow;
+
+        const sec = document.getElementById('folder-note-section');
+        if (sec) sec.classList.add('hidden');
+
+        renderAttachedNotesList();
+
+        if (typeof showImportToast === 'function') {
+            showImportToast('Note saved! Click Save folder to finish.');
+        }
+    }
+
+    function editModalNote(idx) {
+        if (!modalNotesList[idx]) return;
+        const item = modalNotesList[idx];
+        editingNoteId = idx;
+
+        const isPdf = item.template_type === 'pdf' || (typeof item.content === 'string' && item.content.includes('pdf_data'));
+        toggleFolderNoteForm(true, isPdf);
+
+        const titleInput = document.getElementById('folder-note-title');
+        const contentInput = document.getElementById('folder-note-content');
+        const templateInput = document.getElementById('folder-note-template-type');
+
+        if (titleInput) titleInput.value = item.title;
+        if (templateInput) templateInput.value = item.template_type;
+
+        if (contentInput) {
+            if (typeof item.content === 'object') {
+                contentInput.value = item.content.body || item.title;
+                contentInput.dataset.pdfPayload = JSON.stringify(item.content);
+            } else if (typeof item.content === 'string' && item.content.startsWith('{') && item.content.includes('pdf_data')) {
+                try {
+                    const parsed = JSON.parse(item.content);
+                    contentInput.value = parsed.body || item.title;
+                    contentInput.dataset.pdfPayload = item.content;
+                } catch (e) {
+                    contentInput.value = item.content;
+                }
+            } else {
+                contentInput.value = item.content;
+                delete contentInput.dataset.pdfPayload;
+            }
+        }
+    }
+
+    function deleteModalNote(idx) {
+        if (confirm('Delete this note from the new folder?')) {
+            modalNotesList.splice(idx, 1);
+            renderAttachedNotesList();
+        }
+    }
+
+    function previewPdfFromList(idx) {
+        const item = modalNotesList[idx];
+        if (!item) return;
+
+        let payload = item.content;
+        if (typeof payload === 'string' && payload.startsWith('{')) {
+            try { payload = JSON.parse(payload); } catch(e){}
+        }
+
+        if (payload && payload.pdf_data) {
+            openGoogleDrivePdfModal(payload.pdf_data, item.title, payload.body);
+        } else if (typeof latestImportedPdfData !== 'undefined' && latestImportedPdfData && latestImportedPdfData.pdfDataUri) {
+            openGoogleDrivePdfModal(latestImportedPdfData.pdfDataUri, item.title, item.content);
+        }
+    }
+
+    function openNewNoteInModal() {
+        editingNoteId = null;
+        const topOptions = document.getElementById('initial-note-import-options');
+        if (topOptions) topOptions.dataset.forceShow = 'true';
+        toggleFolderNoteForm(true, false);
+        const titleInput = document.getElementById('folder-note-title');
+        const contentInput = document.getElementById('folder-note-content');
+        if (titleInput) titleInput.value = '';
+        if (contentInput) {
+            contentInput.value = '';
+            delete contentInput.dataset.pdfPayload;
+        }
+    }
+
+    function toggleFolderNoteForm(forceState, isPdfMode) {
         const sec = document.getElementById('folder-note-section');
         const btn = document.getElementById('btn-toggle-folder-note');
+        const previewBtn = document.getElementById('btn-preview-pdf-gd');
+        const editorContainer = document.getElementById('folder-note-editor-container');
         if (!sec) return;
 
         const isShowing = typeof forceState === 'boolean' ? forceState : sec.classList.contains('hidden');
         if (isShowing) {
             sec.classList.remove('hidden');
+            sec.style.opacity = '0';
+            sec.style.transform = 'translateY(8px)';
+            sec.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(() => {
+                    sec.style.opacity = '1';
+                    sec.style.transform = 'translateY(0)';
+                });
+            } else {
+                sec.style.opacity = '1';
+                sec.style.transform = 'translateY(0)';
+            }
+
             if (btn) btn.classList.add('hidden');
+
+            if (isPdfMode) {
+                if (editorContainer) editorContainer.classList.add('hidden');
+                if (previewBtn) previewBtn.classList.remove('hidden');
+            } else {
+                if (editorContainer) editorContainer.classList.remove('hidden');
+            }
         } else {
-            sec.classList.add('hidden');
-            if (btn) btn.classList.remove('hidden');
-            const input = document.getElementById('folder-note-title');
-            const ta = document.getElementById('folder-note-content');
-            if (input) input.value = '';
-            if (ta) ta.value = '';
+            sec.style.opacity = '0';
+            sec.style.transform = 'translateY(8px)';
+            const hideAction = () => {
+                sec.classList.add('hidden');
+                if (btn) btn.classList.remove('hidden');
+                if (previewBtn) previewBtn.classList.add('hidden');
+                if (editorContainer) editorContainer.classList.remove('hidden');
+                if (typeof latestImportedPdfData !== 'undefined') latestImportedPdfData = null;
+                const input = document.getElementById('folder-note-title');
+                const ta = document.getElementById('folder-note-content');
+                if (input) input.value = '';
+                if (ta) {
+                    ta.value = '';
+                    delete ta.dataset.pdfPayload;
+                }
+                editingNoteId = null;
+                const topOptions = document.getElementById('initial-note-import-options');
+                if (topOptions) delete topOptions.dataset.forceShow;
+            };
+
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(hideAction);
+            } else {
+                hideAction();
+            }
         }
+
+        updateModalUIState();
     }
 
     function formatFolderNoteContent(formatType) {

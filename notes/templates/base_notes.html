@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Notion Workspace{% endblock %}</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -35,8 +34,93 @@
             background: #cbd5e1;
             border-radius: 3px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+        /* Prevent browser autofill white background in dark mode */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus,
+        textarea:-webkit-autofill,
+        textarea:-webkit-autofill:hover,
+        textarea:-webkit-autofill:focus,
+        select:-webkit-autofill,
+        select:-webkit-autofill:hover,
+        select:-webkit-autofill:focus {
+            -webkit-text-fill-color: inherit !important;
+            -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        .dark input:-webkit-autofill,
+        .dark input:-webkit-autofill:hover, 
+        .dark input:-webkit-autofill:focus,
+        .dark textarea:-webkit-autofill,
+        .dark textarea:-webkit-autofill:hover,
+        .dark textarea:-webkit-autofill:focus,
+        .dark select:-webkit-autofill,
+        .dark select:-webkit-autofill:hover,
+        .dark select:-webkit-autofill:focus {
+            -webkit-text-fill-color: #f8fafc !important;
+            -webkit-box-shadow: 0 0 0px 1000px #0f172a inset !important;
+        }
+
+        /* Date & Time Input Picker Icon & Dark Popover Fix */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+        }
+
+        .dark input[type="date"],
+        .dark input[type="time"] {
+            color-scheme: dark;
+        }
+
+        .dark input[type="date"]::-webkit-calendar-picker-indicator,
+        .dark input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(2) contrast(1) !important;
+            opacity: 1 !important;
+            cursor: pointer !important;
+            display: block !important;
+        }
+
+        /* Smooth Slide-Over Side Drawer & Backdrop Animation */
+        .drawer-backdrop {
+            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
+            opacity: 0;
+            visibility: hidden;
+        }
+        .drawer-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .drawer-panel {
+            transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        .drawer-backdrop.active .drawer-panel {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        /* Smooth Pop-In Modal Fade & Scale Animations */
+        .modal-smooth-backdrop {
+            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
+            opacity: 0;
+            visibility: hidden;
+        }
+        .modal-smooth-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-smooth-content {
+            transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+            transform: scale(0.94) translateY(12px);
+            opacity: 0;
+        }
+        .modal-smooth-backdrop.active .modal-smooth-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
         }
     </style>
 </head>
@@ -191,10 +275,17 @@
         <!-- Document Content Body -->
         <div class="flex-1 overflow-y-auto">
             <!-- Cover Image Container -->
-            <div class="h-44 w-full bg-slate-100 relative group bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200');">
-                <button class="absolute bottom-2 right-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800 text-xs px-2.5 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition">
-                    Change Cover
-                </button>
+            <div id="page-cover-banner" class="h-44 w-full bg-slate-100 relative group bg-cover bg-center transition-all duration-300" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200');">
+                <div class="absolute bottom-3 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition duration-200">
+                    <button type="button" onclick="triggerCoverUpload()" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md hover:bg-white dark:hover:bg-slate-700 text-xs px-3 py-1.5 rounded-xl shadow-md transition flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200 border border-slate-200/50 dark:border-slate-700/50 cursor-pointer">
+                        <i data-lucide="image" class="w-3.5 h-3.5 text-blue-500"></i>
+                        <span>Change Cover</span>
+                    </button>
+                    <button type="button" onclick="resetCoverImage()" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md hover:bg-red-500 hover:text-white text-xs px-2.5 py-1.5 rounded-xl shadow-md transition flex items-center gap-1 font-semibold text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50 cursor-pointer" title="Reset to Default Cover">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <input type="file" id="cover-file-input" accept="image/png, image/jpeg, image/jpg, image/webp" class="hidden" onchange="handleCoverImageUpload(event)">
             </div>
 
             <!-- Main Document Container -->
@@ -318,6 +409,63 @@
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
 
+        function fixVietnamesePdfText(str) {
+            if (!str) return '';
+            let text = str;
+
+            // Direct TCVN3 / VNI font map
+            const tcvnMap = {
+                'µ': 'à', '¶': 'ả', '¸': 'á', '¹': 'ạ', '¨': 'ă',
+                '»': 'ằ', '¼': 'ẳ', '½': 'ẵ', '¾': 'ắ', 'Æ': 'ặ',
+                'Ç': 'ầ', 'È': 'ẩ', 'É': 'ẫ', 'Ê': 'ấ', 'Ë': 'ậ',
+                'Ì': 'è', 'Í': 'ẻ', 'Î': 'ẽ', 'Ï': 'é', 'Ð': 'ẹ',
+                'Ñ': 'ề', 'Ò': 'ể', 'Ó': 'ễ', 'Ô': 'ế', 'Õ': 'ệ',
+                'Ö': 'ì', '×': 'ỉ', 'Ø': 'ĩ', 'Ù': 'í', 'Ú': 'ị',
+                'Û': 'ò', 'Ü': 'ỏ', 'Ý': 'õ', 'Þ': 'ó', 'ß': 'ọ',
+                '¬': 'ơ', '§': 'Đ'
+            };
+
+            for (let key in tcvnMap) {
+                text = text.replaceAll(key, tcvnMap[key]);
+            }
+
+            // Common TCVN3/PDF.js font encoding artifacts in Vietnamese PDFs
+            const wordFixes = [
+                [/\bĐ4\b/g, 'đã'],
+                [/\bĐ\b/g, 'đã'],
+                [/\bm¼nh\b/g, 'mình'],
+                [/\bg¼\b/g, 'gì'],
+                [/\bgị\b/g, 'gì'],
+                [/\btjt\b/g, 'tất'],
+                [/\btèt\b/g, 'tốt'],
+                [/\bcæng\b/g, 'công'],
+                [/\bbEn\b/g, 'bản'],
+                [/\bthỷn\b/g, 'thân'],
+                [/\bquÊ\b/g, 'quả'],
+                [/\bhiéu\b/g, 'hiệu'],
+                [/\bchóng\b/g, 'chúng'],
+                [/\btæi\b/g, 'tôi'],
+                [/\btrản\b/g, 'trọn'],
+                [/\bvụn\b/g, 'vẹn'],
+                [/\bKụ\b/g, 'Kỳ'],
+                [/\bgịo\b/g, 'giáo'],
+                [/\bvïrn\b/g, 'viên'],
+                [/\bn y\b/g, 'này'],
+                [/\bhọ c\b/g, 'học'],
+                [/\bhắc sinh\b/g, 'học sinh'],
+                [/\bcj c\b/g, 'các'],
+                [/\bCjc\b/g, 'Các'],
+                [/\bcù rong\b/g, 'cũng hoàn'],
+                [/\bné lúc\b/g, 'nỗ lực'],
+            ];
+
+            wordFixes.forEach(([pattern, replacement]) => {
+                text = text.replace(pattern, replacement);
+            });
+
+            return text;
+        }
+
         async function handleFileImport(event, titleInputId, contentInputId) {
             const file = event.target.files[0];
             if (!file) return;
@@ -346,10 +494,14 @@
                     const text = await file.text();
                     if (contentInput) {
                         contentInput.value = text;
+                        delete contentInput.dataset.pdfPayload;
                     }
+                    const previewBtn = document.getElementById('btn-preview-pdf-gd');
+                    if (previewBtn) previewBtn.classList.add('hidden');
+                    if (typeof latestImportedPdfData !== 'undefined') latestImportedPdfData = null;
                     showImportToast(`Imported TXT file: ${file.name}`);
                 } else if (fileExt === 'pdf') {
-                    showImportToast(`Processing PDF: ${file.name}...`);
+                    showImportToast(`Processing PDF document: ${file.name}...`);
                     const dataUrlReader = new FileReader();
                     dataUrlReader.readAsDataURL(file);
                     dataUrlReader.onload = async function(e) {
@@ -362,19 +514,67 @@
                                 for (let i = 1; i <= pdf.numPages; i++) {
                                     const page = await pdf.getPage(i);
                                     const textContent = await page.getTextContent();
-                                    fullText += textContent.items.map(item => item.str).join(' ') + '\n\n';
+                                    const pageText = textContent.items.map(item => item.str).join(' ');
+                                    if (pageText.trim()) {
+                                        fullText += pageText.trim() + '\n\n';
+                                    }
                                 }
                             } catch (err) {
-                                console.log('PDF text extract fallback:', err);
+                                console.log('PDF text extract error:', err);
                             }
                         }
+
+                        const localCleaned = fixVietnamesePdfText(fullText.trim());
+                        
+                        latestImportedPdfData = {
+                            pdfDataUri: pdfDataUri,
+                            filename: file.name,
+                            extractedText: localCleaned
+                        };
+
+                        const pdfPayload = {
+                            pdf_data: pdfDataUri,
+                            body: localCleaned || `[PDF Document: ${file.name}]`,
+                            filename: file.name
+                        };
+
                         if (contentInput) {
-                            contentInput.value = JSON.stringify({
-                                pdf_data: pdfDataUri,
-                                body: fullText.trim()
-                            });
+                            // Display clean readable text in the textarea, store JSON in dataset
+                            contentInput.value = localCleaned || `[PDF Document: ${file.name}]\n\nClick 'Preview PDF (Google Drive View)' above to view the full document visually.`;
+                            contentInput.dataset.pdfPayload = JSON.stringify(pdfPayload);
+
+                            // Intercept parent form submission to pass JSON payload
+                            const form = contentInput.closest('form');
+                            if (form && !form.dataset.pdfSubmitBound) {
+                                form.dataset.pdfSubmitBound = 'true';
+                                form.addEventListener('submit', function() {
+                                    if (contentInput.dataset.pdfPayload) {
+                                        contentInput.value = contentInput.dataset.pdfPayload;
+                                    }
+                                });
+                            }
+
+                            // Call AI backend to restore clean Vietnamese text for search & chat
+                            fetch('/ai/clean-pdf-text/', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ text: localCleaned.slice(0, 3500) })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data && data.text) {
+                                    pdfPayload.body = data.text;
+                                    contentInput.dataset.pdfPayload = JSON.stringify(pdfPayload);
+                                }
+                            })
+                            .catch(err => console.log('AI PDF clean fallback:', err));
                         }
-                        showImportToast(`Successfully imported PDF document: ${file.name}!`);
+
+                        if (typeof toggleFolderNoteForm === 'function') {
+                            toggleFolderNoteForm(true, true);
+                        }
+
+                        showImportToast(`Loaded PDF: ${file.name}. Click 'Save note' to confirm.`);
                     };
                 }
             } catch (err) {
@@ -383,14 +583,363 @@
             }
         }
 
+        function triggerGdPdfPreviewFromModal() {
+            if (latestImportedPdfData && latestImportedPdfData.pdfDataUri) {
+                openGoogleDrivePdfModal(
+                    latestImportedPdfData.pdfDataUri, 
+                    latestImportedPdfData.filename, 
+                    latestImportedPdfData.extractedText
+                );
+            } else {
+                alert('No PDF file loaded.');
+            }
+        }
+
         function showImportToast(message) {
             const toast = document.createElement('div');
-            toast.className = 'fixed bottom-5 right-5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl z-50 flex items-center gap-2 transition-all border border-slate-700 dark:border-slate-300';
-            toast.innerHTML = `<i data-lucide="file-check-2" class="w-4 h-4 text-emerald-400 dark:text-emerald-600"></i> <span>${message}</span>`;
+            toast.className = 'fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl border border-slate-800 text-xs flex items-center gap-2 animate-bounce';
+            toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-blue-400"></i><span>${message}</span>`;
             document.body.appendChild(toast);
             if (window.lucide) lucide.createIcons();
             setTimeout(() => toast.remove(), 4000);
         }
+    </script>
+
+    <!-- Global Google Drive-Style PDF Preview Modal -->
+    <div id="google-drive-pdf-modal" class="fixed inset-0 z-[100] hidden flex flex-col bg-slate-900/95 backdrop-blur-md">
+        <!-- Top Header Bar -->
+        <div class="h-14 px-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-white shrink-0">
+            <div class="flex items-center gap-3">
+                <span class="p-1.5 rounded-lg bg-red-500/20 text-red-400"><i data-lucide="file-text" class="w-5 h-5"></i></span>
+                <span id="gd-pdf-modal-title" class="font-bold text-sm truncate max-w-xs md:max-w-md">Document.pdf</span>
+            </div>
+            
+            <!-- Controls: Page Counter & Zoom -->
+            <div class="flex items-center gap-3 bg-slate-900 px-4 py-1.5 rounded-xl border border-slate-800 text-xs">
+                <button type="button" onclick="changeGdPdfPage(-1)" class="hover:text-purple-400 transition p-1"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                <span class="font-mono">Page <span id="gd-pdf-current-page">1</span> / <span id="gd-pdf-total-pages">1</span></span>
+                <button type="button" onclick="changeGdPdfPage(1)" class="hover:text-purple-400 transition p-1"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                <div class="h-3 w-px bg-slate-700 mx-1"></div>
+                <button type="button" onclick="changeGdPdfZoom(-0.15)" class="hover:text-purple-400 p-1"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+                <span id="gd-pdf-zoom-level" class="font-mono w-12 text-center">110%</span>
+                <button type="button" onclick="changeGdPdfZoom(0.15)" class="hover:text-purple-400 p-1"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+            </div>
+            
+            <!-- Action Buttons: Ask AI & Close -->
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="toggleGdPdfAiPanel()" class="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-md">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Ask AI Assistant</span>
+                </button>
+                <button type="button" onclick="closeGdPdfModal()" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Viewport (Split View like Google Drive) -->
+        <div class="flex-1 flex overflow-hidden relative">
+            <!-- Left Sidebar: Page Thumbnails -->
+            <div id="gd-pdf-thumbnails-sidebar" class="w-44 bg-slate-950/90 border-r border-slate-800/80 p-3 overflow-y-auto hidden md:flex flex-col gap-3 shrink-0">
+                <!-- Thumbnails rendered dynamically -->
+            </div>
+
+            <!-- Center Main Canvas Viewport -->
+            <div class="flex-1 overflow-auto p-6 flex justify-center items-start bg-slate-900/90" id="gd-pdf-canvas-wrapper">
+                <canvas id="gd-pdf-main-canvas" class="shadow-2xl rounded-lg bg-white max-w-full transition-transform duration-150"></canvas>
+            </div>
+
+            <!-- Right Sidebar: Gemini AI Assistant Panel -->
+            <div id="gd-pdf-ai-sidebar" class="w-96 bg-slate-950 border-l border-slate-800 flex flex-col hidden shrink-0 shadow-2xl">
+                <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                    <span class="font-bold text-xs text-purple-400 flex items-center gap-2">
+                        <i data-lucide="bot" class="w-4 h-4"></i> Gemini PDF Assistant
+                    </span>
+                    <button type="button" onclick="toggleGdPdfAiPanel()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+                <div id="gd-pdf-ai-chat-feed" class="flex-1 p-4 overflow-y-auto space-y-3 text-xs leading-relaxed">
+                    <div class="p-3.5 rounded-2xl bg-purple-950/40 border border-purple-800/40 text-purple-200">
+                        👋 Ask me anything about this PDF file! I can summarize slides, answer questions, or generate practice quizzes.
+                    </div>
+                </div>
+                <div class="p-3 border-t border-slate-800 flex items-center gap-2 bg-slate-900/50">
+                    <input type="text" id="gd-pdf-ai-input" placeholder="Ask Gemini about this file..." class="flex-1 px-3.5 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-purple-500" onkeydown="if(event.key==='Enter') sendGdPdfAiQuestion()">
+                    <button type="button" onclick="sendGdPdfAiQuestion()" class="p-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition"><i data-lucide="send" class="w-4 h-4"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Controller for Google Drive PDF Viewer -->
+    <script>
+        window.doubleRAF = function(fn) {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(fn);
+            });
+        };
+
+        let gdPdfDoc = null;
+        let gdPdfPageNum = 1;
+        let gdPdfScale = 1.1;
+        let gdPdfCurrentText = "";
+        let gdPdfFilename = "";
+
+        async function openGoogleDrivePdfModal(pdfDataUri, filename, extractedText) {
+            gdPdfFilename = filename || 'Document.pdf';
+            gdPdfCurrentText = extractedText || '';
+            
+            const modal = document.getElementById('google-drive-pdf-modal');
+            const titleEl = document.getElementById('gd-pdf-modal-title');
+            if (titleEl) titleEl.textContent = gdPdfFilename;
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.remove('active');
+                doubleRAF(() => {
+                    modal.classList.add('active');
+                });
+            }
+
+            const feed = document.getElementById('gd-pdf-ai-chat-feed');
+            if (feed) {
+                feed.innerHTML = `
+                <div class="p-3.5 rounded-2xl bg-purple-950/40 border border-purple-800/40 text-purple-200">
+                    👋 Ask me anything about <strong>${gdPdfFilename}</strong>! I can analyze, summarize, or generate quizzes from this PDF.
+                </div>`;
+            }
+
+            if (window.pdfjsLib && pdfDataUri) {
+                try {
+                    gdPdfDoc = await pdfjsLib.getDocument(pdfDataUri).promise;
+                    document.getElementById('gd-pdf-total-pages').textContent = gdPdfDoc.numPages;
+                    gdPdfPageNum = 1;
+                    gdPdfScale = 1.1;
+                    updateGdPdfZoomUI();
+                    await renderGdPdfPage(gdPdfPageNum);
+                    renderGdPdfThumbnails();
+                } catch (err) {
+                    console.error('PDF Render Error:', err);
+                }
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        async function renderGdPdfPage(num) {
+            if (!gdPdfDoc) return;
+            const page = await gdPdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale: gdPdfScale });
+            
+            const canvas = document.getElementById('gd-pdf-main-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            document.getElementById('gd-pdf-current-page').textContent = num;
+            
+            document.querySelectorAll('.gd-pdf-thumb-item').forEach((el, idx) => {
+                if (idx === num - 1) {
+                    el.classList.add('ring-2', 'ring-purple-500', 'border-purple-500');
+                } else {
+                    el.classList.remove('ring-2', 'ring-purple-500', 'border-purple-500');
+                }
+            });
+        }
+
+        async function renderGdPdfThumbnails() {
+            const sidebar = document.getElementById('gd-pdf-thumbnails-sidebar');
+            if (!sidebar || !gdPdfDoc) return;
+            sidebar.innerHTML = '';
+
+            for (let i = 1; i <= gdPdfDoc.numPages; i++) {
+                const thumbContainer = document.createElement('div');
+                thumbContainer.className = `gd-pdf-thumb-item cursor-pointer p-1 rounded-lg border border-slate-800 bg-slate-900 hover:border-purple-500 transition text-center ${i === gdPdfPageNum ? 'ring-2 ring-purple-500 border-purple-500' : ''}`;
+                thumbContainer.onclick = () => {
+                    gdPdfPageNum = i;
+                    renderGdPdfPage(gdPdfPageNum);
+                };
+
+                const page = await gdPdfDoc.getPage(i);
+                const viewport = page.getViewport({ scale: 0.2 });
+                const canvas = document.createElement('canvas');
+                canvas.className = 'w-full rounded shadow';
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                thumbContainer.appendChild(canvas);
+                thumbContainer.insertAdjacentHTML('beforeend', `<span class="text-[10px] text-slate-400 font-mono block mt-1">Page ${i}</span>`);
+                sidebar.appendChild(thumbContainer);
+            }
+        }
+
+        function changeGdPdfPage(delta) {
+            if (!gdPdfDoc) return;
+            const newNum = gdPdfPageNum + delta;
+            if (newNum >= 1 && newNum <= gdPdfDoc.numPages) {
+                gdPdfPageNum = newNum;
+                renderGdPdfPage(gdPdfPageNum);
+            }
+        }
+
+        function changeGdPdfZoom(delta) {
+            gdPdfScale = Math.max(0.5, Math.min(3.0, gdPdfScale + delta));
+            updateGdPdfZoomUI();
+            renderGdPdfPage(gdPdfPageNum);
+        }
+
+        function updateGdPdfZoomUI() {
+            const zoomEl = document.getElementById('gd-pdf-zoom-level');
+            if (zoomEl) zoomEl.textContent = `${Math.round(gdPdfScale * 100)}%`;
+        }
+
+        function toggleGdPdfAiPanel() {
+            const sidebar = document.getElementById('gd-pdf-ai-sidebar');
+            if (sidebar) sidebar.classList.toggle('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeGdPdfModal() {
+            const modal = document.getElementById('google-drive-pdf-modal');
+            if (modal) {
+                modal.classList.remove('active');
+                doubleRAF(() => {
+                    setTimeout(() => {
+                        if (!modal.classList.contains('active')) {
+                            modal.classList.add('hidden');
+                        }
+                    }, 350);
+                });
+            }
+        }
+
+        function sendGdPdfAiQuestion() {
+            const input = document.getElementById('gd-pdf-ai-input');
+            if (!input || !input.value.trim()) return;
+            const question = input.value.trim();
+            input.value = '';
+
+            const feed = document.getElementById('gd-pdf-ai-chat-feed');
+            if (!feed) return;
+
+            feed.insertAdjacentHTML('beforeend', `
+            <div class="flex justify-end">
+                <div class="px-3.5 py-2 rounded-2xl bg-purple-600 text-white font-medium shadow-sm max-w-[85%]">
+                    ${question}
+                </div>
+            </div>`);
+
+            const aiLoadingId = `pdf-ai-loading-${Date.now()}`;
+            feed.insertAdjacentHTML('beforeend', `
+            <div id="${aiLoadingId}" class="flex gap-2">
+                <div class="w-6 h-6 rounded-lg bg-purple-900/60 border border-purple-700/60 flex items-center justify-center text-purple-300 font-bold shrink-0 text-[10px]">AI</div>
+                <div class="px-3.5 py-2 rounded-2xl bg-slate-900 border border-slate-800 text-slate-200 shadow-sm max-w-[85%] flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-purple-400 animate-ping"></span>
+                    <span>Thinking...</span>
+                </div>
+            </div>`);
+            feed.scrollTop = feed.scrollHeight;
+
+            const payload = {
+                prompt: question,
+                context_type: 'note',
+                context_name: gdPdfFilename
+            };
+
+            fetch('/ai/chat/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                const loadingEl = document.getElementById(aiLoadingId);
+                if (loadingEl) {
+                    const text = data.response || data.data || data.error || 'No answer returned.';
+                    loadingEl.outerHTML = `
+                    <div class="flex gap-2">
+                        <div class="w-6 h-6 rounded-lg bg-purple-900/60 border border-purple-700/60 flex items-center justify-center text-purple-300 font-bold shrink-0 text-[10px]">AI</div>
+                        <div class="px-3.5 py-2 rounded-2xl bg-slate-900 border border-slate-800 text-slate-200 shadow-sm max-w-[85%]">
+                            ${text}
+                        </div>
+                    </div>`;
+                    feed.scrollTop = feed.scrollHeight;
+                }
+            })
+            .catch(err => {
+                const loadingEl = document.getElementById(aiLoadingId);
+                if (loadingEl) {
+                    loadingEl.outerHTML = `<div class="text-red-400 p-2">Error connecting to AI Assistant.</div>`;
+                }
+            });
+        }
+
+        function getPageCoverStorageKey() {
+            const path = window.location.pathname;
+            if (path.includes('quiz schedule') || path.includes('scheduler')) {
+                return 'custom_cover_image_study_plan';
+            } else if (path.includes('folders')) {
+                return 'custom_cover_image_folders';
+            } else {
+                return 'custom_cover_image_notes';
+            }
+        }
+
+        function triggerCoverUpload() {
+            const fileInput = document.getElementById('cover-file-input');
+            if (fileInput) fileInput.click();
+        }
+
+        function handleCoverImageUpload(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.match('image.*')) {
+                alert('Please select a valid image file (PNG, JPG, JPEG, WEBP).');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                const banner = document.getElementById('page-cover-banner');
+                if (banner) {
+                    banner.style.backgroundImage = `url('${dataUrl}')`;
+                }
+                try {
+                    const key = getPageCoverStorageKey();
+                    localStorage.setItem(key, dataUrl);
+                } catch (err) {
+                    console.warn('Cover image too large for localStorage persistence, displayed for current session.', err);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetCoverImage() {
+            const banner = document.getElementById('page-cover-banner');
+            const defaultUrl = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200';
+            if (banner) {
+                banner.style.backgroundImage = `url('${defaultUrl}')`;
+            }
+            const key = getPageCoverStorageKey();
+            localStorage.removeItem(key);
+            const fileInput = document.getElementById('cover-file-input');
+            if (fileInput) fileInput.value = '';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const key = getPageCoverStorageKey();
+            const savedCover = localStorage.getItem(key);
+            if (savedCover) {
+                const banner = document.getElementById('page-cover-banner');
+                if (banner) {
+                    banner.style.backgroundImage = `url('${savedCover}')`;
+                }
+            }
+        });
     </script>
 </body>
 </html>

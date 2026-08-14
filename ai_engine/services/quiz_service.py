@@ -42,6 +42,7 @@ def validate_quiz_data(data):
 
 
 def generate_quiz_from_text(text_content, num_questions=3):
+<<<<<<< Updated upstream
     """Sinh câu hỏi trắc nghiệm thông thường."""
 
     prompt = f"""
@@ -52,6 +53,17 @@ def generate_quiz_from_text(text_content, num_questions=3):
     - Cung cấp lời giải thích ngắn gọn tại sao đáp án đó đúng.
 
     Cấu trúc JSON yêu cầu:
+=======
+    """Generating simple multiplechoice with model fallback."""
+    prompt = f"""
+    You are an education expert. Read the following text and create {num_questions} multiple-choice questions (4 options A, B, C, D) in English.
+    
+    REQUIREMENTS:
+    - Must have exactly 1 correct answer.
+    - Provide a concise explanation of why the answer is correct.
+    
+    Required JSON structure:
+>>>>>>> Stashed changes
     [
         {{
             "question": "Nội dung câu hỏi?",
@@ -69,6 +81,7 @@ def generate_quiz_from_text(text_content, num_questions=3):
     Văn bản gốc:
     \"\"\"{text_content}\"\"\"
     """
+<<<<<<< Updated upstream
 
     try:
         response = client.models.generate_content(
@@ -92,3 +105,23 @@ def generate_quiz_from_text(text_content, num_questions=3):
     except Exception as e:
         print(f"Lỗi khi gọi API sinh Quiz: {e}")
         return None
+=======
+    
+    models_to_try = ['gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.7-flash']
+    client = get_client()
+    
+    for model_name in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_name, 
+                contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+            if response and response.text:
+                return json.loads(response.text)
+        except Exception as e:
+            print(f"Error when calling API to generate Quiz with {model_name}: {e}")
+            continue
+            
+    return None
+>>>>>>> Stashed changes

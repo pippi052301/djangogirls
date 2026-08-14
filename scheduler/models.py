@@ -5,8 +5,14 @@ from django.contrib.auth.models import User
 class QuizSchedule(models.Model):
 
     FREQUENCY_CHOICES = [
+<<<<<<< Updated upstream
         ("daily", "Hàng ngày"),
         ("weekly", "Hàng tuần"),
+=======
+        ("daily", "Daily"),
+        ("weekly", "Weekly"),
+        ("specific", "Specific Date"),
+>>>>>>> Stashed changes
     ]
 
     DIFFICULTY_CHOICES = [
@@ -31,7 +37,21 @@ class QuizSchedule(models.Model):
         default="daily"
     )
 
+<<<<<<< Updated upstream
     time = models.TimeField()
+=======
+    weekly_days = models.CharField(
+        max_length=100,
+        blank=True,
+        default=""
+    )
+
+    specific_date = models.DateField(null=True, blank=True)
+
+    time = models.TimeField(null=True, blank=True)
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+>>>>>>> Stashed changes
 
     question_count = models.IntegerField(
         default=10

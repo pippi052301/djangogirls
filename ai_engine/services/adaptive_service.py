@@ -45,14 +45,61 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
     \"\"\"{text_content}\"\"\"
     """
     try:
+<<<<<<< Updated upstream
         response = client.models.generate_content(
             model='gemini-3.6-flash', 
+=======
+        response = get_client().models.generate_content(
+            model='gemini-flash-latest', 
+>>>>>>> Stashed changes
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
         return json.loads(response.text)
     except Exception as e:
+<<<<<<< Updated upstream
         print(f"Lỗi khi gọi API Adaptive: {e}")
+=======
+        print(f"Error when calling API Adaptive: {e}")
+        return None
+
+
+def grade_simple_answer(question_type, question, user_answer, correct_answer, explanation):
+    """Lightning-fast automated grading system for Multiple Choice and Short Answer questions."""
+    if question_type == "multiple_choice":
+        is_correct = str(user_answer).strip().upper() == str(correct_answer).strip().upper()
+        return {
+            "is_correct": is_correct,
+            "score": 100 if is_correct else 0,
+            "feedback": f"Your answer is {'Correct' if is_correct else 'Incorrect'}. {explanation}"
+        }
+
+    prompt = f"""
+   - Question: "{question}"
+    - Correct answer / Reference keywords: "{correct_answer}"
+    - Student's response: "{user_answer}"
+    - Reference explanation: "{explanation}"
+    
+    Requirement: Does the student's response correctly convey the meaning of the reference answer? 
+    RETURN 100% JSON:
+    {{
+        "is_correct": true/false,
+        "score": (0 to 100),
+        "feedback": "(Must insert the reference explanation here so the student understands)"
+    }}
+    """
+    try:
+        response = get_client().models.generate_content(
+            model='gemini-flash-latest', 
+            contents=prompt,
+            config=types.GenerateContentConfig(response_mime_type="application/json",
+            system_instruction="You are an automated grading system. Grade objectively, strictly based on mathematical logic and semantic keyword matching. Results must be completely deterministic and identical across runs for identical inputs. Respond strictly with JSON."
+        )
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        print(f"Error calling Simple Grading API: {e}")
+>>>>>>> Stashed changes
         return None
 
 
@@ -108,8 +155,13 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     """
     
     try:
+<<<<<<< Updated upstream
         response = client.models.generate_content(
             model='gemini-3.6-flash', 
+=======
+        response = get_client().models.generate_content(
+            model='gemini-flash-latest', 
+>>>>>>> Stashed changes
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

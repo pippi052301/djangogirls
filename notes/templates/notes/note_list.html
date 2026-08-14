@@ -218,8 +218,8 @@
 </div>
 
 <!-- SIDE PEEK MODAL (New Note) -->
-<div id="note-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end hidden transition-opacity">
-    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800/80 rounded-l-3xl overflow-y-auto transform transition-transform">
+<div id="note-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end hidden drawer-backdrop">
+    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800/80 rounded-l-3xl overflow-y-auto drawer-panel">
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
             <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">New note</span>
             <button onclick="closeNoteModal()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
@@ -231,7 +231,7 @@
         <form method="POST" action="{% url 'notes:note_create' %}" class="space-y-6 flex-1 flex flex-col">
             {% csrf_token %}
             <div>
-                <input type="text" name="title" placeholder="Untitled" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent">
+                <input type="text" name="title" autocomplete="off" placeholder="Untitled" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent dark:bg-transparent">
             </div>
 
             <!-- Page Properties -->
@@ -438,7 +438,15 @@
         document.querySelectorAll('.tag-checkbox').forEach(cb => cb.checked = false);
         updateSelectedTagsDisplay();
 
-        modal.classList.remove('hidden');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.remove('active');
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(() => modal.classList.add('active'));
+            } else {
+                requestAnimationFrame(() => modal.classList.add('active'));
+            }
+        }
     }
 
     function openEditNoteModal(noteId, title, folderId, contentText, tagIds) {
@@ -465,7 +473,15 @@
         });
         updateSelectedTagsDisplay();
 
-        modal.classList.remove('hidden');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.remove('active');
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(() => modal.classList.add('active'));
+            } else {
+                requestAnimationFrame(() => modal.classList.add('active'));
+            }
+        }
     }
 
     window.openNoteSidePeek = openEditNoteModal;
@@ -487,7 +503,22 @@
     });
 
     function closeNoteModal() {
-        document.getElementById('note-modal').classList.add('hidden');
+        const modal = document.getElementById('note-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            const hideAction = () => {
+                setTimeout(() => {
+                    if (!modal.classList.contains('active')) {
+                        modal.classList.add('hidden');
+                    }
+                }, 350);
+            };
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(hideAction);
+            } else {
+                hideAction();
+            }
+        }
     }
 
     // Toggle Popover Menu

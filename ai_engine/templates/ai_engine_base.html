@@ -506,18 +506,24 @@
             feed.scrollTop = feed.scrollHeight;
             if (window.lucide) lucide.createIcons();
 
-            // Call AI Chat Backend API (Gemini AI Integration)
+            const chatPayload = { prompt: text };
+            if (typeof activeContext !== 'undefined' && activeContext && activeContext.type && activeContext.name) {
+                chatPayload.context_type = activeContext.type;
+                chatPayload.context_name = activeContext.name;
+            }
             fetch('{% url "api_chat" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ prompt: text })
+                body: JSON.stringify(chatPayload)
             })
             .then(res => res.json())
             .then(data => {
                 const aiBubble = document.getElementById(aiLoadingId);
                 if (aiBubble) {
+                    const pingDot = aiBubble.querySelector('.animate-ping');
+                    if (pingDot) pingDot.remove();
                     const bodyEl = aiBubble.querySelector('.ai-body');
                     const aiResponseText = data.response || data.error || 'No response returned from AI.';
                     addMessageToSession('ai', aiResponseText);
@@ -526,15 +532,17 @@
                     } else {
                         bodyEl.innerHTML = aiResponseText.replace(/\n/g, '<br>');
                     }
-                    feed.scrollTop = feed.scrollHeight;
+                    if (feed) feed.scrollTop = feed.scrollHeight;
                 }
             })
             .catch(err => {
                 const aiBubble = document.getElementById(aiLoadingId);
                 if (aiBubble) {
+                    const pingDot = aiBubble.querySelector('.animate-ping');
+                    if (pingDot) pingDot.remove();
                     const bodyEl = aiBubble.querySelector('.ai-body');
                     bodyEl.innerHTML = '<span class="text-red-500 font-medium">Error connecting to AI service. Please try again.</span>';
-                    feed.scrollTop = feed.scrollHeight;
+                    if (feed) feed.scrollTop = feed.scrollHeight;
                 }
             });
         }
@@ -658,15 +666,22 @@
             }
             if (window.lucide) lucide.createIcons();
 
+            const chatPayload = { prompt: promptText };
+            if (typeof activeContext !== 'undefined' && activeContext && activeContext.type && activeContext.name) {
+                chatPayload.context_type = activeContext.type;
+                chatPayload.context_name = activeContext.name;
+            }
             fetch('{% url "api_chat" %}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: promptText })
+                body: JSON.stringify(chatPayload)
             })
             .then(res => res.json())
             .then(data => {
                 const aiBubble = document.getElementById(aiLoadingId);
                 if (aiBubble) {
+                    const pingDot = aiBubble.querySelector('.animate-ping');
+                    if (pingDot) pingDot.remove();
                     const bodyEl = aiBubble.querySelector('.ai-body');
                     const aiResponseText = data.response || data.error || 'No response returned from AI.';
                     addMessageToSession('ai', aiResponseText);
@@ -681,6 +696,8 @@
             .catch(err => {
                 const aiBubble = document.getElementById(aiLoadingId);
                 if (aiBubble) {
+                    const pingDot = aiBubble.querySelector('.animate-ping');
+                    if (pingDot) pingDot.remove();
                     const bodyEl = aiBubble.querySelector('.ai-body');
                     bodyEl.innerHTML = '<span class="text-red-500 font-medium">Error connecting to AI service. Please try again.</span>';
                 }
@@ -931,41 +948,84 @@
             btn.classList.add('border-purple-500', 'bg-purple-50', 'dark:bg-purple-950/60', 'text-purple-600', 'ring-2', 'ring-purple-500');
         }
 
+        const STOP_WORDS = new Set([
+            'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+            'in', 'on', 'at', 'to', 'for', 'with', 'by', 'about', 'against', 'between',
+            'into', 'through', 'during', 'before', 'after', 'above', 'below', 'from',
+            'up', 'down', 'of', 'off', 'over', 'under', 'again', 'further', 'then',
+            'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any',
+            'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no',
+            'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's',
+            't', 'can', 'will', 'just', 'don', 'should', 'now', 'its', 'it', 'ez',
+            'idk', 'dunno', 'lol', 'yes', 'yeah', 'nope', 'none', 'nah', 'because'
+        ]);
+
+        function extractMeaningfulWords(str) {
+            if (!str) return [];
+            return str
+                .toLowerCase()
+                .replace(/[^\w\sぁ-んァ-ヶ亜-黑]/gi, ' ')
+                .split(/\s+/)
+                .filter(w => w.length >= 3 && !STOP_WORDS.has(w));
+        }
+
         function evaluateShortAnswer(userAns, sampleAns, correctAns) {
             if (!userAns) return false;
             const cleanUser = userAns.trim().toLowerCase();
-            if (cleanUser.length < 2) return false;
+            if (cleanUser.length < 3) return false;
             
-            const target = (sampleAns || correctAns || '').trim().toLowerCase();
-            if (!target) return cleanUser.length >= 2;
+            const userWords = extractMeaningfulWords(cleanUser);
+            if (userWords.length === 0) return false;
 
-            if (cleanUser === target || target.includes(cleanUser) || cleanUser.includes(target)) return true;
+            const targetStr = (sampleAns || correctAns || '');
+            const targetWords = extractMeaningfulWords(targetStr);
 
-            const keywords = target.replace(/[^\w\sぁ-んァ-ヶ亜-黑]/gi, ' ').split(/\s+/).filter(w => w.length >= 2);
-            const matches = keywords.filter(kw => cleanUser.includes(kw));
-            return matches.length > 0;
+            if (targetWords.length === 0) return false;
+
+            const cleanTarget = targetStr.trim().toLowerCase();
+            if (cleanTarget && (cleanUser === cleanTarget || (cleanTarget.length > 5 && cleanUser.includes(cleanTarget)))) {
+                return true;
+            }
+
+            let matchCount = 0;
+            userWords.forEach(uw => {
+                if (targetWords.some(tw => tw.includes(uw) || uw.includes(tw))) {
+                    matchCount++;
+                }
+            });
+
+            const ratio = matchCount / Math.max(1, targetWords.length);
+            return matchCount >= 2 || ratio >= 0.4;
         }
 
         function evaluateLongAnswer(userAns, keyPoints, sampleAns) {
             if (!userAns) return false;
             const cleanUser = userAns.trim().toLowerCase();
-            if (cleanUser.length < 3) return false;
+            if (cleanUser.length < 5) return false;
 
-            // Reject random key-mash gibberish like 'dsadgvsdvsda'
             if (!cleanUser.includes(' ') && cleanUser.length > 8 && !/[ぁ-んァ-ヶ亜-黑]/.test(cleanUser)) return false;
+
+            const userWords = extractMeaningfulWords(cleanUser);
+            if (userWords.length === 0) return false;
 
             let targetText = '';
             if (keyPoints && Array.isArray(keyPoints)) {
-                targetText += keyPoints.join(' ').toLowerCase();
+                targetText += keyPoints.join(' ');
             }
-            if (sampleAns) targetText += ' ' + sampleAns.toLowerCase();
+            if (sampleAns) targetText += ' ' + sampleAns;
 
-            if (!targetText) return cleanUser.length > 10;
+            const targetWords = extractMeaningfulWords(targetText);
+            if (targetWords.length === 0) return false;
 
-            const keywords = targetText.replace(/[^\w\sぁ-んァ-ヶ亜-黑]/gi, ' ').split(/\s+/).filter(w => w.length >= 2);
-            const matches = keywords.filter(kw => cleanUser.includes(kw));
+            let matchCount = 0;
+            userWords.forEach(uw => {
+                if (targetWords.some(tw => tw.includes(uw) || uw.includes(tw))) {
+                    matchCount++;
+                }
+            });
 
-            return matches.length > 0;
+            const ratio = matchCount / Math.max(1, targetWords.length);
+            return matchCount >= 2 || ratio >= 0.35;
         }
 
         function submitQuizAnswers(containerId, quizList) {
