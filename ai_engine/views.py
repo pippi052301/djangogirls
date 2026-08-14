@@ -133,7 +133,7 @@ def grade_essay_api(request):
             body = json.loads(request.body)
             question = body.get('question', '')
             user_answer = body.get('user_answer', '')
-            standard_key_points = body.get('standard_key_points', '')
+            standard_key_points = body.get('standard_key_points', [])
             exercise_id = body.get('exercise_id', None) 
             
             if not all([question, user_answer, standard_key_points]):

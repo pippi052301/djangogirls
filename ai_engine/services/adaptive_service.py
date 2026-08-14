@@ -101,6 +101,11 @@ def grade_simple_answer(question_type, question, user_answer, correct_answer, ex
 
 def advanced_grade_essay(question, user_answer, standard_key_points, sample_essays=None):
     """Multidimensional AI grading system based on educational science principles."""
+   # Chuẩn hóa: chấp nhận cả list (chuẩn mới, đồng bộ với tutor_chat) lẫn string (tương thích ngược)
+    if isinstance(standard_key_points, (list, tuple)):
+        key_points_text = "\n".join(f"- {point}" for point in standard_key_points)
+    else:
+        key_points_text = standard_key_points
     few_shot_prompt = ""
     if sample_essays:
         few_shot_prompt = f"""
@@ -113,7 +118,7 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     
     [INPUT DATA]
     - QUESTION: "{question}"
-    - REFERENCE ANSWER: "{standard_key_points}"
+    - REFERENCE ANSWER: "{key_points_text}"
     - STUDENT RESPONSE: "{user_answer}"
     {few_shot_prompt}
     

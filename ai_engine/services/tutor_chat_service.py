@@ -25,12 +25,14 @@ def generate_tutor_chat_response(conversation_history, student_input, question_p
     2. Analyze the student's current input and conversation history against the Mandatory Key Points Required.
     3. If the student has NOT covered all or most of the essential key points, guide them with Socratic questioning, hints, and scaffolding questions to help them think deeper and cover the missing points.
     4. Evaluate whether the student has successfully addressed all the mandatory key points well enough to trigger the grading phase. Set "is_ready_for_grading" to true ONLY when they have explicitly or sufficiently touched upon the main required concepts. Otherwise, keep it false.
-    
+    5. WHEN "is_ready_for_grading" is true, compile everything the student has expressed across the ENTIRE conversation (all turns, including this one) into one single, coherent piece of writing in "compiled_final_answer" — use the student's own ideas and wording, do not improve, correct, or add content they didn't say. WHEN "is_ready_for_grading" is false, set "compiled_final_answer" to null.
     [MANDATORY OUTPUT FORMAT]
     Return your response strictly as a JSON object with the following structure:
     {{
         "ai_message": "Your conversational response, encouragement, and Socratic guidance goes here...",
         "is_ready_for_grading": false
+                "compiled_final_answer": null
+
     }}
     """
     
@@ -66,5 +68,6 @@ def generate_tutor_chat_response(conversation_history, student_input, question_p
         print(f"Error when calling Tutor Chat API: {e}")
         return {
             "ai_message": "Xin lỗi, hệ thống gia sư đang bận một chút. Bạn có thể chia sẻ lại ý tưởng của mình được không?",
-            "is_ready_for_grading": False
+            "is_ready_for_grading": False,
+            "compiled_final_answer": None
         }
