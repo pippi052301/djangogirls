@@ -63,7 +63,7 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
 
 def grade_simple_answer(question_type, question, user_answer, correct_answer, explanation):
     """Lightning-fast automated grading system for Multiple Choice and Short Answer questions."""
-    if question_type == "multiple_choice":
+    if question_type == "multiple_choice" or question_type == "short_answer"  :
         is_correct = str(user_answer).strip().upper() == str(correct_answer).strip().upper()
         return {
             "is_correct": is_correct,
