@@ -2,14 +2,14 @@ import json
 from ai_engine.services.adaptive_service import advanced_grade_essay
 
 # 1. DỮ LIỆU ĐẦU VÀO CỐ ĐỊNH (Không cần DB)
-question_text = "二次方程式における判別式とは何か。また、判別式の値と実数解の個数との関係を説明しなさい。"
-standard_answer = """判別式とは、二次方程式 ax² + bx + c = 0 において、
-実数解の個数を判別するために用いられる D = b² - 4ac のことである。
-D > 0 のとき異なる2つの実数解をもち、
-D = 0 のとき1つの実数解（重解）をもち、
-D < 0 のとき実数解をもたない。"""
-student_answer = """判別式とは、二次方程式 ax²+bx+c=0 の実数解の個数を判別するために用いられる D=b²-4ac のことである。
-D>0なら異なる2つの実数解、D=0なら1つの実数解（重解）、D<0なら実数解をもたない。 
+question_text = "Explain the discriminant D in a quadratic equation and describe how its value determines the number of real solutions."
+standard_answer = """The discriminant of a quadratic equation is defined as D = b² - 4ac.
+
+The value of D determines the number of real solutions of the quadratic equation.
+
+If D > 0, the equation has two distinct real solutions.
+If D = 0, the equation has one repeated real solution.
+If D < 0, the equation has no real solutions. 
 """
 
 # 2. GIẢ LẬP DỮ LIỆU TỪ PGVECTOR (Bạn tự viết tay 2 bài mẫu)
