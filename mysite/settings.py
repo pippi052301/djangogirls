@@ -27,10 +27,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'learning',
-    'accounts',
-    'notes',
-    'ai_engine',
+    "learning",
+    "ai_engine",
+    "notes",
+    "accounts",
 ]
 
 
@@ -78,7 +78,14 @@ TEMPLATES = [
 # ================= DATABASE =================
 
 DATABASES = {
-    
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "djangogirls"),
+        "USER": os.getenv("POSTGRES_USER", "postgres"),
+        "PASSWORD": os.environ["POSTGRES_PASSWORD"],
+        "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+    }
 }
 
 
