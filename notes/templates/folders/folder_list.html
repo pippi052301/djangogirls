@@ -8,12 +8,15 @@
 {% block page_header %}
 <<<<<<< Updated upstream
 <div class="-mt-14 mb-6">
+<<<<<<< HEAD
     <div class="mb-4 inline-block">
         <span class="text-6xl hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded cursor-pointer transition">📚</span>
     </div>
 =======
 <div class="pt-2 mb-6">
 >>>>>>> Stashed changes
+=======
+>>>>>>> ai/Kuan
     <div class="flex items-center justify-between">
         <h1 class="text-4xl font-bold text-slate-800 dark:text-slate-100">Library</h1>
         
@@ -229,10 +232,20 @@
                         <span>Add note in this folder</span>
                     </button>
                 </div>
+
+                <div class="flex items-center gap-4">
+                    <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="file-up" class="w-3.5 h-3.5 text-blue-500"></i> Import file</span>
+                    <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 text-xs text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition font-medium select-none shadow-sm group">
+                        <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-blue-500 group-hover:scale-110 transition-transform"></i>
+                        <span>Upload .txt or .pdf</span>
+                        <input type="file" accept=".txt,.pdf" class="hidden" onchange="handleFileImport(event, 'folder-note-title', 'folder-note-content'); toggleFolderNoteForm(true);">
+                    </label>
+                </div>
             </div>
 
             <!-- Expandable Initial Note Section (New Note Interface inside New Folder) -->
             <div id="folder-note-section" class="hidden flex-1 flex flex-col space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <input type="hidden" name="template_type" id="folder-note-template-type" value="blank">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Note details</span>
                     <button type="button" onclick="toggleFolderNoteForm(false)" class="text-xs text-slate-400 hover:text-red-500 transition font-medium">Remove note</button>

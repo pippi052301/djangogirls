@@ -1,0 +1,76 @@
+{% extends "ai_engine_base.html" %}
+
+{% block title %}Periodic Study Summary - Study Support{% endblock %}
+
+{% block chat_content %}
+<div class="max-w-4xl mx-auto space-y-8 py-6 select-none">
+    <!-- Header Card -->
+    <div class="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-3xl p-6 md:p-8 text-white shadow-xl flex items-center justify-between">
+        <div class="space-y-2 max-w-xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-xs font-semibold backdrop-blur-md">
+                <i data-lucide="line-chart" class="w-3.5 h-3.5"></i>
+                <span>Learning Analytics</span>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Periodic Study Summary</h1>
+            <p class="text-purple-100 text-sm">Comprehensive performance breakdown of your recent study progress and test mastery.</p>
+        </div>
+        <div class="hidden sm:block">
+            <i data-lucide="trending-up" class="w-20 h-20 text-white/30"></i>
+        </div>
+    </div>
+
+    <!-- Analytics Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-2">
+            <div class="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Total Completed Tests</div>
+            <div class="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{{ total_completed }}</div>
+            <p class="text-xs text-slate-400">Successfully submitted quiz attempts</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-2">
+            <div class="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Recent Average Score</div>
+            <div class="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{{ avg_score }}%</div>
+            <p class="text-xs text-slate-400">Rolling average of last 5 tests</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-2 sm:col-span-2 md:col-span-1">
+            <div class="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Knowledge Retention</div>
+            <div class="text-3xl font-extrabold {{ retention_color|default:'text-emerald-600 dark:text-emerald-400' }}">{{ retention_level|default:'High' }}</div>
+            <p class="text-xs text-slate-400">{{ retention_desc|default:'Based on quiz accuracy trends' }}</p>
+        </div>
+    </div>
+
+    <!-- Recent Completed Attempts List -->
+    <div class="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <i data-lucide="clock" class="w-5 h-5 text-purple-600"></i>
+            <span>Recent Test History</span>
+        </h2>
+
+        {% if recent_attempts %}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% for attempt in recent_attempts %}
+                <div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                    <div class="space-y-0.5">
+                        <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ attempt.quiz.title }}</h4>
+                        <p class="text-xs text-slate-400">Completed on {{ attempt.completed_at|date:"M d, Y - H:i" }}</p>
+                    </div>
+                    <a href="{% url 'quiz_result' attempt.id %}" class="px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 text-xs font-semibold hover:bg-purple-50 dark:hover:bg-purple-950/50 transition flex items-center gap-1">
+                        <span>Details</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="text-xs text-slate-400 italic">No study history recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block bottom_chat_bar %}{% endblock %}
+
+

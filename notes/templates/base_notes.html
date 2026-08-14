@@ -19,6 +19,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Marked.js Markdown Parser CDN -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- PDF.js CDN for client-side PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         html.dark, html.dark body {
             background-color: #0f172a !important;
@@ -61,10 +63,6 @@
             </a>
 
                 <div class="mt-4 px-2">
-                    <div class="flex items-center justify-between px-2 py-1 text-xs font-semibold text-slate-400">
-                        <span>Private</span>
-                    </div>
-
                     <nav class="mt-1 space-y-0.5">
                         <!-- Study Notes Navigation Item -->
                         <div>
@@ -72,14 +70,14 @@
                                class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'note_list' %}bg-slate-200/80 dark:bg-slate-700 text-slate-900 dark:text-white font-medium{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60{% endif %}">
                                 <div class="flex items-center gap-2 truncate">
                                     <i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600"></i>
-                                    <span>📝 Study Notes</span>
+                                    <span>Study Notes</span>
                                 </div>
                             </a>
 
                             <!-- Scrollable Today Notes Section (Resets Daily) -->
                             <div class="ml-4 mt-1 border-l border-slate-200 dark:border-slate-700 pl-2">
                                 <div class="px-1 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                                    <span>📌 Today Notes</span>
+                                    <span>Today Notes</span>
                                 </div>
                                 <div class="max-h-48 overflow-y-auto space-y-0.5 mt-0.5 pr-1">
                                     {% for t_note in today_notes %}
@@ -87,7 +85,7 @@
                                        onclick="if (window.openNoteSidePeek) { event.preventDefault(); openNoteSidePeek('{{ t_note.pk }}', '{{ t_note.title|escapejs }}', '{{ t_note.folder.id|default:'' }}', '{{ t_note.content_text|escapejs }}', [{% for t in t_note.tags.all %}'{{ t.id }}'{% if not forloop.last %},{% endif %}{% endfor %}]); }"
                                        class="flex items-center gap-1.5 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition truncate font-medium {% if note.pk == t_note.pk %}bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-semibold{% endif %}"
                                        title="{{ t_note.title }}">
-                                        <span>✨</span>
+                                        <i data-lucide="minus" class="w-2.5 h-2.5 text-slate-400 shrink-0"></i>
                                         <span class="truncate">{{ t_note.title }}</span>
                                     </a>
                                     {% empty %}
@@ -99,21 +97,22 @@
                             </div>
                         </div>
 
-                        <!-- Study Plan Navigation Item -->
-                        <a href="#" 
-                           class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'study_plan' %}bg-slate-200/80 dark:bg-slate-700 text-slate-900 dark:text-white font-medium{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60{% endif %}">
-                            <div class="flex items-center gap-2 truncate">
-                                <i data-lucide="calendar-check-2" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600"></i>
-                                <span>📅 Study Plan</span>
-                            </div>
-                        </a>
-
                         <!-- Library Navigation Item -->
                         <a href="{% url 'notes:folder_list' %}" 
                            class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'folder_list' %}bg-slate-200/80 dark:bg-slate-700 text-slate-900 dark:text-white font-medium{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60{% endif %}">
                             <div class="flex items-center gap-2 truncate">
                                 <i data-lucide="library" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600"></i>
-                                <span>📚 Library</span>
+                                <span>Library</span>
+                            </div>
+                        </a>
+
+                        <!-- Study with AI assistant Navigation Item (Links to Gemini AI Workspace) -->
+                        <a href="{% url 'ai_home' %}" 
+                           class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'ai_home' %}bg-purple-100 dark:bg-purple-950/80 text-purple-900 dark:text-purple-200 font-semibold{% else %}text-slate-600 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300{% endif %}"
+                           title="Study with AI assistant">
+                            <div class="flex items-center gap-2 truncate">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500 group-hover:scale-110 transition-transform shrink-0"></i>
+                                <span class="font-medium text-xs truncate">Study with AI assistant</span>
                             </div>
                         </a>
                     </nav>
@@ -311,6 +310,87 @@
                 });
             }
         });
+    </script>
+
+    <!-- Global File Import Utility (.txt and .pdf) -->
+    <script>
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        async function handleFileImport(event, titleInputId, contentInputId) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const titleInput = document.getElementById(titleInputId);
+            const contentInput = document.getElementById(contentInputId);
+            
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const rawName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+            let formattedTitle = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+            if (fileExt === 'pdf' && !formattedTitle.toLowerCase().endsWith('.pdf')) {
+                formattedTitle += '.pdf';
+            }
+
+            if (titleInput && (!titleInput.value || titleInput.value.trim() === '' || titleInput.value === 'Untitled' || titleInput.value.toLowerCase().includes('note title'))) {
+                titleInput.value = formattedTitle;
+            }
+
+            const templateTypeInput = document.getElementById('folder-note-template-type');
+            if (templateTypeInput && fileExt === 'pdf') {
+                templateTypeInput.value = 'pdf';
+            }
+
+            try {
+                if (fileExt === 'txt') {
+                    const text = await file.text();
+                    if (contentInput) {
+                        contentInput.value = text;
+                    }
+                    showImportToast(`Imported TXT file: ${file.name}`);
+                } else if (fileExt === 'pdf') {
+                    showImportToast(`Processing PDF: ${file.name}...`);
+                    const dataUrlReader = new FileReader();
+                    dataUrlReader.readAsDataURL(file);
+                    dataUrlReader.onload = async function(e) {
+                        const pdfDataUri = e.target.result;
+                        const arrayBuffer = await file.arrayBuffer();
+                        let fullText = '';
+                        if (window.pdfjsLib) {
+                            try {
+                                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                                for (let i = 1; i <= pdf.numPages; i++) {
+                                    const page = await pdf.getPage(i);
+                                    const textContent = await page.getTextContent();
+                                    fullText += textContent.items.map(item => item.str).join(' ') + '\n\n';
+                                }
+                            } catch (err) {
+                                console.log('PDF text extract fallback:', err);
+                            }
+                        }
+                        if (contentInput) {
+                            contentInput.value = JSON.stringify({
+                                pdf_data: pdfDataUri,
+                                body: fullText.trim()
+                            });
+                        }
+                        showImportToast(`Successfully imported PDF document: ${file.name}!`);
+                    };
+                }
+            } catch (err) {
+                console.error('File import error:', err);
+                alert('Could not import file: ' + err.message);
+            }
+        }
+
+        function showImportToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-5 right-5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl z-50 flex items-center gap-2 transition-all border border-slate-700 dark:border-slate-300';
+            toast.innerHTML = `<i data-lucide="file-check-2" class="w-4 h-4 text-emerald-400 dark:text-emerald-600"></i> <span>${message}</span>`;
+            document.body.appendChild(toast);
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => toast.remove(), 4000);
+        }
     </script>
 </body>
 </html>
