@@ -1,0 +1,24 @@
+{% extends 'base_clean.html' %}
+
+{% block title %}Delete Tag{% endblock %}
+
+{% block content %}
+<div class="p-4 max-w-md mx-auto space-y-4">
+    <div class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-lg space-y-3">
+        <h3 class="text-xs font-semibold text-red-700 dark:text-red-400">Confirm Tag Deletion</h3>
+        <p class="text-xs text-slate-600 dark:text-slate-300">
+            Are you sure you want to delete tag <strong class="text-slate-900 dark:text-white">"{{ object.name }}"</strong>? This action cannot be undone.
+        </p>
+
+        <form method="POST" class="flex items-center justify-end gap-2 pt-2">
+            {% csrf_token %}
+            <a href="{% url 'notes:tag_list' %}" class="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition">
+                Cancel
+            </a>
+            <button type="submit" class="px-3.5 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white font-medium rounded transition">
+                Delete Tag
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

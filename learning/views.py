@@ -10,7 +10,7 @@ from accounts.models import PasswordResetOTP
 from django.http import HttpResponse
 from accounts.forms import RegisterForm 
 def home(request):
-    return HttpResponse("Hello, Django Girls!")
+    return render(request, 'learning/home.html')
 
 def note_create(request):
     return render(request, 'learning/note_form.html')

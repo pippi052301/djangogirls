@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 # Import các hàm AI từ thư mục services của bạn
 from .services.quiz_service import generate_quiz_from_text
 from .services.graph_service import generate_knowledge_graph
-from .services.adaptive_service import generate_adaptive_practice, grade_user_answer
+from .services.adaptive_service import generate_adaptive_practice #, grade_user_answer
 
 @csrf_exempt # Tạm thời tắt kiểm tra CSRF để Frontend dễ test API
 def create_quiz_api(request):

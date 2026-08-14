@@ -1,0 +1,39 @@
+{% extends 'base_notes.html' %}
+
+{% block title %}Manage Tags - {{ note.title }}{% endblock %}
+
+{% block content %}
+<div class="p-4 max-w-md mx-auto space-y-4">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+        <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            Manage Tags for "{{ note.title }}"
+        </h2>
+        <a href="{% url 'notes:note_detail' pk=note.pk %}" class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            Back to Note
+        </a>
+    </div>
+
+    <form method="POST" class="space-y-4">
+        {% csrf_token %}
+        <div class="space-y-2 max-h-60 overflow-y-auto">
+            {% for checkbox in form.tags %}
+                <label class="flex items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded cursor-pointer text-xs">
+                    {{ checkbox.tag }}
+                    <span class="text-slate-700 dark:text-slate-200">{{ checkbox.choice_label }}</span>
+                </label>
+            {% empty %}
+                <p class="text-xs text-slate-400 italic">No tags available. Create some tags first.</p>
+            {% endfor %}
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <a href="{% url 'notes:note_detail' pk=note.pk %}" class="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition">
+                Cancel
+            </a>
+            <button type="submit" class="px-3.5 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition">
+                Save Tags
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

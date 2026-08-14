@@ -1,9 +1,8 @@
 from django.test import TestCase
+from django.urls import reverse
 
-# Create your tests here.
-class NotesPageTest(TestCase):
-    def test_learning_page_opens(self):
-        response = self.client.get("/learning/")
-
+class LearningPageTests(TestCase):
+    def test_learning_home_opens(self):
+        response = self.client.get(reverse("learning:home"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Hello, Django Girls!")
+        self.assertContains(response, "Welcome to Study Support")

@@ -22,6 +22,11 @@ class FolderForm(forms.ModelForm):
                 owner=user
             )
 class NoteForm(forms.ModelForm):
+    content = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Start typing...'}),
+        required=False
+    )
+
     class Meta:
         model = Note
         fields = [
@@ -35,7 +40,7 @@ class NoteForm(forms.ModelForm):
             'title': forms.TextInput(
                 attrs={
                     'class': 'form-control',
-                    'placeholder': 'Nhập tiêu đề...'
+                    'placeholder': 'Add title...'
                 }
             ),
 
@@ -45,6 +50,16 @@ class NoteForm(forms.ModelForm):
                 }
             ),
         }
+
+    def clean_content(self):
+        content = self.cleaned_data.get('content')
+        if isinstance(content, str):
+            import json
+            try:
+                return json.loads(content)
+            except (json.JSONDecodeError, TypeError):
+                return {'body': content}
+        return content or {}
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -83,20 +98,25 @@ class NoteLinkForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if user:
+
             self.fields['to_note'].queryset = Note.objects.filter(
                 owner=user
             )
-
-
 class NoteTagForm(forms.Form):
+
     tags = forms.ModelMultipleChoiceField(
         queryset=Tag.objects.none(),
-        widget=forms.CheckboxSelectMultiple,
-        required=False
+        required=False,
+        widget=forms.CheckboxSelectMultiple
     )
 
     def __init__(self, *args, **kwargs):
+
         user = kwargs.pop('user', None)
+
         super().__init__(*args, **kwargs)
+
         if user:
-            self.fields['tags'].queryset = Tag.objects.filter(owner=user)
+            self.fields['tags'].queryset = Tag.objects.filter(
+                owner=user
+            )

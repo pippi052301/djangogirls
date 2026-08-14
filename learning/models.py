@@ -36,7 +36,7 @@ class Exercise(models.Model):
         on_delete=models.CASCADE,
         related_name="exercises",
     )
-    order = models.PositiveSmallIntegerField()
+    order = models.PositiveSmallIntegerField(default=1)
     question_type = models.CharField(
         max_length=20,
         choices=QuestionType.choices,
@@ -202,6 +202,8 @@ class Attempt(models.Model):
         QuizAttempt,
         on_delete=models.CASCADE,
         related_name="answers",
+        null=True,        
+        blank=True,
     )
     exercise = models.ForeignKey(
         Exercise,
