@@ -4,12 +4,7 @@
 
 {% block page_title %}Study Notes{% endblock %}
 
-{% block page_header %}
-<!-- Emoji Icon-->
-<div class="-mt-14 mb-4 inline-block">
-    <span class="text-6xl hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded cursor-pointer transition">📝</span>
-</div>
-{% endblock %}
+{% block page_header %}{% endblock %}
 
 {% block content %}
 <div class="space-y-6 relative">
@@ -118,7 +113,7 @@
                         </td>
                         <td class="py-2 px-3 font-medium text-slate-800 dark:text-slate-200">
                             <div class="flex items-center gap-2">
-                                <span>✏️</span>
+                                <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-500 shrink-0"></i>
                                 <a href="{% url 'notes:note_detail' pk=note.pk %}" class="hover:underline font-semibold">{{ note.title }}</a>
                             </div>
                         </td>

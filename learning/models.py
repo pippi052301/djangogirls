@@ -212,6 +212,8 @@ class Attempt(models.Model):
     )
     user_answer = models.TextField()
     reasoning = models.TextField(
+        blank=True,
+        default="",
         help_text="ユーザーが入力した、問題を解くための論理ステップ",
     )
     score = models.DecimalField(

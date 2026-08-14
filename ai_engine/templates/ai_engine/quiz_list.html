@@ -1,0 +1,90 @@
+{% extends "ai_engine_base.html" %}
+
+{% block title %}AI Quizzes & Exercises - Study Support{% endblock %}
+
+{% block chat_content %}
+<div class="max-w-4xl mx-auto space-y-8 py-6 select-none">
+    <!-- Header Card -->
+    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-3xl p-6 md:p-8 text-white shadow-xl flex items-center justify-between">
+        <div class="space-y-2 max-w-xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-xs font-semibold backdrop-blur-md">
+                <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                <span>Practice & Mastery</span>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">AI Generated Quizzes</h1>
+            <p class="text-purple-100 text-sm">Review your custom generated practice tests, track past scores, and test your knowledge retention.</p>
+        </div>
+        <div class="hidden sm:block">
+            <i data-lucide="award" class="w-20 h-20 text-white/30"></i>
+        </div>
+    </div>
+
+    <!-- Quizzes Grid -->
+    <div class="space-y-4">
+        <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <i data-lucide="book-open" class="w-5 h-5 text-purple-600"></i>
+            <span>Available Quizzes</span>
+        </h2>
+
+        {% if quizzes %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for quiz in quizzes %}
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition space-y-3 flex flex-col justify-between">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs text-slate-400">
+                        <span class="font-medium text-purple-600 dark:text-purple-400">Note: {{ quiz.note.title }}</span>
+                        <span>{{ quiz.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">{{ quiz.title }}</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ quiz.exercises.count }} Questions in this test</p>
+                </div>
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <a href="{% url 'quiz_session' quiz.id %}" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                        <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                        <span>Start Test</span>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-slate-50 dark:bg-slate-900/50 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl p-8 text-center space-y-3">
+            <i data-lucide="folder-search" class="w-10 h-10 text-slate-400 mx-auto"></i>
+            <p class="text-sm font-semibold text-slate-600 dark:text-slate-400">No quizzes generated yet.</p>
+            <p class="text-xs text-slate-400">Select a note or folder from the sidebar and click <strong>Take Test</strong> to generate your first AI Quiz!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Attempts Section -->
+    <div class="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <i data-lucide="history" class="w-5 h-5 text-purple-600"></i>
+            <span>Recent Test Attempts</span>
+        </h2>
+
+        {% if recent_attempts %}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% for attempt in recent_attempts %}
+                <div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                    <div class="space-y-0.5">
+                        <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ attempt.quiz.title }}</h4>
+                        <p class="text-xs text-slate-400">Taken on {{ attempt.started_at|date:"M d, Y - H:i" }}</p>
+                    </div>
+                    <a href="{% url 'quiz_result' attempt.id %}" class="px-3.5 py-1.5 rounded-lg border border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 text-xs font-semibold hover:bg-purple-50 dark:hover:bg-purple-950/50 transition flex items-center gap-1">
+                        <span>View Result</span>
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="text-xs text-slate-400 italic">No past test attempts found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block bottom_chat_bar %}{% endblock %}

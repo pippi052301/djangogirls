@@ -70,14 +70,14 @@
                                class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'note_list' %}bg-slate-200/80 dark:bg-slate-700 text-slate-900 dark:text-white font-medium{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60{% endif %}">
                                 <div class="flex items-center gap-2 truncate">
                                     <i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600"></i>
-                                    <span>📝 Study Notes</span>
+                                    <span>Study Notes</span>
                                 </div>
                             </a>
 
                             <!-- Scrollable Today Notes Section (Resets Daily) -->
                             <div class="ml-4 mt-1 border-l border-slate-200 dark:border-slate-700 pl-2">
                                 <div class="px-1 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                                    <span>📌 Today Notes</span>
+                                    <span>Today Notes</span>
                                 </div>
                                 <div class="max-h-48 overflow-y-auto space-y-0.5 mt-0.5 pr-1">
                                     {% for t_note in today_notes %}
@@ -85,7 +85,7 @@
                                        onclick="if (window.openNoteSidePeek) { event.preventDefault(); openNoteSidePeek('{{ t_note.pk }}', '{{ t_note.title|escapejs }}', '{{ t_note.folder.id|default:'' }}', '{{ t_note.content_text|escapejs }}', [{% for t in t_note.tags.all %}'{{ t.id }}'{% if not forloop.last %},{% endif %}{% endfor %}]); }"
                                        class="flex items-center gap-1.5 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition truncate font-medium {% if note.pk == t_note.pk %}bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-semibold{% endif %}"
                                        title="{{ t_note.title }}">
-                                        <span>✨</span>
+                                        <i data-lucide="minus" class="w-2.5 h-2.5 text-slate-400 shrink-0"></i>
                                         <span class="truncate">{{ t_note.title }}</span>
                                     </a>
                                     {% empty %}
@@ -102,18 +102,18 @@
                            class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'folder_list' %}bg-slate-200/80 dark:bg-slate-700 text-slate-900 dark:text-white font-medium{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60{% endif %}">
                             <div class="flex items-center gap-2 truncate">
                                 <i data-lucide="library" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600"></i>
-                                <span>📚 Library</span>
+                                <span>Library</span>
                             </div>
                         </a>
 
                         <!-- Study with AI assistant Navigation Item (Links to Gemini AI Workspace) -->
                         <a href="{% url 'ai_home' %}" 
-                           class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'ai_home' %}bg-purple-100 dark:bg-purple-950/80 text-purple-900 dark:text-purple-200 font-semibold{% else %}text-slate-600 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300{% endif %}">
+                           class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'ai_home' %}bg-purple-100 dark:bg-purple-950/80 text-purple-900 dark:text-purple-200 font-semibold{% else %}text-slate-600 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300{% endif %}"
+                           title="Study with AI assistant">
                             <div class="flex items-center gap-2 truncate">
-                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500 group-hover:scale-110 transition-transform"></i>
-                                <span class="font-medium">🤖 Study with AI assistant</span>
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500 group-hover:scale-110 transition-transform shrink-0"></i>
+                                <span class="font-medium text-xs truncate">Study with AI assistant</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 font-mono font-semibold">AI</span>
                         </a>
                     </nav>
                 </div>

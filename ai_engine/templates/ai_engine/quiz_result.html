@@ -1,0 +1,85 @@
+{% extends "ai_engine_base.html" %}
+
+{% block title %}Quiz Result - Study Support{% endblock %}
+
+{% block chat_content %}
+<div class="max-w-3xl mx-auto space-y-6 py-6 select-none">
+    <!-- Result Summary Header Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'quiz_list' %}" class="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 dark:text-slate-100">Test Result & Feedback</h1>
+                    <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">Quiz: {{ attempt.quiz.title }}</p>
+                </div>
+            </div>
+            <span class="text-xs text-slate-400 font-medium">{{ attempt.completed_at|date:"M d, Y - H:i" }}</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+            <div class="bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-900/60 rounded-2xl p-4">
+                <div class="text-3xl font-extrabold text-purple-600 dark:text-purple-400">{{ avg_score }}%</div>
+                <div class="text-xs font-semibold text-slate-600 dark:text-slate-400 mt-1">Average Score</div>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
+                <div class="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{{ attempts_list.count }}</div>
+                <div class="text-xs font-semibold text-slate-600 dark:text-slate-400 mt-1">Total Questions Evaluated</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Details Breakdown -->
+    <div class="space-y-4">
+        <h2 class="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <i data-lucide="file-check" class="w-4 h-4 text-purple-600"></i>
+            <span>Detailed Question Breakdown</span>
+        </h2>
+
+        {% for att in attempts_list %}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+            <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-slate-800 dark:text-slate-200">Question {{ forloop.counter }}</span>
+                {% if att.score >= 80 %}
+                <span class="px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold text-xs">Score: {{ att.score }}%</span>
+                {% elif att.score >= 50 %}
+                <span class="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold text-xs">Score: {{ att.score }}%</span>
+                {% else %}
+                <span class="px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 font-bold text-xs">Score: {{ att.score }}%</span>
+                {% endif %}
+            </div>
+
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ att.exercise.question }}</p>
+
+            <div class="text-xs space-y-1 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                <div><strong class="text-slate-600 dark:text-slate-400">Your Answer:</strong> <span class="text-slate-800 dark:text-slate-200">{{ att.user_answer|default:"(No answer provided)" }}</span></div>
+                {% if att.exercise.correct_answer %}
+                <div><strong class="text-emerald-600 dark:text-emerald-400">Correct Answer:</strong> <span class="text-slate-800 dark:text-slate-200">{{ att.exercise.correct_answer }}</span></div>
+                {% endif %}
+            </div>
+
+            {% if att.feedback %}
+            <div class="p-3 rounded-xl bg-purple-50/80 dark:bg-purple-950/40 text-xs text-purple-900 dark:text-purple-200 border border-purple-200/60 dark:border-purple-900/60 space-y-1">
+                <div class="font-bold flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>AI Feedback & Explanation:</span>
+                </div>
+                <div>{{ att.feedback }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Bottom Actions -->
+    <div class="flex justify-start items-center pt-4">
+        <a href="{% url 'quiz_list' %}" class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            Back to Quiz List
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block bottom_chat_bar %}{% endblock %}
