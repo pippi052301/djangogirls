@@ -1,0 +1,280 @@
+{% extends 'base_notes.html' %}
+
+{% block title %}{% if is_edit %}Edit Study Plan{% else %}Create Study Plan{% endif %} - Personal Study Space{% endblock %}
+
+{% block container_class %}max-w-3xl{% endblock %}
+
+{% block page_title %}{% if is_edit %}Edit Study Plan{% else %}Create Study Plan{% endif %}{% endblock %}
+
+{% block page_header %}{% endblock %}
+
+{% block content %}
+<!-- Single Card Container holding Header + Form for 100% Unbreakable Alignment -->
+<div class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+    <!-- Header Section Inside Card -->
+    <div class="pb-4 border-b border-slate-200 dark:border-slate-700/80 space-y-3">
+        <a href="{% url 'scheduler:schedule_list' %}" class="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold transition">
+            <i data-lucide="arrow-left" class="w-4 h-4 text-slate-400"></i>
+            <span>Back to Study Plans</span>
+        </a>
+        
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
+            <i data-lucide="{% if is_edit %}pencil{% else %}calendar-plus{% endif %}" class="w-7 h-7 text-blue-600 dark:text-blue-400 shrink-0"></i>
+            <span>{% if is_edit %}Edit Study Plan{% else %}Create Study Plan{% endif %}</span>
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400">Set up a recurring study & review schedule with AI assistant</p>
+    </div>
+
+    <!-- Form Section Inside Card -->
+    <form method="POST" action="{% if is_edit %}{% url 'scheduler:edit' schedule.id %}{% else %}{% url 'scheduler:create' %}{% endif %}" class="space-y-5" onsubmit="syncTimesBeforeSubmit()">
+        {% csrf_token %}
+
+        <!-- Target Note or Folder Dropdown -->
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                Select Target Note / Folder
+            </label>
+            <div class="relative">
+                <select name="target_resource" id="target_resource" class="w-full appearance-none px-4 py-2.5 pr-10 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition cursor-pointer font-medium">
+                    <option value="">-- General Topic --</option>
+                    {% if user_folders %}
+                    <optgroup label="📂 Folders">
+                        {% for f in user_folders %}
+                        <option value="folder_{{ f.id }}" {% if schedule and schedule.folder and schedule.folder.id == f.id %}selected{% endif %}>📂 {{ f.name }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endif %}
+                    {% if user_notes %}
+                    <optgroup label="📝 Notes">
+                        {% for n in user_notes %}
+                        <option value="note_{{ n.id }}" {% if schedule and schedule.note and schedule.note.id == n.id %}selected{% endif %}>📝 {{ n.title }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endif %}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Study Topic / Subject -->
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Study Topic / Title</label>
+            <input type="text" name="topic" id="topic-input" required value="{% if schedule %}{{ schedule.topic }}{% endif %}" placeholder="e.g. Learning New Languages (English, Japanese, Python, etc.)" class="w-full px-4 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition">
+        </div>
+
+        <!-- Frequency & Priority Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Frequency</label>
+                <div class="relative">
+                    <select name="frequency" id="frequency-select" onchange="toggleWeeklyDaysSelector()" class="w-full appearance-none px-4 py-2.5 pr-10 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition cursor-pointer font-medium">
+                        <option value="daily" {% if schedule and schedule.frequency == 'daily' %}selected{% endif %}>Daily</option>
+                        <option value="weekly" {% if schedule and schedule.frequency == 'weekly' %}selected{% endif %}>Weekly</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Level (1 to 5 with colors) -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Priority Level</label>
+                <div class="relative">
+                    <select name="priority" id="priority-select" class="w-full appearance-none px-4 py-2.5 pr-10 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-semibold transition cursor-pointer">
+                        <option value="1" {% if schedule and schedule.priority == 1 %}selected{% endif %}>P1 - Highest Priority</option>
+                        <option value="2" {% if schedule and schedule.priority == 2 %}selected{% endif %}>P2 - High Priority</option>
+                        <option value="3" {% if schedule and schedule.priority == 3 %}selected{% endif %}>P3 - Medium Priority</option>
+                        <option value="4" {% if schedule and schedule.priority == 4 %}selected{% endif %}>P4 - Low Priority</option>
+                        <option value="5" {% if schedule and schedule.priority == 5 %}selected{% endif %}>P5 - Lowest Priority</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expandable Days of Week Selector (Shown when Weekly is selected) -->
+        <div id="weekly-days-container" class="hidden space-y-2 p-3.5 bg-slate-50/80 dark:bg-slate-900/60 rounded-xl border border-slate-200/80 dark:border-slate-700">
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Select Repeat Days:</label>
+            <div class="flex flex-wrap gap-2 pt-1">
+                {% with days=weekly_days_list|default:"Mon,Tue,Wed,Thu,Fri" %}
+                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                    <input type="checkbox" name="weekly_days_list" value="Mon" {% if 'Mon' in days %}checked{% endif %} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>Mon</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                    <input type="checkbox" name="weekly_days_list" value="Tue" {% if 'Tue' in days %}checked{% endif %} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>Tue</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                    <input type="checkbox" name="weekly_days_list" value="Wed" {% if 'Wed' in days %}checked{% endif %} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>Wed</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                    <input type="checkbox" name="weekly_days_list" value="Thu" {% if 'Thu' in days %}checked{% endif %} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>Thu</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                    <input type="checkbox" name="weekly_days_list" value="Fri" {% if 'Fri' in days %}checked{% endif %} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>Fri</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                    <input type="checkbox" name="weekly_days_list" value="Sat" {% if 'Sat' in days %}checked{% endif %} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>Sat</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                    <input type="checkbox" name="weekly_days_list" value="Sun" {% if 'Sun' in days %}checked{% endif %} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>Sun</span>
+                </label>
+                {% endwith %}
+            </div>
+        </div>
+
+        <!-- Custom Styled Time Range Picker (Start Time to End Time) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Start Time Custom Controls -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5 flex items-center justify-between">
+                    <span>Start Time</span>
+                    <span class="text-xs font-mono text-blue-600 dark:text-blue-400 font-bold" id="start-time-preview">08:00 AM</span>
+                </label>
+                <input type="hidden" name="start_time" id="start_time_hidden" value="{% if schedule and schedule.start_time %}{{ schedule.start_time|time:'H:i' }}{% else %}08:00{% endif %}">
+                <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                    <select id="start-hr" onchange="syncTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer text-center">
+                        <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08" selected>08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                    </select>
+                    <select id="start-min" onchange="syncTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer text-center">
+                        <option value="00" selected>:00</option><option value="15">:15</option><option value="30">:30</option><option value="45">:45</option>
+                    </select>
+                    <select id="start-ampm" onchange="syncTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 focus:outline-none cursor-pointer text-center">
+                        <option value="AM" selected>AM</option><option value="PM">PM</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- End Time Custom Controls -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5 flex items-center justify-between">
+                    <span>End Time</span>
+                    <span class="text-xs font-mono text-blue-600 dark:text-blue-400 font-bold" id="end-time-preview">10:00 AM</span>
+                </label>
+                <input type="hidden" name="end_time" id="end_time_hidden" value="{% if schedule and schedule.end_time %}{{ schedule.end_time|time:'H:i' }}{% else %}10:00{% endif %}">
+                <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                    <select id="end-hr" onchange="syncTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer text-center">
+                        <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10" selected>10</option><option value="11">11</option><option value="12">12</option>
+                    </select>
+                    <select id="end-min" onchange="syncTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer text-center">
+                        <option value="00" selected>:00</option><option value="15">:15</option><option value="30">:30</option><option value="45">:45</option>
+                    </select>
+                    <select id="end-ampm" onchange="syncTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 focus:outline-none cursor-pointer text-center">
+                        <option value="AM" selected>AM</option><option value="PM">PM</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Difficulty Selection -->
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Difficulty</label>
+            <div class="relative">
+                <select name="difficulty" class="w-full appearance-none px-4 py-2.5 pr-10 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition cursor-pointer font-medium">
+                    <option value="adaptive" {% if schedule and schedule.difficulty == 'adaptive' %}selected{% endif %}>Adaptive (Auto)</option>
+                    <option value="easy" {% if schedule and schedule.difficulty == 'easy' %}selected{% endif %}>Easy</option>
+                    <option value="medium" {% if schedule and schedule.difficulty == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="hard" {% if schedule and schedule.difficulty == 'hard' %}selected{% endif %}>Hard</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-5 border-t border-slate-100 dark:border-slate-700/60">
+            <a href="{% url 'scheduler:schedule_list' %}" class="px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition font-medium">Cancel</a>
+            <button type="submit" class="px-5 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition">{% if is_edit %}Update Study Plan{% else %}Save Study Plan{% endif %}</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function toggleWeeklyDaysSelector() {
+        const freq = document.getElementById('frequency-select').value;
+        const container = document.getElementById('weekly-days-container');
+        if (freq === 'weekly') {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+
+    function convert12to24(hr, min, ampm) {
+        let hour = parseInt(hr, 10);
+        if (ampm === 'PM' && hour < 12) hour += 12;
+        if (ampm === 'AM' && hour === 12) hour = 0;
+        const hourStr = hour < 10 ? '0' + hour : '' + hour;
+        return `${hourStr}:${min}`;
+    }
+
+    function parseInitialTimes() {
+        const sHidden = document.getElementById('start_time_hidden').value;
+        if (sHidden && sHidden.includes(':')) {
+            const parts = sHidden.split(':');
+            let h = parseInt(parts[0], 10);
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            if (h > 12) h -= 12;
+            if (h === 0) h = 12;
+            const hStr = h < 10 ? '0' + h : '' + h;
+            document.getElementById('start-hr').value = hStr;
+            document.getElementById('start-min').value = parts[1];
+            document.getElementById('start-ampm').value = ampm;
+        }
+
+        const eHidden = document.getElementById('end_time_hidden').value;
+        if (eHidden && eHidden.includes(':')) {
+            const parts = eHidden.split(':');
+            let h = parseInt(parts[0], 10);
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            if (h > 12) h -= 12;
+            if (h === 0) h = 12;
+            const hStr = h < 10 ? '0' + h : '' + h;
+            document.getElementById('end-hr').value = hStr;
+            document.getElementById('end-min').value = parts[1];
+            document.getElementById('end-ampm').value = ampm;
+        }
+    }
+
+    function syncTimes() {
+        const sHr = document.getElementById('start-hr').value;
+        const sMin = document.getElementById('start-min').value;
+        const sAmPm = document.getElementById('start-ampm').value;
+
+        const eHr = document.getElementById('end-hr').value;
+        const eMin = document.getElementById('end-min').value;
+        const eAmPm = document.getElementById('end-ampm').value;
+
+        const start24 = convert12to24(sHr, sMin, sAmPm);
+        const end24 = convert12to24(eHr, eMin, eAmPm);
+
+        document.getElementById('start_time_hidden').value = start24;
+        document.getElementById('end_time_hidden').value = end24;
+
+        document.getElementById('start-time-preview').innerText = `${sHr}:${sMin} ${sAmPm}`;
+        document.getElementById('end-time-preview').innerText = `${eHr}:${eMin} ${eAmPm}`;
+    }
+
+    function syncTimesBeforeSubmit() {
+        syncTimes();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        parseInitialTimes();
+        toggleWeeklyDaysSelector();
+        syncTimes();
+        if (window.lucide) lucide.createIcons();
+    });
+</script>
+{% endblock %}

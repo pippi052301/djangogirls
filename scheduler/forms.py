@@ -11,17 +11,24 @@ class QuizScheduleForm(forms.ModelForm):
         fields = [
             "topic",
             "frequency",
-            "time",
-            "question_count",
+            "weekly_days",
+            "start_time",
+            "end_time",
+            "priority",
             "difficulty",
+            "note",
+            "folder",
         ]
 
         widgets = {
-
-            "time": forms.TimeInput(
+            "start_time": forms.TimeInput(
                 attrs={
                     "type": "time"
                 }
             ),
-
+            "end_time": forms.TimeInput(
+                attrs={
+                    "type": "time"
+                }
+            ),
         }
