@@ -10,12 +10,12 @@ from .services.quiz_service import generate_quiz_from_text
 from .services.graph_service import generate_knowledge_graph
 from .services.adaptive_service import generate_adaptive_practice, advanced_grade_essay, grade_simple_answer
 from .services.embedding_service import get_text_embedding 
+from .services.chat_service import generate_chat_answer
 
-# --- HÀM TRỢ THỦ XỬ LÝ CACHING ---
-SIMILARITY_THRESHOLD = 0.035 # Ngưỡng 95% giống nhau
+# --- CACHING HELPER FUNCTIONS ---
+SIMILARITY_THRESHOLD = 0.035 
 
 def check_semantic_cache(text_content, feature_type):
-    """Dịch văn bản thành Vector và quét CSDL tìm kết quả giống 95%"""
     input_vector = get_text_embedding(text_content)
     if not input_vector:
         return None, None
@@ -31,7 +31,7 @@ def check_semantic_cache(text_content, feature_type):
     return matched_cache, input_vector
 
 def save_to_cache(text_content, feature_type, input_vector, ai_response):
-    """Lưu lại kết quả mới vào kho lưu trữ"""
+    """Save new to DB"""
     if input_vector:
         SemanticAICache.objects.create(
             feature_type=feature_type,
@@ -40,11 +40,11 @@ def save_to_cache(text_content, feature_type, input_vector, ai_response):
             ai_response=ai_response
         )
 
-# --- CÁC API CHÍNH ---
+# --- Main API ---
 
 @csrf_exempt
 def create_quiz_api(request):
-    """API Tạo câu hỏi trắc nghiệm (Tích hợp Semantic Caching)"""
+    """Multiple-Choice Question Generation API (Integrated Semantic Caching)"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
@@ -52,35 +52,29 @@ def create_quiz_api(request):
             num_questions = int(body.get('num_questions', 3))
             
             if not text_content:
-                return JsonResponse({"error": "Thiếu nội dung văn bản"}, status=400)
+                return JsonResponse({"error": "Not enough content"}, status=400)
             
-            feature_key = f"quiz_n{num_questions}"
-
-            matched_cache, input_vector = check_semantic_cache(text_content, feature_key)
-            if matched_cache:
-                return JsonResponse({"status": "success", "data": matched_cache.ai_response}, status=200)
-            
+            # Call AI no cache
             quiz_data = generate_quiz_from_text(text_content, num_questions)
-            if quiz_data:
-                save_to_cache(text_content, feature_key , input_vector, quiz_data)
-                return JsonResponse({"status": "success", "data": quiz_data}, status=200)
             
-            return JsonResponse({"error": "AI đang bận"}, status=503)
+            if quiz_data:
+                return JsonResponse({"status": "success", "data": quiz_data}, status=200) 
+            return JsonResponse({"error": "AI busy"}, status=503)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
-    return JsonResponse({"error": "Chỉ chấp nhận phương thức POST"}, status=405)
+    return JsonResponse({"error": "Just accept POST"}, status=405)
 
 
 @csrf_exempt
 def create_graph_api(request):
-    """API Bóc tách Sơ đồ tư duy (Tích hợp Semantic Caching)"""
+    """Knowledge Graph Extraction API (Integrated Semantic Caching)"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
             text_content = body.get('text', '')
             
             if not text_content:
-                return JsonResponse({"error": "Thiếu nội dung văn bản"}, status=400)
+                return JsonResponse({"error": "Missing text content"}, status=400)
             
             matched_cache, input_vector = check_semantic_cache(text_content, "graph")
             if matched_cache:
@@ -91,15 +85,14 @@ def create_graph_api(request):
                 save_to_cache(text_content, "graph", input_vector, graph_data)
                 return JsonResponse({"status": "success", "data": graph_data}, status=200)
             
-            return JsonResponse({"error": "AI đang bận"}, status=503)
+            return JsonResponse({"error": "AI busy"}, status=503)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
-    return JsonResponse({"error": "Phương thức không hợp lệ"}, status=405)
-
+    return JsonResponse({"error": "Invalid method"}, status=405)
 
 @csrf_exempt
 def create_adaptive_practice_api(request):
-    """API Sinh đề thi thích ứng (Tích hợp Semantic Caching)"""
+    """Adaptive Exam Generation API (Semantic Caching Removed)"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
@@ -107,9 +100,9 @@ def create_adaptive_practice_api(request):
             recent_score = int(body.get('recent_score', 50))
             
             if not text_content:
-                return JsonResponse({"error": "Thiếu nội dung văn bản"}, status=400)
+                return JsonResponse({"error": "Not enough content"}, status=400)
             
-            # --- TẠO KHÓA PHÂN BIỆT THEO NHÓM NĂNG LỰC ---
+            # --- Creates a differentiation key based on competency groups (Preserves legacy logic).
             if recent_score < 40:
                 level = "easy"
             elif recent_score < 75:
@@ -118,25 +111,23 @@ def create_adaptive_practice_api(request):
                 level = "hard"
 
             feature_key = f"adaptive_{level}"
+            # -------------------------------------------------------------------
             
-            matched_cache, input_vector = check_semantic_cache(text_content, feature_key)
-            if matched_cache:
-                return JsonResponse({"status": "success", "data": matched_cache.ai_response}, status=200)
-            
+            # Call AI (no check_semantic_cache)
             practice_data = generate_adaptive_practice(text_content, recent_score)
+            
             if practice_data:
-                save_to_cache(text_content, feature_key, input_vector, practice_data)
                 return JsonResponse({"status": "success", "data": practice_data}, status=200)
             
-            return JsonResponse({"error": "AI đang bận"}, status=503)
+            return JsonResponse({"error": "AI busy"}, status=503)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
-    return JsonResponse({"error": "Phương thức không hợp lệ"}, status=405)
+    return JsonResponse({"error": "Invalid method"}, status=405)
 
 
 @csrf_exempt
 def grade_essay_api(request):
-    """API Chấm điểm tự luận đa chiều tích hợp Vector Search (RAG)"""
+    """Multidimensional Essay Grading API with Vector Search (RAG) Integration"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
@@ -146,7 +137,7 @@ def grade_essay_api(request):
             exercise_id = body.get('exercise_id', None) 
             
             if not all([question, user_answer, standard_key_points]):
-                return JsonResponse({"error": "Thiếu dữ liệu đầu vào."}, status=400)
+                return JsonResponse({"error": "Not enough content."}, status=400)
             
             sample_essays_text = ""
             if 'sample_essays' in body:
@@ -160,23 +151,62 @@ def grade_essay_api(request):
                         
                     similar_samples = query.order_by(CosineDistance('embedding', student_vector))[:3]
                     for idx, sample in enumerate(similar_samples, 1):
-                        sample_essays_text += f"\n--- BÀI MẪU SỐ {idx} (ĐIỂM: {sample.score}/100) ---\nBài làm: {sample.content}\nLời phê: {sample.feedback}\n"
+                        sample_essays_text += f"\n--- Sample ID {idx} (SCORE: {sample.score}/100) ---\nAnswer: {sample.content}\nFeedback: {sample.feedback}\n"
             
             grading_result = advanced_grade_essay(question, user_answer, standard_key_points, sample_essays_text)
             if grading_result:
                 return JsonResponse({"status": "success", "data": grading_result}, status=200)
-            return JsonResponse({"error": "AI đang bận"}, status=503)
+            return JsonResponse({"error": "AI busy"}, status=503)
                 
         except ValidationError as ve:
-            return JsonResponse({"error": f"Lỗi dữ liệu Model: {str(ve)}"}, status=400)
+            return JsonResponse({"error": f"Error data Model: {str(ve)}"}, status=400)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
-    return JsonResponse({"error": "Phương thức không hợp lệ"}, status=405)
+    return JsonResponse({"error": "Invalid Method"}, status=405)
 
+@csrf_exempt
+def student_chat_api(request):
+    """AI Chat API with Integrated Semantic Caching"""
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            user_question = body.get('question', '').strip()
+            
+            if not user_question:
+                return JsonResponse({"error": "Please enter your question"}, status=400)
+            
+            # 1.CHECK CACHE FIRST WITH KEY 'chat_qa'
+            feature_key = "chat_qa"
+            matched_cache, input_vector = check_semantic_cache(user_question, feature_key)
+            
+            if matched_cache:
+                # If the question has been asked before, return immediately
+                return JsonResponse({
+                    "status": "success", 
+                    "data": matched_cache.ai_response,
+                    "is_cached": True 
+                }, status=200)
+            
+            # 2. CALL AI IF NOT FOUND IN CACHE
+            ai_answer = generate_chat_answer(user_question)
+            
+            if ai_answer:
+                # 3. SAVE TO CACHE FOR FUTURE REQUESTS
+                save_to_cache(user_question, feature_key, input_vector, ai_answer)
+                return JsonResponse({
+                    "status": "success", 
+                    "data": ai_answer,
+                    "is_cached": False
+                }, status=200)
+            
+            return JsonResponse({"error": "The AI tutor is busy, please try again later"}, status=503)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Invalid method"}, status=405)
 
 @csrf_exempt
 def grade_simple_api(request):
-    """API Chấm điểm Nhanh (Cho Trắc nghiệm & Điền khuyết)"""
+    """Rapid Grading API (For Multiple-Choice & Fill-in-the-Blank)"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
@@ -184,17 +214,18 @@ def grade_simple_api(request):
             question = body.get('question', '')
             user_answer = body.get('user_answer', '')
             correct_answer = body.get('correct_answer', '')
-            explanation = body.get('explanation', 'Không có giải thích.')
+            explanation = body.get('explanation', 'No explan.')
             
             if not all([question_type, question, user_answer, correct_answer]):
-                return JsonResponse({"error": "Thiếu dữ liệu đầu vào. Cần question_type, question, user_answer, correct_answer"}, status=400)
+                return JsonResponse({"error": "Not enough content. Need question_type, question, user_answer, correct_answer"}, status=400)
             
             result = grade_simple_answer(question_type, question, user_answer, correct_answer, explanation)
             
             if result:
                 return JsonResponse({"status": "success", "data": result}, status=200)
-            return JsonResponse({"error": "Lỗi xử lý"}, status=503)
+            return JsonResponse({"error": "Error handle"}, status=503)
             
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
-    return JsonResponse({"error": "Phương thức không hợp lệ"}, status=405)
+    return JsonResponse({"error": "Invalid method"}, status=405)
+

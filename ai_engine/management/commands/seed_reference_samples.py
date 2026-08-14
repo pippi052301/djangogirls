@@ -6,41 +6,41 @@ from ai_engine.models import ReferenceSample
 from ai_engine.services.embedding_service import get_text_embedding
 
 class Command(BaseCommand):
-    help = 'Nạp dữ liệu bài chấm mẫu từ file JSON kèm Vector Embedding vào Database'
+    help = 'Import sample grading data from JSON files, along with vector embeddings, into the database.'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write(self.style.WARNING('🚀 Đang bắt đầu đọc dữ liệu mẫu từ file JSON...'))
+        self.stdout.write(self.style.WARNING('Initializing the ingestion of sample grading data from JSON files...'))
 
-        # Tự động lấy đường dẫn tuyệt đối tới file JSON trong thư mục 'data'
+        # Automatically retrieve the absolute path to the JSON file in the 'data' directory.
         file_path = os.path.join(settings.BASE_DIR, 'ai_engine', 'data', 'sample_data.json')
 
-        # Kiểm tra xem file có tồn tại không
+        # Check if the file exists.
         if not os.path.exists(file_path):
-            self.stdout.write(self.style.ERROR(f'❌ Không tìm thấy file dữ liệu tại: {file_path}'))
+            self.stdout.write(self.style.ERROR(f'❌ Data file not found at: {file_path}'))
             return
 
-        # Đọc dữ liệu từ file JSON
+        #Read data from the JSON file.
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 sample_data = json.load(f)
         except json.JSONDecodeError:
-            self.stdout.write(self.style.ERROR('❌ File JSON bị lỗi cú pháp. Vui lòng kiểm tra lại.'))
+            self.stdout.write(self.style.ERROR('❌JSON file syntax error. Please check the file..'))
             return
 
-        self.stdout.write(f'✅ Tìm thấy {len(sample_data)} bài mẫu. Bắt đầu xử lý Vector...')
+        self.stdout.write(f'✅ Found {len(sample_data)} sample. Starting Vector...')
 
         created_count = 0
         for item in sample_data:
-            # Kiểm tra xem bài mẫu này đã tồn tại chưa (tránh trùng lặp khi chạy lệnh nhiều lần)
+            # Check if this sample already exists (to prevent duplication when running multiple times).
             exists = ReferenceSample.objects.filter(
                 exercise_id=item["exercise_id"], 
                 content=item["content"]
             ).exists()
 
             if not exists:
-                self.stdout.write(f"⏳ Đang tạo Vector cho exercise_id: {item['exercise_id']} (Điểm: {item['score']})...")
+                self.stdout.write(f"⏳ Creating Vector for exercise_id: {item['exercise_id']} (Score: {item['score']})...")
                 
-                # Gọi API Gemini để tạo Vector cho bài làm mẫu
+                # Call API Gemini to create Vector for sample
                 embedding_vector = get_text_embedding(item["content"])
                 
                 if embedding_vector:
@@ -52,10 +52,10 @@ class Command(BaseCommand):
                         embedding=embedding_vector
                     )
                     created_count += 1
-                    self.stdout.write(self.style.SUCCESS(f"  ✓ Đã lưu thành công bài mẫu {item['score']}đ"))
+                    self.stdout.write(self.style.SUCCESS(f"  ✓ save sample  {item['score']}đ"))
                 else:
-                    self.stdout.write(self.style.ERROR(f"  ✗ Lỗi tạo Vector cho bài mẫu {item['score']}đ"))
+                    self.stdout.write(self.style.ERROR(f"  ✗ error in creating vector {item['score']}đ"))
             else:
-                self.stdout.write(f"ℹ️ Bài mẫu (Điểm: {item['score']}) đã tồn tại, bỏ qua.")
+                self.stdout.write(f"ℹ️ Sample (Score: {item['score']}) existed, skip.")
 
-        self.stdout.write(self.style.SUCCESS(f'\n🎉 Hoàn thành! Đã nạp thành công {created_count} bài chấm mẫu mới vào CSDL.'))
+        self.stdout.write(self.style.SUCCESS(f'\n🎉 Done! Success {created_count} new sample to DB.'))
