@@ -11,7 +11,7 @@ from .services.graph_service import generate_knowledge_graph
 from .services.adaptive_service import generate_adaptive_practice, advanced_grade_essay, grade_simple_answer
 from .services.embedding_service import get_text_embedding 
 from .services.chat_service import generate_chat_answer
-
+from .services.tutor_chat_service import generate_tutor_chat_response
 # --- CACHING HELPER FUNCTIONS ---
 SIMILARITY_THRESHOLD = 0.035 
 
@@ -229,3 +229,44 @@ def grade_simple_api(request):
             return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "Invalid method"}, status=405)
 
+
+@csrf_exempt
+def tutor_chat_api(request):
+    """
+    API Chat Gia sư gợi mở: 
+    - Nhận lịch sử chat, câu trả lời hiện tại của học sinh và bộ ý chính chuẩn (required_key_points).
+    - Trả về phản hồi gợi mở từ AI và cờ kiểm tra xem đã đủ điều kiện hiển thị nút chấm điểm chưa.
+    """
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            student_input = body.get('student_input', '').strip()
+            conversation_history = body.get('history', [])  # Danh sách lịch sử tin nhắn [{"role": "user"/"model", "content": "..."}]
+            question_prompt = body.get('question_prompt', '')
+            required_key_points = body.get('required_key_points', []) # Danh sách các ý chính bắt buộc
+            
+            if not student_input or not question_prompt:
+                return JsonResponse({"error": "Thiếu nội dung câu hỏi hoặc câu trả lời của học sinh."}, status=400)
+            
+            # Gọi service xử lý logic với Gemini
+            ai_result = generate_tutor_chat_response(
+                conversation_history=conversation_history,
+                student_input=student_input,
+                question_prompt=question_prompt,
+                required_key_points=required_key_points
+            )
+            
+            if ai_result:
+                return JsonResponse({
+                    "status": "success", 
+                    "data": ai_result  # Cấu trúc gồm {"ai_message": "...", "is_ready_for_grading": true/false}
+                }, status=200)
+            
+            return JsonResponse({"error": "Hệ thống AI đang bận, vui lòng thử lại sau."}, status=503)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Dữ liệu gửi lên không phải định dạng JSON hợp lệ."}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+            
+    return JsonResponse({"error": "Chỉ chấp nhận phương thức POST."}, status=405)

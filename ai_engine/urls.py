@@ -19,4 +19,7 @@ urlpatterns = [
 
     # API 6: Chatbot
     path('api/chat/', views.student_chat_api, name='student_chat_api'),
+    
+    #API 7: Tutor chat
+    path('tutor/chat/', views.tutor_chat_api, name='tutor_chat_api'),
 ]
