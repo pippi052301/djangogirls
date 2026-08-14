@@ -116,8 +116,13 @@
                         </td>
                         <td class="py-2 px-3 font-medium text-slate-800 dark:text-slate-200">
                             <div class="flex items-center gap-2">
+<<<<<<< Updated upstream
                                 <span>✏️</span>
                                 <a href="{% url 'notes:note_detail' pk=note.pk %}" class="hover:underline font-semibold">{{ note.title }}</a>
+=======
+                                <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-500 shrink-0"></i>
+                                <button type="button" onclick="openEditNoteModal('{{ note.pk }}', '{{ note.title|escapejs }}', '{{ note.folder.id|default:'' }}', '{{ note.content_text|escapejs }}', [{% for t in note.tags.all %}'{{ t.id }}'{% if not forloop.last %},{% endif %}{% endfor %}])" class="hover:underline font-semibold text-left text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition">{{ note.title }}</button>
+>>>>>>> Stashed changes
                             </div>
                         </td>
                         <td class="py-2 px-3">

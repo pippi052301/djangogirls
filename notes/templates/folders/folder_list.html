@@ -6,10 +6,14 @@
 
 <!-- Custom Page Header -->
 {% block page_header %}
+<<<<<<< Updated upstream
 <div class="-mt-14 mb-6">
     <div class="mb-4 inline-block">
         <span class="text-6xl hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded cursor-pointer transition">📚</span>
     </div>
+=======
+<div class="pt-2 mb-6">
+>>>>>>> Stashed changes
     <div class="flex items-center justify-between">
         <h1 class="text-4xl font-bold text-slate-800 dark:text-slate-100">Library</h1>
         
@@ -208,12 +212,15 @@
                 <input type="text" name="name" placeholder="Folder or Class Name" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent">
             </div>
 
-            <!-- Folder Properties -->
-            <div class="space-y-3 text-xs text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-6">
-                <div class="flex items-center gap-4">
-                    <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Date created</span>
-                    <span class="text-slate-700 dark:text-slate-300 font-semibold">{% now "M d, Y" %}</span>
-                </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Parent Folder (Optional)</label>
+                <select name="parent" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500">
+                    <option value="">(None - Top level folder)</option>
+                    {% for f in folders %}
+                    <option value="{{ f.id }}">{{ f.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
                 <div class="flex items-center gap-4">
                     <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="file-plus" class="w-3.5 h-3.5"></i> Initial note</span>

@@ -82,17 +82,83 @@ def note_create(request):
         if form.is_valid():
             note = form.save(commit=False)
             note.owner = request.user
+<<<<<<< Updated upstream
             note.save()
             form.save_m2m() 
+=======
+
+            folder_id = request.POST.get('folder') or request.GET.get('folder_id')
+            if folder_id:
+                folder_obj = Folder.objects.filter(id=folder_id, owner=request.user).first()
+                if folder_obj:
+                    note.folder = folder_obj
+
+            note.save()
+            form.save_m2m()
+>>>>>>> Stashed changes
 
             tag_ids = request.POST.getlist('tags')
             if tag_ids:
                 valid_tags = Tag.objects.filter(id__in=tag_ids, owner=request.user)
                 note.tags.set(valid_tags)
 
+            if note.folder:
+                return redirect("notes:folder_detail", pk=note.folder.pk)
+
             return redirect("notes:note_list")
 
     return redirect("notes:note_list")
+
+
+@login_required
+def folder_create(request):
+    if request.method == "POST":
+        form = FolderForm(
+            request.POST,
+            user=request.user
+        )
+
+        if form.is_valid():
+            folder = form.save(commit=False)
+            folder.owner = request.user
+
+            parent_id = request.POST.get('parent') or request.GET.get('parent_id')
+            if parent_id:
+                parent_obj = Folder.objects.filter(id=parent_id, owner=request.user).first()
+                if parent_obj:
+                    folder.parent = parent_obj
+
+            folder.save()
+
+            # Create initial note if provided inside New Folder modal
+            note_title = request.POST.get('note_title', '').strip()
+            note_content = request.POST.get('note_content', '').strip()
+            if note_title:
+                template_type = request.POST.get('template_type', 'blank')
+                if not template_type or template_type == 'blank':
+                    if '.pdf' in note_title.lower():
+                        template_type = 'pdf'
+                new_note = Note.objects.create(
+                    title=note_title,
+                    content={"body": note_content},
+                    template_type=template_type,
+                    owner=request.user,
+                    folder=folder
+                )
+                tag_ids = request.POST.getlist('note_tags')
+                if tag_ids:
+                    tag_objs = Tag.objects.filter(id__in=tag_ids, owner=request.user)
+                    new_note.tags.set(tag_objs)
+
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"id": folder.id, "name": folder.name})
+
+            if folder.parent:
+                return redirect("notes:folder_detail", pk=folder.parent.pk)
+
+            return redirect("notes:folder_list")
+
+    return redirect("notes:folder_list")
 
 @login_required
 def note_detail(request, pk):
