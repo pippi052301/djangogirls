@@ -1,41 +1,41 @@
 import json
-from .ai_config import client, types # Nhập Client dùng chung từ file cấu hình
+from .ai_config import get_client, types 
 
 def generate_quiz_from_text(text_content, num_questions=3):
-    """Sinh câu hỏi trắc nghiệm thông thường."""
+    """Generating simple multiplechoice."""
     prompt = f"""
-    Bạn là một chuyên gia giáo dục. Hãy đọc đoạn văn bản sau và tạo ra {num_questions} câu hỏi trắc nghiệm (4 đáp án A, B, C, D) bằng tiếng Nhật.
+    You are an education expert. Read the following text and create {num_questions} multiple-choice questions (4 options A, B, C, D) in Japanese.
     
-    YÊU CẦU:
-    - Có 1 đáp án đúng duy nhất.
-    - Cung cấp lời giải thích ngắn gọn tại sao đáp án đó đúng.
+    REQUIREMENTS:
+    - Must have exactly 1 correct answer.
+    - Provide a concise explanation of why the answer is correct.
     
-    Cấu trúc JSON yêu cầu:
+    Required JSON structure:
     [
         {{
-            "question": "Nội dung câu hỏi?",
+            "question": "Question content?",
             "options": {{
-                "A": "Lựa chọn A",
-                "B": "Lựa chọn B",
-                "C": "Lựa chọn C",
-                "D": "Lựa chọn D"
+                "A": "Option A",
+                "B": "Option B",
+                "C": "Option C",
+                "D": "Option D"
             }},
             "correct_answer": "A",
-            "explanation": "Giải thích chi tiết."
+            "explanation": "Detailed explanation."
         }}
     ]
 
-    Văn bản gốc:
+    Source text:
     \"\"\"{text_content}\"\"\"
     """
     
     try:
-        response = client.models.generate_content(
+        response = get_client().models.generate_content(
             model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
         return json.loads(response.text)
     except Exception as e:
-        print(f"Lỗi khi gọi API sinh Quiz: {e}")
+        print(f"Error when calling API to generate Quiz: {e}")
         return None
