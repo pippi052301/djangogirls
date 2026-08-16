@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.utils import timezone
 from accounts.forms import RegisterForm
-from .models import UserProfile, PasswordResetOTP
+from .models import PasswordResetOTP
 
 
 def home(request):
@@ -96,25 +96,3 @@ def password_reset_view(request):
             "email": email,
         }
     )
-
-
-@login_required
-def profile_view(request):
-    profile, created = UserProfile.objects.get_or_create(user=request.user)
-
-    if request.method == "POST":
-        profile.name = request.POST.get("name", "").strip()
-        profile.avatar_url = request.POST.get("avatar_url", "").strip()
-        profile.bio = request.POST.get("bio", "").strip()
-        profile.pronouns = request.POST.get("pronouns", "Don't specify")
-        profile.company = request.POST.get("company", "").strip()
-        profile.location = request.POST.get("location", "").strip()
-        profile.website = request.POST.get("website", "").strip()
-        profile.social_1 = request.POST.get("social_1", "").strip()
-        profile.social_2 = request.POST.get("social_2", "").strip()
-        profile.social_3 = request.POST.get("social_3", "").strip()
-        profile.social_4 = request.POST.get("social_4", "").strip()
-        profile.save()
-        return redirect("accounts:profile")
-
-    return render(request, "accounts/profile.html", {"profile": profile})

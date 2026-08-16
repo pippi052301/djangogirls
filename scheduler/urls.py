@@ -19,4 +19,16 @@ urlpatterns = [
         name="schedule_list"
     ),
 
+    path(
+        "delete/<int:pk>/",
+        views.delete_quiz_schedule,
+        name="delete"
+    ),
+
+    path(
+        "update/<int:pk>/",
+        views.update_quiz_schedule,
+        name="update"
+    ),
+
 ]

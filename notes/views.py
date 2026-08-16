@@ -14,8 +14,8 @@ from django.utils import timezone
 def notes_processor(request):
     if request.user.is_authenticated:
         today_date = timezone.localtime(timezone.now()).date()
-        today_notes = Note.objects.filter(owner=request.user, created_at__date=today_date).order_by('-created_at')
-        sidebar_notes = Note.objects.filter(owner=request.user).order_by('-created_at')[:30]
+        today_notes = Note.objects.filter(owner=request.user, created_at__date=today_date).exclude(template_type='pdf').exclude(title__icontains='.pdf').order_by('-created_at')
+        sidebar_notes = Note.objects.filter(owner=request.user).exclude(template_type='pdf').exclude(title__icontains='.pdf').order_by('-created_at')[:30]
         sidebar_folders = Folder.objects.filter(owner=request.user).order_by('-created_at')[:10]
         return {
             'today_notes': today_notes,
@@ -31,6 +31,8 @@ def note_list(request):
     notes_queryset = (
         Note.objects
         .filter(owner=request.user)
+        .exclude(template_type='pdf')
+        .exclude(title__icontains='.pdf')
         .prefetch_related('tags')
         .select_related('folder')
     )
@@ -431,6 +433,7 @@ def folder_edit(request, pk):
                 try:
                     notes_arr = json.loads(modal_notes_json)
                     if isinstance(notes_arr, list):
+                        submitted_ids = set()
                         for item in notes_arr:
                             n_id = item.get('id')
                             n_title = (item.get('title') or 'Untitled Note').strip()
@@ -448,22 +451,27 @@ def folder_edit(request, pk):
                                     pass
 
                             if n_id and str(n_id).isdigit():
-                                existing_note = Note.objects.filter(id=n_id, owner=request.user).first()
+                                existing_note = Note.objects.filter(id=int(n_id), owner=request.user).first()
                                 if existing_note:
                                     existing_note.title = n_title
                                     existing_note.content = c_dict
                                     existing_note.template_type = n_template
                                     existing_note.folder = folder
                                     existing_note.save()
+                                    submitted_ids.add(existing_note.id)
                                     continue
 
-                            Note.objects.create(
+                            new_note = Note.objects.create(
                                 title=n_title,
                                 content=c_dict,
                                 template_type=n_template,
                                 owner=request.user,
                                 folder=folder
                             )
+                            submitted_ids.add(new_note.id)
+
+                        # Delete any notes previously in this folder that were removed from the modal list!
+                        folder.notes.exclude(id__in=submitted_ids).delete()
                 except Exception as e:
                     print('Error in folder_edit modal_notes_json:', e)
 

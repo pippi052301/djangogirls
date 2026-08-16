@@ -22,17 +22,22 @@
 
         <div>
             <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Parent Folder (Optional)</label>
-            <select name="parent" class="w-full px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500">
-                <option value="">None (Root level)</option>
-                {% for field_choice in form.parent.field.queryset %}
-                    {% if folder and field_choice.pk == folder.pk %}
-                    {% else %}
-                        <option value="{{ field_choice.pk }}" {% if form.parent.value == field_choice.pk or folder.parent_id == field_choice.pk %}selected{% endif %}>
-                            {{ field_choice.name }}
-                        </option>
-                    {% endif %}
-                {% endfor %}
-            </select>
+            <div class="relative">
+                <select name="parent" class="w-full pl-3 pr-9 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                    <option value="">None (Root level)</option>
+                    {% for field_choice in form.parent.field.queryset %}
+                        {% if folder and field_choice.pk == folder.pk %}
+                        {% else %}
+                            <option value="{{ field_choice.pk }}" {% if form.parent.value == field_choice.pk or folder.parent_id == field_choice.pk %}selected{% endif %}>
+                                {{ field_choice.name }}
+                            </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                </div>
+            </div>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">

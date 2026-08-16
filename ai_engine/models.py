@@ -42,3 +42,35 @@ class ReferenceSample(models.Model):
 
     def __str__(self):
         return f"Exercise {self.exercise_id}: {self.score:g}/100"
+
+
+from django.conf import settings
+
+class ChatSession(models.Model):
+    "Store user AI Assistant chat session history."
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='chat_sessions')
+    title = models.CharField(max_length=255, default='New Chat')
+    context_type = models.CharField(max_length=50, default='free_talk')
+    context_name = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.user} - {self.title}"
+
+
+class ChatMessage(models.Model):
+    "Store individual messages inside a ChatSession."
+    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=20, choices=[('user', 'User'), ('assistant', 'Assistant'), ('system', 'System')])
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.role}: {self.content[:30]}"

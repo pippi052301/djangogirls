@@ -17,6 +17,10 @@
     <!-- Lucide Icons & Fonts -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- KaTeX CDN for LaTeX Math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -69,7 +73,7 @@
                         {% for folder in user_folders %}
                         <div class="space-y-0.5">
                             <!-- Folder Header Button -->
-                            <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs text-slate-700 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-400 transition group select-none">
+                            <div data-sb-type="folder" data-sb-name="{{ folder.name|escapejs }}" class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs text-slate-700 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-400 transition group select-none">
                                 <button type="button" onclick="selectStudyContext('folder', '{{ folder.name|escapejs }}')" class="flex items-center gap-2 truncate font-medium flex-1 text-left">
                                     <i data-lucide="folder" class="w-3.5 h-3.5 text-purple-500 shrink-0"></i>
                                     <span class="truncate">{{ folder.name }}</span>
@@ -86,7 +90,7 @@
                             {% if folder.notes.all %}
                             <div id="sb-folder-notes-{{ folder.id }}" class="hidden pl-4 space-y-0.5 border-l-2 border-purple-200 dark:border-purple-900/50 ml-3 my-0.5">
                                 {% for note_item in folder.notes.all %}
-                                <button type="button" onclick="selectStudyContext('note', '{{ note_item.title|escapejs }}')" 
+                                <button type="button" data-sb-type="note" data-sb-name="{{ note_item.title|escapejs }}" onclick="selectStudyContext('note', '{{ note_item.title|escapejs }}')" 
                                         class="w-full text-left px-2 py-1 rounded-md text-[11px] text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-purple-950/30 hover:text-purple-600 dark:hover:text-purple-300 transition flex items-center gap-1.5 group">
                                     <i data-lucide="file-text" class="w-3 h-3 text-slate-400 group-hover:text-purple-500 shrink-0"></i>
                                     <span class="truncate">{{ note_item.title }}</span>
@@ -98,7 +102,7 @@
                         {% endfor %}
 
                         {% for u_note in standalone_notes %}
-                        <button type="button" onclick="selectStudyContext('note', '{{ u_note.title|escapejs }}')" 
+                        <button type="button" data-sb-type="note" data-sb-name="{{ u_note.title|escapejs }}" onclick="selectStudyContext('note', '{{ u_note.title|escapejs }}')" 
                                 class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 transition flex items-center justify-between group">
                             <span class="flex items-center gap-2 truncate font-medium">
                                 <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-500 shrink-0"></i>
@@ -120,12 +124,9 @@
                     <span>Free Talk</span>
                     <i data-lucide="messages-square" class="w-3.5 h-3.5"></i>
                 </div>
-                <button type="button" onclick="startFreeTalkSession()" class="w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300 transition flex items-center justify-between group border border-slate-200/70 dark:border-slate-800/70 shadow-sm">
-                    <span class="flex items-center gap-2 truncate">
-                        <i data-lucide="plus" class="w-4 h-4 text-purple-500 shrink-0"></i>
-                        <span class="truncate">New Chat</span>
-                    </span>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 font-mono font-bold shrink-0">Free Talk</span>
+                <button type="button" onclick="startFreeTalkSession()" class="w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300 transition flex items-center gap-2 group border border-slate-200/70 dark:border-slate-800/70 shadow-sm">
+                    <i data-lucide="plus" class="w-4 h-4 text-purple-500 shrink-0"></i>
+                    <span>New Chat</span>
                 </button>
             </div>
 
@@ -135,10 +136,6 @@
                     <span>Quizzes & Analytics</span>
                     <i data-lucide="award" class="w-3.5 h-3.5"></i>
                 </div>
-                <a href="{% url 'quiz_list' %}" class="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300 transition flex items-center gap-2">
-                    <i data-lucide="help-circle" class="w-4 h-4 text-purple-500 shrink-0"></i>
-                    <span>All Quizzes</span>
-                </a>
                 <a href="{% url 'periodic_summary' %}" class="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300 transition flex items-center gap-2">
                     <i data-lucide="line-chart" class="w-4 h-4 text-indigo-500 shrink-0"></i>
                     <span>Study Summary</span>
@@ -208,8 +205,13 @@
                 </div>
             </div>
 
-            <!-- Dynamic Top Action Button -->
+            <!-- Dynamic Top Action Buttons -->
             <div class="flex items-center gap-2">
+                <button type="button" id="ai-graph-btn" onclick="openKnowledgeGraphModal()" class="hidden px-3 py-1.5 text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 border border-indigo-200 dark:border-indigo-800/80 rounded-xl transition font-semibold flex items-center gap-1.5 shadow-sm" title="View AI Knowledge Graph Mindmap">
+                    <i data-lucide="network" class="w-3.5 h-3.5 text-indigo-500"></i>
+                    <span>Knowledge Graph</span>
+                </button>
+                
                 <button type="button" id="ai-top-action-btn" disabled onclick="handleTopAction()" class="px-3.5 py-1.5 text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/80 border border-purple-200 dark:border-purple-800/80 rounded-xl transition font-semibold flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-purple-50 dark:disabled:hover:bg-purple-950/60" title="Select a folder/note or start Free Talk">
                     <i data-lucide="help-circle" id="ai-top-action-icon" class="w-3.5 h-3.5"></i>
                     <span id="ai-top-action-label">Take Test</span>
@@ -217,6 +219,8 @@
             </div>
         </header>
 
+        <!-- MAIN CONTENT BLOCK -->
+        {% block main_content %}
         <!-- CHAT FEED CONTAINER -->
         <div id="ai-chat-feed" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 max-w-4xl w-full mx-auto">
             {% block chat_content %}
@@ -265,10 +269,10 @@
         <div class="p-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800/80">
             <div class="max-w-4xl mx-auto space-y-2">
                 
-                <form id="ai-input-form" onsubmit="handleAISubmit(event)" class="relative flex items-center bg-slate-100 dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 p-1.5 transition-all shadow-lg px-2">
-                    <textarea id="ai-user-prompt" rows="1" disabled placeholder="Please choose a folder/class or note from the left sidebar to start..." oninput="updateSendButtonState()" onkeydown="handleTextareaKeydown(event)" class="flex-1 bg-transparent border-none outline-none resize-none px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 leading-relaxed max-h-32 min-h-[40px] disabled:opacity-50 disabled:cursor-not-allowed"></textarea>
+                <form id="ai-input-form" onsubmit="event.preventDefault(); handleAISubmit(event); return false;" class="relative flex items-center bg-slate-100 dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 p-1.5 transition-all shadow-lg px-2">
+                    <textarea id="ai-user-prompt" rows="1" placeholder="Ask anything with AI study assistant..." oninput="updateSendButtonState()" onkeyup="updateSendButtonState()" onkeydown="handleTextareaKeydown(event)" class="flex-1 bg-transparent border-none outline-none resize-none px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 leading-relaxed max-h-32 min-h-[40px] disabled:opacity-50 disabled:cursor-not-allowed"></textarea>
 
-                    <button type="submit" id="ai-send-btn" disabled class="w-9 h-9 rounded-full gemini-gradient-bg text-white flex items-center justify-center hover:opacity-90 transition shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
+                    <button type="button" onclick="handleAISubmit(event)" id="ai-send-btn" disabled class="w-9 h-9 rounded-full gemini-gradient-bg text-white flex items-center justify-center hover:opacity-90 transition shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
                         <i data-lucide="arrow-up" class="w-5 h-5"></i>
                     </button>
                 </form>
@@ -279,53 +283,261 @@
             </div>
         </div>
         {% endblock %}
+        {% endblock %}
     </main>
 
     <!-- JS SCRIPTS FOR AI INTERACTION & THEME -->
     <script>
         let activeContext = null;
         let currentSessionId = null;
-        let chatHistoryStore = {};
 
-        function createOrGetSession(firstPrompt) {
-            if (!currentSessionId) {
-                currentSessionId = 'session-' + Date.now();
-                chatHistoryStore[currentSessionId] = {
-                    id: currentSessionId,
-                    title: (firstPrompt || 'Study Session').slice(0, 30),
-                    messages: []
+        async function loadChatHistorySessions() {
+            try {
+                const res = await fetch('{% url "api_history_sessions" %}');
+                const data = await res.json();
+                if (data && data.status === 'success' && Array.isArray(data.sessions)) {
+                    renderChatHistoryList(data.sessions);
+                }
+            } catch (e) {
+                console.log('Error loading chat history sessions:', e);
+            }
+        }
+
+        function renderChatHistoryList(sessions) {
+            const listEl = document.getElementById('ai-history-list');
+            if (!listEl) return;
+
+            if (sessions.length === 0) {
+                listEl.innerHTML = `
+                <div class="px-2.5 py-3 text-[11px] text-slate-400 italic flex items-center gap-1.5">
+                    <i data-lucide="info" class="w-3.5 h-3.5 shrink-0"></i>
+                    <span>No saved chat history yet.</span>
+                </div>`;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            let html = '';
+            sessions.forEach(s => {
+                const isActive = (currentSessionId == s.id);
+                html += `
+                <div class="group flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer ${isActive ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 font-semibold' : 'text-slate-700 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-400'}"
+                     onclick="loadSavedHistorySession(${s.id})">
+                    <div class="flex items-center gap-2 truncate flex-1 pr-1">
+                        <i data-lucide="message-square" class="w-3.5 h-3.5 ${isActive ? 'text-purple-600' : 'text-slate-400 group-hover:text-purple-500'} shrink-0"></i>
+                        <span class="truncate">${escapeHtml(s.title)}</span>
+                    </div>
+                    <button type="button" onclick="deleteHistorySession(${s.id}, event)" class="p-1 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition rounded hover:bg-rose-50 dark:hover:bg-rose-950/50 shrink-0" title="Delete chat session">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>`;
+            });
+            listEl.innerHTML = html;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        async function loadSavedHistorySession(sessionId) {
+            try {
+                const res = await fetch(`/ai/api/history/session/${sessionId}/`);
+                const data = await res.json();
+                if (data && data.status === 'success' && data.session) {
+                    const sess = data.session;
+                    currentSessionId = sess.id;
+                    activeContext = { type: sess.context_type, name: sess.context_name };
+                    highlightActiveSidebarContext();
+
+                    const banner = document.getElementById('ai-active-session-banner');
+                    if (banner) {
+                        banner.classList.remove('hidden');
+                        banner.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Session: ${escapeHtml(sess.title)}</span>`;
+                    }
+
+                    const promptInput = document.getElementById('ai-user-prompt');
+                    if (promptInput) {
+                        promptInput.disabled = false;
+                        promptInput.placeholder = `Discussing "${sess.title}"... Type your question...`;
+                    }
+
+                    const feed = document.getElementById('ai-chat-feed');
+                    const hero = document.getElementById('ai-welcome-screen');
+                    if (hero) hero.remove();
+
+                    if (feed) {
+                        feed.innerHTML = '';
+                        sess.messages.forEach(m => {
+                            const isUser = (m.role === 'user');
+                            const msgHtml = isUser ? `
+                            <div class="flex items-start justify-end gap-3">
+                                <div class="max-w-xl p-3.5 rounded-2xl rounded-tr-none bg-purple-600 text-white shadow-sm space-y-1">
+                                    <div class="text-xs font-semibold leading-relaxed">${escapeHtml(m.content)}</div>
+                                </div>
+                                <div class="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center shrink-0">
+                                    {{ user.username|slice:":1"|upper }}
+                                </div>
+                            </div>` : `
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full gemini-gradient-bg text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md">
+                                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                </div>
+                                <div class="max-w-2xl p-4 rounded-2xl rounded-tl-none bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
+                                    <div class="text-xs font-bold text-purple-600 dark:text-purple-400">AI Study Assistant</div>
+                                    <div class="ai-body text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                                        ${renderMarkdownAndMath(m.content)}
+                                    </div>
+                                </div>
+                            </div>`;
+                            feed.insertAdjacentHTML('beforeend', msgHtml);
+                        });
+                        feed.scrollTop = feed.scrollHeight;
+                        if (window.lucide) lucide.createIcons();
+                        applyKaTeXToFeed();
+                    }
+
+                    loadChatHistorySessions();
+                }
+            } catch (e) {
+                console.log('Error loading session detail:', e);
+            }
+        }
+
+        function showCustomConfirmModal({ title, desc, actionText = 'Delete', onConfirm }) {
+            const modal = document.getElementById('custom-confirm-modal');
+            const titleEl = document.getElementById('confirm-modal-title');
+            const descEl = document.getElementById('confirm-modal-desc');
+            const cancelBtn = document.getElementById('confirm-modal-cancel');
+            const actionBtn = document.getElementById('confirm-modal-action');
+
+            if (!modal) return;
+
+            if (titleEl) titleEl.textContent = title || 'Confirm Action';
+            if (descEl) descEl.textContent = desc || 'Are you sure you want to proceed?';
+            if (actionBtn) {
+                const span = actionBtn.querySelector('span');
+                if (span) span.textContent = actionText;
+            }
+
+            const closeModal = () => modal.classList.add('hidden');
+
+            if (cancelBtn) cancelBtn.onclick = closeModal;
+            if (actionBtn) {
+                actionBtn.onclick = async () => {
+                    closeModal();
+                    if (onConfirm) await onConfirm();
                 };
             }
-            return currentSessionId;
+
+            modal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
         }
 
-        function addMessageToSession(role, content) {
-            const sid = createOrGetSession(content);
-            if (chatHistoryStore[sid]) {
-                chatHistoryStore[sid].messages.push({ role, content, timestamp: new Date().toISOString() });
+        function deleteHistorySession(sessionId, event) {
+            if (event) event.stopPropagation();
+
+            showCustomConfirmModal({
+                title: 'Delete Chat Session?',
+                desc: 'Are you sure you want to delete this chat session? This action cannot be undone.',
+                actionText: 'Delete',
+                onConfirm: async () => {
+                    try {
+                        const res = await fetch(`/ai/api/history/session/${sessionId}/delete/`, { method: 'POST' });
+                        const data = await res.json();
+                        if (data && data.status === 'success') {
+                            if (currentSessionId == sessionId) {
+                                currentSessionId = null;
+                                const feed = document.getElementById('ai-chat-feed');
+                                if (feed) feed.innerHTML = '';
+                            }
+                            loadChatHistorySessions();
+                        }
+                    } catch (e) {
+                        console.log('Error deleting session:', e);
+                    }
+                }
+            });
+        }
+
+        async function saveChatMessage(role, content) {
+            try {
+                const res = await fetch('{% url "api_history_save_message" %}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        role: role,
+                        content: content,
+                        context_type: activeContext ? activeContext.type : 'free_talk',
+                        context_name: activeContext ? activeContext.name : ''
+                    })
+                });
+                const data = await res.json();
+                if (data && data.status === 'success') {
+                    currentSessionId = data.session_id;
+                    loadChatHistorySessions();
+                }
+            } catch (e) {
+                console.log('Error saving chat message:', e);
             }
         }
 
-        function renderFreeTalkHistory() {
-            // Optional renderer for chat history items
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function renderMarkdownAndMath(text) {
+            if (!text) return '';
+            let parsed = window.marked ? marked.parse(text) : escapeHtml(text).replace(/\n/g, '<br>');
+            parsed = parsed.replace(/\$\(\\text\{([^\}]+)\}\)\$/g, '($1)');
+            parsed = parsed.replace(/\$\\text\{([^\}]+)\}\$/g, '$1');
+            parsed = parsed.replace(/\\text\{([^\}]+)\}/g, '$1');
+            return parsed;
+        }
+
+        function applyKaTeXToFeed() {
+            const feed = document.getElementById('ai-chat-feed');
+            if (feed && window.renderMathInElement) {
+                try {
+                    renderMathInElement(feed, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$', right: '$', display: false},
+                            {left: '\\(', right: '\\)', display: false},
+                            {left: '\\[', right: '\\]', display: true}
+                        ],
+                        throwOnError: false
+                    });
+                } catch (e) {
+                    console.log('KaTeX bypass:', e);
+                }
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             if (window.lucide) lucide.createIcons();
             syncAIThemeUI();
-            renderFreeTalkHistory();
+            loadChatHistorySessions();
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const ctxType = urlParams.get('context_type');
-            const ctxName = urlParams.get('context_name');
-            if (ctxType === 'freetalk') {
-                startFreeTalkSession();
-            } else if (ctxType && ctxName) {
-                selectStudyContext(ctxType, ctxName);
-            } else {
-                const promptParam = urlParams.get('prompt');
-                if (promptParam) {
-                    sendSuggestedPrompt(promptParam);
+            const currentPath = window.location.pathname.replace(/\/$/, '');
+            if (currentPath === '/ai') {
+                const urlParams = new URLSearchParams(window.location.search);
+                const ctxType = urlParams.get('context_type');
+                const ctxName = urlParams.get('context_name');
+                if (ctxType === 'freetalk') {
+                    startFreeTalkSession();
+                } else if (ctxType && ctxName) {
+                    selectStudyContext(ctxType, ctxName);
+                } else {
+                    const promptParam = urlParams.get('prompt');
+                    if (promptParam) {
+                        sendSuggestedPrompt(promptParam);
+                    } else {
+                        startFreeTalkSession();
+                    }
                 }
             }
 
@@ -388,11 +600,8 @@
             const input = document.getElementById('ai-user-prompt');
             const sendBtn = document.getElementById('ai-send-btn');
             if (input && sendBtn) {
-                if (input.value.trim().length > 0 && !input.disabled) {
-                    sendBtn.disabled = false;
-                } else {
-                    sendBtn.disabled = true;
-                }
+                const hasText = input.value.trim().length > 0;
+                sendBtn.disabled = !hasText;
             }
         }
 
@@ -454,33 +663,33 @@
         }
 
         function handleAISubmit(e) {
-            if (e && e.preventDefault) e.preventDefault();
+            if (e) {
+                if (e.preventDefault) e.preventDefault();
+                if (e.stopPropagation) e.stopPropagation();
+            }
             const input = document.getElementById('ai-user-prompt');
             const sendBtn = document.getElementById('ai-send-btn');
-            if (!input) return;
+            if (!input) return false;
             const text = input.value.trim();
-            if (!text) return;
+            if (!text) return false;
 
             input.value = '';
-            if (sendBtn && input.disabled) sendBtn.disabled = true;
-
-            createOrGetSession(text);
-            addMessageToSession('user', text);
+            updateSendButtonState();
 
             const welcome = document.getElementById('ai-welcome-screen');
             if (welcome) welcome.remove();
 
             const feed = document.getElementById('ai-chat-feed');
-            if (!feed) return;
+            if (!feed) return false;
 
             // Render User Bubble
             const userMsgHtml = `
             <div class="flex items-start justify-end gap-3">
                 <div class="bg-purple-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm max-w-xl shadow-md">
-                    ${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                    ${escapeHtml(text)}
                 </div>
                 <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 flex-shrink-0">
-                    ${'{{ user.username|slice:":1"|upper }}'}
+                    {{ user.username|slice:":1"|upper }}
                 </div>
             </div>`;
             feed.insertAdjacentHTML('beforeend', userMsgHtml);
@@ -506,6 +715,8 @@
             feed.scrollTop = feed.scrollHeight;
             if (window.lucide) lucide.createIcons();
 
+            saveChatMessage('user', text);
+
             const chatPayload = { prompt: text };
             if (typeof activeContext !== 'undefined' && activeContext && activeContext.type && activeContext.name) {
                 chatPayload.context_type = activeContext.type;
@@ -526,12 +737,11 @@
                     if (pingDot) pingDot.remove();
                     const bodyEl = aiBubble.querySelector('.ai-body');
                     const aiResponseText = data.response || data.error || 'No response returned from AI.';
-                    addMessageToSession('ai', aiResponseText);
-                    if (window.marked) {
-                        bodyEl.innerHTML = marked.parse(aiResponseText);
-                    } else {
-                        bodyEl.innerHTML = aiResponseText.replace(/\n/g, '<br>');
-                    }
+                    
+                    saveChatMessage('assistant', aiResponseText);
+
+                    bodyEl.innerHTML = renderMarkdownAndMath(aiResponseText);
+                    applyKaTeXToFeed();
                     if (feed) feed.scrollTop = feed.scrollHeight;
                 }
             })
@@ -545,6 +755,7 @@
                     if (feed) feed.scrollTop = feed.scrollHeight;
                 }
             });
+            return false;
         }
 
         function toggleFolderNotes(containerId, btn) {
@@ -565,6 +776,15 @@
             const topBtn = document.getElementById('ai-top-action-btn');
             const topIcon = document.getElementById('ai-top-action-icon');
             const topLabel = document.getElementById('ai-top-action-label');
+            const graphBtn = document.getElementById('ai-graph-btn');
+
+            if (graphBtn) {
+                if (!activeContext || activeContext.type === 'freetalk') {
+                    graphBtn.classList.add('hidden');
+                } else {
+                    graphBtn.classList.remove('hidden');
+                }
+            }
 
             if (!topBtn || !topLabel) return;
 
@@ -595,6 +815,21 @@
             }
         }
 
+        function highlightActiveSidebarContext() {
+            const items = document.querySelectorAll('[data-sb-type]');
+            items.forEach(el => {
+                const sbType = el.getAttribute('data-sb-type');
+                const sbName = el.getAttribute('data-sb-name');
+                if (activeContext && sbType === activeContext.type && sbName === activeContext.name) {
+                    el.classList.add('bg-purple-100', 'dark:bg-purple-950/80', 'text-purple-700', 'dark:text-purple-300', 'font-semibold', 'ring-1', 'ring-purple-500/50');
+                    const parentNotesBox = el.closest('[id^="sb-folder-notes-"]');
+                    if (parentNotesBox) parentNotesBox.classList.remove('hidden');
+                } else {
+                    el.classList.remove('bg-purple-100', 'dark:bg-purple-950/80', 'text-purple-700', 'dark:text-purple-300', 'font-semibold', 'ring-1', 'ring-purple-500/50');
+                }
+            });
+        }
+
         function selectStudyContext(type, name) {
             if (window.location.pathname !== '/ai/' && window.location.pathname !== '/ai') {
                 window.location.href = `/ai/?context_type=${encodeURIComponent(type)}&context_name=${encodeURIComponent(name)}`;
@@ -604,12 +839,35 @@
             activeContext = { type, name };
             currentSessionId = null; // Prepare fresh session for this folder/note
 
+            highlightActiveSidebarContext();
+            loadChatHistorySessions();
+
+            // Update browser URL bar to match active folder/note context
+            const newUrl = `/ai/?context_type=${encodeURIComponent(type)}&context_name=${encodeURIComponent(name)}`;
+            window.history.pushState({ type, name }, '', newUrl);
+
             const welcome = document.getElementById('ai-welcome-screen');
             if (welcome) welcome.remove();
 
-            // Clear previous chat feed for a clean mode switch
+            // Clear previous chat feed and render instant AI Study Session Greeting
             const feed = document.getElementById('ai-chat-feed');
-            if (feed) feed.innerHTML = '';
+            if (feed) {
+                feed.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-xl gemini-gradient-bg text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    </div>
+                    <div class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 text-slate-800 dark:text-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 text-sm max-w-2xl space-y-2 shadow-sm">
+                        <div class="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 font-semibold">
+                            <span>Study Session Activated &bull; ${type.toUpperCase()} "${name}"</span>
+                        </div>
+                        <div class="ai-body text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
+                            <p>Hello! I am ready to help you study <strong>"${name}"</strong>.</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">You can ask me questions about this topic below, or click <strong>Take Test</strong> in the top right to start your adaptive quiz!</p>
+                        </div>
+                    </div>
+                </div>`;
+            }
 
             const promptInput = document.getElementById('ai-user-prompt');
             const sendBtn = document.getElementById('ai-send-btn');
@@ -625,93 +883,19 @@
             }
 
             updateTopActionButton();
-
-            const promptText = `Let's analyze and discuss ${type} "${name}"`;
-            
-            // Send initial context greeting cleanly
-            createOrGetSession(promptText);
-            addMessageToSession('user', promptText);
-
-            const userMsgHtml = `
-            <div class="flex items-start justify-end gap-3">
-                <div class="bg-purple-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm max-w-xl shadow-md">
-                    ${promptText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
-                </div>
-                <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 flex-shrink-0">
-                    ${'{{ user.username|slice:":1"|upper }}'}
-                </div>
-            </div>`;
-            if (feed) feed.insertAdjacentHTML('beforeend', userMsgHtml);
-
-            // Render AI Loading & call API
-            const aiLoadingId = 'ai-msg-' + Date.now();
-            const aiMsgHtml = `
-            <div id="${aiLoadingId}" class="flex items-start gap-3">
-                <div class="w-8 h-8 rounded-xl gemini-gradient-bg text-white flex items-center justify-center flex-shrink-0 shadow-md">
-                    <i data-lucide="sparkles" class="w-4 h-4"></i>
-                </div>
-                <div class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 text-slate-800 dark:text-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 text-sm max-w-2xl space-y-2 shadow-sm">
-                    <div class="flex items-center gap-2 text-xs text-slate-400 font-medium">
-                        <span>AI Study Assistant</span>
-                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping"></span>
-                    </div>
-                    <div class="ai-body text-slate-700 dark:text-slate-300 leading-relaxed">
-                        Thinking...
-                    </div>
-                </div>
-            </div>`;
-            if (feed) {
-                feed.insertAdjacentHTML('beforeend', aiMsgHtml);
-                feed.scrollTop = feed.scrollHeight;
-            }
             if (window.lucide) lucide.createIcons();
-
-            const chatPayload = { prompt: promptText };
-            if (typeof activeContext !== 'undefined' && activeContext && activeContext.type && activeContext.name) {
-                chatPayload.context_type = activeContext.type;
-                chatPayload.context_name = activeContext.name;
-            }
-            fetch('{% url "api_chat" %}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(chatPayload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                const aiBubble = document.getElementById(aiLoadingId);
-                if (aiBubble) {
-                    const pingDot = aiBubble.querySelector('.animate-ping');
-                    if (pingDot) pingDot.remove();
-                    const bodyEl = aiBubble.querySelector('.ai-body');
-                    const aiResponseText = data.response || data.error || 'No response returned from AI.';
-                    addMessageToSession('ai', aiResponseText);
-                    if (window.marked) {
-                        bodyEl.innerHTML = marked.parse(aiResponseText);
-                    } else {
-                        bodyEl.innerHTML = aiResponseText.replace(/\n/g, '<br>');
-                    }
-                    if (feed) feed.scrollTop = feed.scrollHeight;
-                }
-            })
-            .catch(err => {
-                const aiBubble = document.getElementById(aiLoadingId);
-                if (aiBubble) {
-                    const pingDot = aiBubble.querySelector('.animate-ping');
-                    if (pingDot) pingDot.remove();
-                    const bodyEl = aiBubble.querySelector('.ai-body');
-                    bodyEl.innerHTML = '<span class="text-red-500 font-medium">Error connecting to AI service. Please try again.</span>';
-                }
-            });
         }
 
         function startFreeTalkSession() {
-            if (window.location.pathname !== '/ai/' && window.location.pathname !== '/ai') {
+            const currentPath = window.location.pathname.replace(/\/$/, '');
+            if (currentPath !== '/ai') {
                 window.location.href = `/ai/?context_type=freetalk&context_name=Free%20Talk`;
                 return;
             }
 
             activeContext = { type: 'freetalk', name: 'Free Talk' };
             currentSessionId = null; // Prepare fresh Free Talk session
+            window.history.pushState({ type: 'freetalk', name: 'Free Talk' }, '', `/ai/?context_type=freetalk&context_name=Free%20Talk`);
 
             const promptInput = document.getElementById('ai-user-prompt');
             const sendBtn = document.getElementById('ai-send-btn');
@@ -785,69 +969,177 @@
             fetch('{% url "api_create_adaptive" %}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: `Study material for ${activeContext.type} "${activeContext.name}"`, recent_score: 50 })
+                body: JSON.stringify({
+                    context_type: activeContext ? activeContext.type : '',
+                    context_name: activeContext ? activeContext.name : '',
+                    text: `Study material for ${activeContext.type} "${activeContext.name}"`,
+                    recent_score: 50
+                })
             })
             .then(res => res.json())
             .then(data => {
+                if (data && data.insufficient_content) {
+                    const contentEl = document.getElementById(`${quizWrapperId}-content`);
+                    if (contentEl) {
+                        contentEl.innerHTML = `
+                        <div class="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-center space-y-3">
+                            <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center mx-auto shadow-md">
+                                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                            </div>
+                            <h3 class="font-bold text-sm text-amber-800 dark:text-amber-300">Insufficient Information</h3>
+                            <p class="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">${data.message || 'The selected note/folder does not contain enough information. Please add more study content or choose another note/folder!'}</p>
+                        </div>`;
+                        if (window.lucide) lucide.createIcons();
+                    }
+                    return;
+                }
+
                 let quizList = data.data;
                 if (!quizList || !Array.isArray(quizList) || quizList.length === 0) {
-                    quizList = [
-                        {
-                            type: "multiple_choice",
-                            question: `What is the primary core concept behind "${activeContext.name}"?`,
-                            options: { "A": "Data structures and structured models", "B": "Unrelated peripheral logic", "C": "Legacy system configuration", "D": "Temporary cache storage" },
-                            correct_answer: "A",
-                            explanation: "Structured models provide foundational framework and data persistence."
-                        },
-                        {
-                            type: "short_answer",
-                            question: `Briefly define the purpose of spaced repetition in learning "${activeContext.name}".`,
-                            sample_answer: "Spaced repetition systematically reviews study topics at increasing intervals for long-term retention.",
-                            explanation: "Spaced repetition combines active recall with timed intervals to prevent memory decay."
-                        },
-                        {
-                            type: "long_answer",
-                            question: `Explain how you would apply key concepts from "${activeContext.name}" to solve a practical problem.`,
-                            key_points: ["Deconstruct problem statement", "Apply core domain logic", "Verify edge cases"],
-                            explanation: "Logical decomposition and structured verification ensure optimal solution design."
-                        }
-                    ];
+                    quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material');
                 }
-                renderInteractiveQuiz(quizWrapperId + '-content', quizList);
+                renderInteractiveQuiz(quizWrapperId + '-content', quizList, data ? data.recommendation_tip : '');
             })
             .catch(err => {
-                const quizList = [
-                    {
-                        type: "multiple_choice",
-                        question: `What is the primary core concept behind "${activeContext.name}"?`,
-                        options: { "A": "Data structures and structured models", "B": "Unrelated peripheral logic", "C": "Legacy system configuration", "D": "Temporary cache storage" },
-                        correct_answer: "A",
-                        explanation: "Structured models provide foundational framework and data persistence."
-                    },
-                    {
-                        type: "short_answer",
-                        question: `Briefly define the purpose of spaced repetition in learning "${activeContext.name}".`,
-                        sample_answer: "Spaced repetition systematically reviews study topics at increasing intervals for long-term retention.",
-                        explanation: "Spaced repetition combines active recall with timed intervals to prevent memory decay."
-                    },
-                    {
-                        type: "long_answer",
-                        question: `Explain how you would apply key concepts from "${activeContext.name}" to solve a practical problem.`,
-                        key_points: ["Deconstruct problem statement", "Apply core domain logic", "Verify edge cases"],
-                        explanation: "Logical decomposition and structured verification ensure optimal solution design."
-                    }
-                ];
-                renderInteractiveQuiz(quizWrapperId + '-content', quizList);
+                const quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material');
+                renderInteractiveQuiz(quizWrapperId + '-content', quizList, '');
             });
         }
 
         let quizSelectedAnswers = {};
 
-        function renderInteractiveQuiz(containerId, quizList) {
+        function buildClientContextQuiz(topicName) {
+            topicName = topicName || 'Study Material';
+            const isVietnamese = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(topicName);
+            if (isVietnamese) {
+                return [
+                    {
+                        type: "multiple_choice",
+                        question: `Nội dung cốt lõi nhất cần ghi nhớ khi học bài "${topicName}" là gì?`,
+                        options: { "A": `Nắm vững các khái niệm và nguyên lý chính của ${topicName}`, "B": "Học thuộc lòng không cần hiểu bản chất", "C": "Bỏ qua các ví dụ thực hành", "D": "Tất cả các đáp án đều sai" },
+                        correct_answer: "A",
+                        explanation: `Hiểu rõ bản chất và khái niệm chính giúp làm chủ nội dung ${topicName}.`,
+                        max_score: 10
+                    },
+                    {
+                        type: "multiple_choice",
+                        question: `Phương pháp nào hiệu quả nhất để ôn tập chủ đề "${topicName}"?`,
+                        options: { "A": "Đọc lướt qua một lần", "B": `Chủ động phân tích và làm bài tập thực hành về ${topicName}`, "C": "Bỏ qua các câu hỏi ôn tập", "D": "Ghi nhớ ngẫu nhiên" },
+                        correct_answer: "B",
+                        explanation: `Chủ động phân tích và làm bài tập giúp ghi nhớ lâu dài kiến thức ${topicName}.`,
+                        max_score: 10
+                    },
+                    {
+                        type: "multiple_choice",
+                        question: `Ứng dụng hoặc ý nghĩa quan trọng nhất của bài học "${topicName}" là gì?`,
+                        options: { "A": "Không có ứng dụng thực tế", "B": "Chỉ dùng để làm bài trắc nghiệm", "C": `Giải quyết các bài toán và tình huống thực tế liên quan đến ${topicName}`, "D": "Tăng dung lượng lưu trữ" },
+                        correct_answer: "C",
+                        explanation: `Áp dụng kiến thức ${topicName} vào giải quyết bài tập và tình huống thực tế.`,
+                        max_score: 10
+                    },
+                    {
+                        type: "multiple_choice",
+                        question: `Yếu tố nào giúp đánh giá mức độ hiểu sâu kiến thức về "${topicName}"?`,
+                        options: { "A": "Bỏ qua các chi tiết quan trọng", "B": `Khả năng giải thích và phân tích lại các quy tắc trong ${topicName}`, "C": "Chỉ nhớ tên tiêu đề bài học", "D": "Đoán mò đáp án" },
+                        correct_answer: "B",
+                        explanation: `Giải thích và phân tích lại kiến thức thể hiện mức độ làm chủ chủ đề.`,
+                        max_score: 10
+                    },
+                    {
+                        type: "short_answer",
+                        question: `Hãy tóm tắt ngắn gọn mục tiêu chính khi học chủ đề "${topicName}".`,
+                        sample_answer: `Hiểu rõ nguyên lý, công thức và ứng dụng thực hành của ${topicName}.`,
+                        explanation: `Mục tiêu là nắm vững kiến thức cốt lõi và vận dụng vào bài tập.`,
+                        max_score: 20
+                    },
+                    {
+                        type: "short_answer",
+                        question: `Nêu phương pháp chính được sử dụng để giải quyết bài tập thuộc "${topicName}".`,
+                        sample_answer: `Phân tích dữ kiện đề bài và áp dụng quy tắc/công thức chuẩn của ${topicName}.`,
+                        explanation: `Phân tích dữ kiện và áp dụng đúng quy tắc toán học/khoa học.`,
+                        max_score: 20
+                    },
+                    {
+                        type: "long_answer",
+                        question: `Bài luận phân tích chuyên sâu: Hãy phân tích các nguyên lý chính và trình bày quy trình giải quyết một bài toán thuộc chủ đề "${topicName}".`,
+                        key_points: [`Khái niệm cốt lõi của ${topicName}`, "Quy trình phân tích dữ kiện", "Áp dụng công thức và đánh giá kết quả"],
+                        explanation: `Bài luận cần trình bày rõ các bước phân tích và cơ sở khoa học của ${topicName}.`,
+                        max_score: 20
+                    }
+                ];
+            }
+            return [
+                {
+                    type: "multiple_choice",
+                    question: `What is the primary core focus when studying "${topicName}"?`,
+                    options: { "A": `Mastering the core principles and mechanisms of ${topicName}`, "B": "Memorizing terms without understanding", "C": "Ignoring practical examples", "D": "None of the above" },
+                    correct_answer: "A",
+                    explanation: `Understanding core principles is essential to mastering ${topicName}.`,
+                    max_score: 10
+                },
+                {
+                    type: "multiple_choice",
+                    question: `Which approach is most effective for reviewing "${topicName}"?`,
+                    options: { "A": "Passive reading without practice", "B": `Active recall and analytical practice on ${topicName}`, "C": "Skipping review questions", "D": "Random guessing" },
+                    correct_answer: "B",
+                    explanation: `Active recall and practice reinforce long-term memory retention.`,
+                    max_score: 10
+                },
+                {
+                    type: "multiple_choice",
+                    question: `What is the key objective of applying knowledge from "${topicName}"?`,
+                    options: { "A": "No practical relevance", "B": "Short-term memorization", "C": `Solving real-world problems and exercises related to ${topicName}`, "D": "Bypassing domain logic" },
+                    correct_answer: "C",
+                    explanation: `Applying concepts from ${topicName} ensures deep functional understanding.`,
+                    max_score: 10
+                },
+                {
+                    type: "multiple_choice",
+                    question: `How can you best demonstrate mastery of "${topicName}"?`,
+                    options: { "A": "Ignoring key details", "B": `Explaining and synthesizing the core rules of ${topicName}`, "C": "Only remembering the title", "D": "Guessing answers" },
+                    correct_answer: "B",
+                    explanation: `Explaining and synthesizing concepts proves conceptual depth.`,
+                    max_score: 10
+                },
+                {
+                    type: "short_answer",
+                    question: `Briefly summarize the main learning goal for "${topicName}".`,
+                    sample_answer: `To understand the core mechanisms, formulas, and practical applications of ${topicName}.`,
+                    explanation: `Mastery involves acquiring core principles and applying them accurately.`,
+                    max_score: 20
+                },
+                {
+                    type: "short_answer",
+                    question: `State the primary method used to analyze problems in "${topicName}".`,
+                    sample_answer: `Deconstruct given data and apply established principles of ${topicName}.`,
+                    explanation: `Deconstructing problem constraints leads to logical solutions.`,
+                    max_score: 20
+                },
+                {
+                    type: "long_answer",
+                    question: `Critical Analysis Essay: Analyze the key principles and step-by-step methodology required when solving problems in "${topicName}".`,
+                    key_points: [`Core mechanisms of ${topicName}`, "Data analysis methodology", "Verification of results"],
+                    explanation: `A thorough response details the foundational mechanisms and logical steps.`,
+                    max_score: 20
+                }
+            ];
+        }
+
+        function renderInteractiveQuiz(containerId, quizList, recommendationTip = '') {
             const container = document.getElementById(containerId);
             if (!container) return;
 
             let html = `<div class="space-y-6 text-left">`;
+            
+            if (recommendationTip) {
+                html += `
+                <div class="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800/80 text-indigo-800 dark:text-indigo-200 text-xs font-medium flex items-center gap-2.5 shadow-sm">
+                    <div class="w-7 h-7 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 font-bold">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-indigo-500"></i>
+                    </div>
+                    <div>${recommendationTip}</div>
+                </div>`;
+            }
             quizList.forEach((q, idx) => {
                 const qType = q.type || (q.options ? 'multiple_choice' : 'short_answer');
                 let badgeLabel = 'Multiple Choice';
@@ -866,10 +1158,6 @@
                     <div class="flex items-center justify-between text-xs font-bold">
                         <span class="text-purple-600 dark:text-purple-400">Question ${idx + 1} of ${quizList.length}</span>
                         <div class="flex items-center gap-2">
-                            <button type="button" onclick="toggleQuizHint('${containerId}', ${idx})" class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/80 transition shadow-sm">
-                                <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-500"></i>
-                                <span>Hint</span>
-                            </button>
                             <span class="px-2 py-0.5 rounded ${badgeClass} font-mono text-[10px]">${badgeLabel}</span>
                         </div>
                     </div>
@@ -880,9 +1168,9 @@
                     Object.keys(q.options).forEach(optKey => {
                         const optVal = q.options[optKey];
                         html += `
-                        <button type="button" data-opt="${optKey}" onclick="selectQuizAnswer('${containerId}', ${idx}, '${optKey}', this)" class="text-left px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-purple-400 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-200 transition flex items-center gap-2">
-                            <span class="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center font-bold text-[10px] shrink-0">${optKey}</span>
-                            <span class="truncate">${optVal}</span>
+                        <button type="button" data-opt="${optKey}" onclick="selectQuizAnswer('${containerId}', ${idx}, '${optKey}', this)" class="text-left px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-purple-400 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-200 transition flex items-start gap-2.5">
+                            <span class="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">${optKey}</span>
+                            <span class="flex-1 leading-relaxed break-words">${optVal}</span>
                         </button>`;
                     });
                     html += `</div>`;
@@ -890,6 +1178,25 @@
                     html += `
                     <div class="pt-1">
                         <input type="text" oninput="quizSelectedAnswers['${containerId}-${idx}'] = this.value" placeholder="Type your short answer here..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-purple-500 transition">
+                    </div>`;
+                } else if (qType === 'socratic_tutor') {
+                    html += `
+                    <div class="pt-2 space-y-3">
+                        <div id="${containerId}-tutor-history-${idx}" class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 max-h-56 overflow-y-auto text-xs">
+                            <div class="flex items-start gap-2.5">
+                                <div class="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
+                                <div class="p-2.5 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 shadow-sm leading-relaxed">
+                                    Welcome! Let's discuss this topic step-by-step. Share your initial thoughts on this mechanism to begin.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="${containerId}-tutor-input-${idx}" onkeypress="if(event.key==='Enter') sendSocraticTutorMsg('${containerId}', ${idx})" placeholder="Discuss with Socratic AI Tutor..." class="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-purple-500 transition">
+                            <button type="button" onclick="sendSocraticTutorMsg('${containerId}', ${idx})" class="px-4 py-2.5 rounded-xl bg-purple-600 text-white text-xs font-bold shadow hover:bg-purple-700 transition shrink-0 flex items-center gap-1.5">
+                                <span>Send</span>
+                                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
                     </div>`;
                 } else {
                     html += `
@@ -899,15 +1206,6 @@
                 }
 
                 html += `
-                    <!-- Interactive Hint Box -->
-                    <div id="${containerId}-hint-${idx}" class="hidden p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 text-xs text-amber-900 dark:text-amber-200 border border-amber-200/80 dark:border-amber-900/80 space-y-1">
-                        <div class="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                            <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-500"></i>
-                            <span>Study Hint:</span>
-                        </div>
-                        <div>${q.hints ? (Array.isArray(q.hints) ? q.hints.join(' ') : q.hints) : 'Review core definitions and key vocabulary in your study notes for "' + activeContext.name + '".'}</div>
-                    </div>
-
                     <div id="${containerId}-exp-${idx}" class="hidden p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-xs text-slate-700 dark:text-slate-300 border border-purple-200/60 dark:border-purple-900/60 space-y-1">
                         <div class="font-bold text-purple-600 dark:text-purple-400">AI Evaluation & Explanation:</div>
                         <div>${q.explanation || 'Analyzed by AI Assistant'}</div>
@@ -917,11 +1215,12 @@
                 </div>`;
             });
 
-            const quizJsonStr = JSON.stringify(quizList).replace(/"/g, '&quot;');
+            window['quiz_data_' + containerId] = quizList;
+
             html += `
                 <div class="pt-2 flex items-center justify-between gap-3">
                     <div id="${containerId}-score" class="text-sm font-bold text-slate-800 dark:text-slate-100"></div>
-                    <button id="${containerId}-submit-btn" type="button" onclick="submitQuizAnswers('${containerId}', ${quizJsonStr})" class="px-6 py-2.5 rounded-xl gemini-gradient-bg text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center gap-2 shrink-0">
+                    <button id="${containerId}-submit-btn" type="button" onclick="submitQuizAnswers('${containerId}')" class="px-6 py-2.5 rounded-xl gemini-gradient-bg text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center gap-2 shrink-0">
                         <i data-lucide="check-circle-2" class="w-4 h-4"></i>
                         <span>Submit</span>
                     </button>
@@ -930,6 +1229,90 @@
 
             container.innerHTML = html;
             if (window.lucide) lucide.createIcons();
+        }
+
+        function sendSocraticTutorMsg(containerId, idx) {
+            const input = document.getElementById(`${containerId}-tutor-input-${idx}`);
+            const historyBox = document.getElementById(`${containerId}-tutor-history-${idx}`);
+            if (!input || !historyBox) return;
+
+            const text = input.value.strip ? input.value.strip() : input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+
+            const userHtml = `
+            <div class="flex items-start justify-end gap-2.5">
+                <div class="p-2.5 rounded-xl bg-purple-600 text-white leading-relaxed max-w-md shadow-sm">
+                    ${escapeHtml(text)}
+                </div>
+            </div>`;
+            historyBox.insertAdjacentHTML('beforeend', userHtml);
+            historyBox.scrollTop = historyBox.scrollHeight;
+
+            const quizList = window['quiz_data_' + containerId] || [];
+            const qObj = quizList[idx] || {};
+
+            const loadingId = 'socratic-loading-' + Date.now();
+            const loadingHtml = `
+            <div id="${loadingId}" class="flex items-start gap-2.5">
+                <div class="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
+                <div class="p-2.5 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 shadow-sm leading-relaxed animate-pulse">
+                    Thinking & analyzing your response...
+                </div>
+            </div>`;
+            historyBox.insertAdjacentHTML('beforeend', loadingHtml);
+            historyBox.scrollTop = historyBox.scrollHeight;
+
+            fetch('/ai/tutor/chat/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_input: text,
+                    history: window[`socratic_history_${containerId}_${idx}`] || [],
+                    question_prompt: qObj.question || '',
+                    required_key_points: qObj.required_key_points || []
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const loadEl = document.getElementById(loadingId);
+                if (loadEl) loadEl.remove();
+
+                const aiMsg = data.ai_message || data.error || 'Thinking completed.';
+                const isReady = data.is_ready_for_grading || false;
+
+                if (!window[`socratic_history_${containerId}_${idx}`]) {
+                    window[`socratic_history_${containerId}_${idx}`] = [];
+                }
+                window[`socratic_history_${containerId}_${idx}`].push({ role: 'user', content: text });
+                window[`socratic_history_${containerId}_${idx}`].push({ role: 'model', content: aiMsg });
+
+                if (isReady && data.compiled_final_answer) {
+                    quizSelectedAnswers[`${containerId}-${idx}`] = data.compiled_final_answer;
+                    window[`socratic_ready_${containerId}_${idx}`] = true;
+                } else {
+                    quizSelectedAnswers[`${containerId}-${idx}`] = text;
+                    if (text && text.length > 5) {
+                        window[`socratic_ready_${containerId}_${idx}`] = true;
+                    }
+                }
+
+                const aiHtml = `
+                <div class="flex items-start gap-2.5">
+                    <div class="w-6 h-6 rounded-lg ${isReady ? 'bg-emerald-600' : 'bg-purple-600'} text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
+                    <div class="p-2.5 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border ${isReady ? 'border-emerald-400 dark:border-emerald-600' : 'border-slate-200/80 dark:border-slate-700'} shadow-sm leading-relaxed space-y-1">
+                        ${isReady ? '<div class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">&check; Ready for Grading!</div>' : ''}
+                        <div>${escapeHtml(aiMsg)}</div>
+                    </div>
+                </div>`;
+                historyBox.insertAdjacentHTML('beforeend', aiHtml);
+                historyBox.scrollTop = historyBox.scrollHeight;
+            })
+            .catch(err => {
+                const loadEl = document.getElementById(loadingId);
+                if (loadEl) loadEl.remove();
+            });
         }
 
         function selectQuizAnswer(containerId, qIdx, optKey, btn) {
@@ -1028,22 +1411,41 @@
             return matchCount >= 2 || ratio >= 0.35;
         }
 
-        function submitQuizAnswers(containerId, quizList) {
-            // Hide the Submit button immediately when clicked
+        async function submitQuizAnswers(containerId) {
+            const quizList = window['quiz_data_' + containerId] || [];
             const submitBtn = document.getElementById(`${containerId}-submit-btn`);
-            if (submitBtn) submitBtn.classList.add('hidden');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>AI Grading in progress...</span>`;
+                if (window.lucide) lucide.createIcons();
+            }
 
-            let score = 0;
-            let questionsData = [];
+            let totalPoints = 0;
+            let maxPoints = 0;
+            quizList.forEach(q => {
+                const qType = q.type || (q.options ? 'multiple_choice' : 'short_answer');
+                if (q.max_score) {
+                    maxPoints += q.max_score;
+                } else if (qType === 'multiple_choice') {
+                    maxPoints += 10;
+                } else {
+                    maxPoints += 20;
+                }
+            });
+            if (maxPoints === 0) maxPoints = 100;
 
-            quizList.forEach((q, idx) => {
+            const questionsData = [];
+
+            for (let idx = 0; idx < quizList.length; idx++) {
+                const q = quizList[idx];
                 const userChoice = quizSelectedAnswers[containerId + '-' + idx] || '';
                 const expEl = document.getElementById(`${containerId}-exp-${idx}`);
                 if (expEl) expEl.classList.remove('hidden');
 
                 const qType = q.type || (q.options ? 'multiple_choice' : 'short_answer');
-
                 const cardEl = expEl ? expEl.parentElement : null;
+                const maxQScore = q.max_score || (qType === 'multiple_choice' ? 10 : 20);
+
                 if (cardEl && qType === 'multiple_choice') {
                     const grid = cardEl.querySelector('.quiz-options-grid');
                     if (grid) {
@@ -1067,16 +1469,131 @@
                     }
                 }
 
+                let qScore = 0;
                 let isCorrect = false;
+                let aiEvaluationHtml = '';
+
                 if (qType === 'multiple_choice') {
                     isCorrect = (userChoice === q.correct_answer);
+                    qScore = isCorrect ? maxQScore : 0;
+                    aiEvaluationHtml = `
+                    <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded ${isCorrect ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400'} font-bold text-xs mb-1">
+                        ${isCorrect ? `✓ Correct Choice (+${qScore} pts)` : '✗ Incorrect Choice (0 pts)'}
+                    </div>`;
+                } else if (qType === 'socratic_tutor') {
+                    const socHist = window[`socratic_history_${containerId}_${idx}`] || [];
+                    const isFullyGraded = window[`socratic_ready_${containerId}_${idx}`] || (socHist.length >= 2);
+                    
+                    if (isFullyGraded) {
+                        qScore = maxQScore;
+                        isCorrect = true;
+                        aiEvaluationHtml = `
+                        <div class="p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 space-y-1.5 mb-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
+                                    <span>Socratic AI Tutor Evaluation</span>
+                                </span>
+                                <span class="px-3 py-1 rounded-full bg-emerald-600 text-white font-bold font-mono text-xs">${qScore} / ${maxQScore} pts</span>
+                            </div>
+                            <div class="text-xs text-emerald-800 dark:text-emerald-200 font-medium leading-relaxed">
+                                Excellent Socratic Debate! You engaged interactively with the AI Tutor and touched upon key concepts.
+                            </div>
+                        </div>`;
+                    } else {
+                        qScore = 0;
+                        isCorrect = false;
+                        aiEvaluationHtml = `
+                        <div class="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-1.5 mb-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
+                                    <span>Socratic AI Tutor Evaluation</span>
+                                </span>
+                                <span class="px-3 py-1 rounded-full bg-amber-600 text-white font-bold font-mono text-xs">0 / ${maxQScore} pts</span>
+                            </div>
+                            <div class="text-xs text-amber-800 dark:text-amber-200 font-medium leading-relaxed">
+                                No interactive Socratic dialogue conducted. Please chat with the AI Tutor to refine your understanding before submitting.
+                            </div>
+                        </div>`;
+                    }
                 } else if (qType === 'short_answer') {
-                    isCorrect = evaluateShortAnswer(userChoice, q.sample_answer, q.correct_answer);
+                    try {
+                        const res = await fetch('{% url "api_grade_simple" %}', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                question_type: 'short_answer',
+                                question: q.question,
+                                user_answer: userChoice || '(No answer provided)',
+                                correct_answer: q.sample_answer || q.correct_answer || 'Key concepts',
+                                explanation: q.explanation || ''
+                            })
+                        });
+                        const resData = await res.json();
+                        if (resData && resData.status === 'success' && resData.data) {
+                            isCorrect = resData.data.is_correct;
+                            const rawScore = (typeof resData.data.score === 'number') ? resData.data.score : (isCorrect ? 100 : 0);
+                            qScore = Math.round((rawScore / 100) * maxQScore);
+                            aiEvaluationHtml = `
+                            <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-1.5 mb-2">
+                                <div class="flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400">
+                                    <span>🤖 AI Short Answer Evaluation</span>
+                                    <span class="px-2 py-0.5 rounded bg-purple-600 text-white font-mono text-[10px]">${qScore} / ${maxQScore} pts</span>
+                                </div>
+                                <div class="text-xs text-slate-700 dark:text-slate-300 font-medium">${resData.data.feedback || q.explanation}</div>
+                            </div>`;
+                        } else {
+                            isCorrect = evaluateShortAnswer(userChoice, q.sample_answer, q.correct_answer);
+                            qScore = isCorrect ? maxQScore : 0;
+                        }
+                    } catch (e) {
+                        isCorrect = evaluateShortAnswer(userChoice, q.sample_answer, q.correct_answer);
+                        qScore = isCorrect ? maxQScore : 0;
+                    }
                 } else {
-                    isCorrect = evaluateLongAnswer(userChoice, q.key_points, q.sample_answer);
+                    try {
+                        const res = await fetch('{% url "api_grade_essay" %}', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                question: q.question,
+                                user_answer: userChoice || '(No answer provided)',
+                                standard_key_points: q.key_points || (q.sample_answer ? [q.sample_answer] : ["Core key points"]),
+                                sample_essays: q.sample_answer || ''
+                            })
+                        });
+                        const resData = await res.json();
+                        if (resData && resData.status === 'success' && resData.data) {
+                            const d = resData.data;
+                            const rawRubricScore = d.total_score || 0;
+                            qScore = Math.round((rawRubricScore / 100) * maxQScore);
+                            isCorrect = qScore >= (maxQScore / 2);
+
+                            aiEvaluationHtml = `
+                            <div class="p-3.5 rounded-2xl bg-purple-500/10 dark:bg-purple-950/40 border border-purple-500/20 text-slate-800 dark:text-slate-200 space-y-2 mb-2">
+                                <div class="flex items-center justify-between border-b border-purple-500/20 pb-2">
+                                    <span class="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+                                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                        <span>AI Essay Evaluation & Feedback</span>
+                                    </span>
+                                    <span class="px-3 py-1 rounded-full ${qScore > 0 ? 'bg-purple-600' : 'bg-red-600'} text-white font-bold font-mono text-xs">${qScore} / ${maxQScore} pts</span>
+                                </div>
+                                <div class="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                                    ${d.overall_feedback || d.feedback || 'Answer evaluated successfully.'}
+                                </div>
+                            </div>`;
+                        } else {
+                            isCorrect = evaluateLongAnswer(userChoice, q.key_points, q.sample_answer);
+                            qScore = isCorrect ? maxQScore : 0;
+                        }
+                    } catch (e) {
+                        isCorrect = evaluateLongAnswer(userChoice, q.key_points, q.sample_answer);
+                        qScore = isCorrect ? maxQScore : 0;
+                    }
                 }
 
-                if (isCorrect) score++;
+                totalPoints += qScore;
 
                 let displayUserAns = userChoice;
                 if (qType === 'multiple_choice' && q.options && q.options[userChoice]) {
@@ -1091,28 +1608,57 @@
                 questionsData.push({
                     question: q.question,
                     question_type: qType,
+                    options: q.options || {},
                     user_answer: displayUserAns || '(No answer provided)',
                     correct_answer: displayCorrectAns,
+                    key_points: q.key_points || (q.sample_answer ? [q.sample_answer] : []),
                     explanation: q.explanation || 'Analyzed by AI Assistant',
-                    score: isCorrect ? 100.0 : 0.0
+                    score: qScore
                 });
 
                 if (expEl && !expEl.querySelector('.quiz-eval-badge')) {
-                    const statusBadgeHtml = isCorrect 
-                        ? `<div class="quiz-eval-badge inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 font-bold text-xs mb-1">✓ Correct (+1)</div>`
-                        : `<div class="quiz-eval-badge inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 font-bold text-xs mb-1">✗ Incorrect / Incomplete (0/1)</div>`;
-                    expEl.insertAdjacentHTML('afterbegin', statusBadgeHtml);
+                    if (aiEvaluationHtml) {
+                        expEl.insertAdjacentHTML('afterbegin', aiEvaluationHtml);
+                    }
                 }
-            });
+            }
 
-            const scorePercent = Math.round((score / quizList.length) * 100);
+            const scorePercent = Math.round((totalPoints / Math.max(1, maxPoints)) * 100);
+
+            if (submitBtn) submitBtn.classList.add('hidden');
 
             const scoreEl = document.getElementById(`${containerId}-score`);
             if (scoreEl) {
                 scoreEl.innerHTML = `
+                <div class="flex items-center gap-2 text-xs font-semibold text-purple-600 dark:text-purple-400 py-2">
+                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                    <span>Saving Test Results to Study Summary...</span>
+                </div>`;
+            }
+            if (window.lucide) lucide.createIcons();
+
+            try {
+                await fetch('{% url "api_record_attempt" %}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        score_percent: scorePercent,
+                        total_questions: quizList.length,
+                        questions: questionsData,
+                        context_type: activeContext ? activeContext.type : '',
+                        context_name: activeContext ? activeContext.name : '',
+                        quiz_title: `Practice Test (${new Date().toLocaleDateString('en-US', {month:'short', day:'numeric'})}, ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})})`
+                    })
+                });
+            } catch (err) {
+                console.log('Record attempt error:', err);
+            }
+
+            if (scoreEl) {
+                scoreEl.innerHTML = `
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="px-4 py-2 rounded-2xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 font-bold text-sm">
-                        Score: ${score} / ${quizList.length} (${scorePercent}%)
+                        Overall Performance: ${scorePercent}% (${Math.round(totalPoints)} / ${maxPoints} pts)
                     </div>
                     <a href="{% url 'periodic_summary' %}" class="px-4 py-2 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 no-underline">
                         <i data-lucide="line-chart" class="w-3.5 h-3.5"></i>
@@ -1121,38 +1667,6 @@
                 </div>`;
             }
             if (window.lucide) lucide.createIcons();
-
-            // Record test attempt asynchronously so Study Summary and Quiz Result update automatically
-            fetch('{% url "api_record_attempt" %}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    score_percent: scorePercent,
-                    total_questions: quizList.length,
-                    questions: questionsData
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.attempt_id && scoreEl) {
-                    scoreEl.innerHTML = `
-                    <div class="flex flex-wrap items-center gap-3">
-                        <div class="px-4 py-2 rounded-2xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 font-bold text-sm">
-                            Score: ${score} / ${quizList.length} (${scorePercent}%)
-                        </div>
-                        <a href="/ai/quizzes/attempt/${data.attempt_id}/result/" class="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 no-underline">
-                            <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
-                            <span>View Result Details</span>
-                        </a>
-                        <a href="{% url 'periodic_summary' %}" class="px-4 py-2 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 no-underline">
-                            <i data-lucide="line-chart" class="w-3.5 h-3.5"></i>
-                            <span>View Study Summary</span>
-                        </a>
-                    </div>`;
-                    if (window.lucide) lucide.createIcons();
-                }
-            })
-            .catch(err => console.log('Record attempt log error:', err));
         }
 
         function toggleQuizHint(containerId, qIdx) {
@@ -1162,6 +1676,223 @@
             }
         }
     </script>
+
+<!-- VIS.JS NETWORK GRAPH CDN -->
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+<!-- KNOWLEDGE GRAPH MODAL FOR GÓC HỌC TẬP -->
+<div id="ai-graph-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md hidden p-4 sm:p-6">
+    <div class="bg-slate-900/95 border border-purple-500/30 rounded-3xl max-w-6xl w-11/12 h-[88vh] flex flex-col shadow-[0_0_50px_rgba(147,51,234,0.2)] overflow-hidden">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 backdrop-blur-md">
+            <div class="space-y-0.5">
+                <div class="text-[11px] font-bold text-purple-400 flex items-center gap-1.5 uppercase tracking-wider">
+                    <i data-lucide="network" class="w-4 h-4 text-purple-400"></i>
+                    <span>AI Knowledge Graph & Concept Map</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-100" id="graph-modal-title">
+                    Knowledge Graph Explorer
+                </h3>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <button type="button" onclick="closeKnowledgeGraphModal()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition" title="Close Modal">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Graph Canvas Container -->
+        <div class="flex-1 relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 w-full h-full overflow-hidden">
+            <div id="vis-graph-container" class="w-full h-full"></div>
+            <div id="graph-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-white space-y-3">
+                <i data-lucide="loader-2" class="w-8 h-8 text-purple-500 animate-spin"></i>
+                <span class="text-xs font-semibold text-slate-300">Extracting Knowledge Graph & Concepts for active session...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let networkInstance = null;
+
+    function openKnowledgeGraphModal() {
+        const modal = document.getElementById('ai-graph-modal');
+        const titleEl = document.getElementById('graph-modal-title');
+        if (!modal) return;
+
+        if (titleEl) {
+            titleEl.textContent = activeContext ? `Mindmap: ${activeContext.type} "${activeContext.name}"` : 'AI Knowledge Graph Explorer';
+        }
+
+        modal.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+        loadGraphData();
+    }
+
+    function closeKnowledgeGraphModal() {
+        const modal = document.getElementById('ai-graph-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function loadGraphData() {
+        const loading = document.getElementById('graph-loading');
+        const container = document.getElementById('vis-graph-container');
+        if (loading) loading.classList.remove('hidden');
+
+        const payload = {
+            context_type: activeContext ? activeContext.type : 'freetalk',
+            context_name: activeContext ? activeContext.name : 'Free Talk',
+            text: activeContext ? `Study material for ${activeContext.type} "${activeContext.name}"` : 'General Knowledge Study Session'
+        };
+
+        fetch('{% url "api_create_graph" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(resData => {
+            if (loading) loading.classList.add('hidden');
+            if (resData && resData.insufficient_content) {
+                if (container) {
+                    container.innerHTML = `
+                    <div class="h-full w-full flex flex-col items-center justify-center p-6 text-center bg-slate-950">
+                        <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 max-w-md w-full space-y-3 shadow-2xl">
+                            <div class="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto border border-amber-500/30 shadow-lg shadow-amber-500/10">
+                                <i data-lucide="alert-triangle" class="w-7 h-7 text-amber-400"></i>
+                            </div>
+                            <h3 class="font-bold text-base text-slate-100">Insufficient Study Content</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">${resData.message || 'This item does not contain enough information for AI to generate a Knowledge Graph. Minimum required: 15 words / 60 characters.'}</p>
+                        </div>
+                    </div>`;
+                    if (window.lucide) lucide.createIcons();
+                }
+                return;
+            }
+            let data = resData.data;
+
+            if (!data || !data.nodes || data.nodes.length === 0) {
+                data = {
+                    nodes: [
+                        { id: '1', label: activeContext ? activeContext.name : 'Core Knowledge Topic' },
+                        { id: '2', label: 'Key Concepts & Definitions' },
+                        { id: '3', label: 'Core Algorithms & Logic' },
+                        { id: '4', label: 'Practical Applications' }
+                    ],
+                    edges: [
+                        { from: '1', to: '2', label: 'contains' },
+                        { from: '1', to: '3', label: 'explains' },
+                        { from: '2', to: '4', label: 'applies to' }
+                    ]
+                };
+            }
+
+            const palette = [
+                { bg: '#9333ea', border: '#c084fc', font: '#ffffff' }, // Central Root (Purple)
+                { bg: '#4f46e5', border: '#818cf8', font: '#ffffff' }, // Indigo
+                { bg: '#0284c7', border: '#38bdf8', font: '#ffffff' }, // Sky Blue
+                { bg: '#059669', border: '#34d399', font: '#ffffff' }, // Emerald
+                { bg: '#d97706', border: '#fbbf24', font: '#ffffff' }  // Amber
+            ];
+
+            const visNodes = data.nodes.map((n, idx) => {
+                const isRoot = (idx === 0);
+                const theme = isRoot ? palette[0] : palette[(idx % 4) + 1];
+
+                return {
+                    id: String(n.id),
+                    label: `  ${n.label}  `,
+                    shape: 'box',
+                    margin: isRoot ? 16 : 12,
+                    shapeProperties: { borderRadius: 16 },
+                    borderWidth: 2.5,
+                    shadow: { enabled: true, color: 'rgba(0,0,0,0.7)', size: 14, x: 0, y: 5 },
+                    color: {
+                        background: theme.bg,
+                        border: theme.border,
+                        highlight: { background: theme.border, border: '#ffffff' },
+                        hover: { background: theme.border, border: '#ffffff' }
+                    },
+                    font: {
+                        color: theme.font,
+                        size: isRoot ? 16 : 14,
+                        face: 'Inter, system-ui, sans-serif',
+                        bold: true
+                    }
+                };
+            });
+
+            const visEdges = data.edges.map(e => ({
+                from: String(e.from),
+                to: String(e.to),
+                label: e.label ? ` ${e.label} ` : '',
+                arrows: { to: { enabled: true, scaleFactor: 0.9 } },
+                width: 2.5,
+                smooth: { type: 'curvedCW', roundness: 0.3 },
+                color: { color: 'rgba(192, 132, 252, 0.75)', highlight: '#e9d5ff', hover: '#e9d5ff' },
+                font: { color: '#f8fafc', size: 11, background: '#2e1065', strokeWidth: 0, face: 'Inter, sans-serif' }
+            }));
+
+            const networkData = {
+                nodes: new vis.DataSet(visNodes),
+                edges: new vis.DataSet(visEdges)
+            };
+
+            const options = {
+                nodes: { borderWidthSelected: 3 },
+                physics: {
+                    solver: 'forceAtlas2Based',
+                    forceAtlas2Based: {
+                        gravitationalConstant: -280,
+                        centralGravity: 0.01,
+                        springLength: 250,
+                        springConstant: 0.06,
+                        avoidOverlap: 1
+                    },
+                    stabilization: { enabled: true, iterations: 500 }
+                },
+                interaction: { hover: true, tooltipDelay: 100, zoomView: true, dragView: true }
+            };
+
+            if (networkInstance) networkInstance.destroy();
+            networkInstance = new vis.Network(container, networkData, options);
+
+            networkInstance.once("stabilizationIterationsDone", function() {
+                networkInstance.fit({ animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
+                networkInstance.setOptions({ physics: false });
+            });
+        })
+        .catch(err => {
+            console.log('Graph load error:', err);
+            if (loading) loading.classList.add('hidden');
+        });
+    }
+</script>
+
+<!-- SLEEK GLASSMORPHIC CONFIRMATION MODAL -->
+<div id="custom-confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm hidden p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center shrink-0">
+                <i data-lucide="trash-2" class="w-6 h-6 text-rose-500"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 id="confirm-modal-title" class="font-bold text-base text-slate-100">Delete Chat Session?</h3>
+                <p id="confirm-modal-desc" class="text-xs text-slate-400 leading-relaxed">This action cannot be undone. Are you sure you want to delete this chat session?</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800/60">
+            <button type="button" id="confirm-modal-cancel" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition">
+                Cancel
+            </button>
+            <button type="button" id="confirm-modal-action" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition flex items-center gap-1.5">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>Delete</span>
+            </button>
+        </div>
+    </div>
+</div>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

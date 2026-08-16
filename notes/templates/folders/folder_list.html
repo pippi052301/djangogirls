@@ -6,17 +6,7 @@
 
 <!-- Custom Page Header -->
 {% block page_header %}
-<<<<<<< Updated upstream
-<div class="-mt-14 mb-6">
-<<<<<<< HEAD
-    <div class="mb-4 inline-block">
-        <span class="text-6xl hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded cursor-pointer transition">📚</span>
-    </div>
-=======
 <div class="pt-2 mb-6">
->>>>>>> Stashed changes
-=======
->>>>>>> ai/Kuan
     <div class="flex items-center justify-between">
         <h1 class="text-4xl font-bold text-slate-800 dark:text-slate-100">Library</h1>
         
@@ -159,18 +149,20 @@
 
             <div>
                 <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Parent Folder (Optional)</label>
-                <select name="parent" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500">
-                    <option value="">(None - Top level folder)</option>
-                    {% for f in folders %}
-                    <option value="{{ f.id }}">{{ f.name }}</option>
-                    {% endfor %}
-                </select>
+                <div class="relative">
+                    <select name="parent" class="w-full pl-3 pr-9 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                        <option value="">(None - Top level folder)</option>
+                        {% for f in folders %}
+                        <option value="{{ f.id }}">{{ f.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    </div>
+                </div>
             </div>
 
-<<<<<<< Updated upstream
-=======
             <div id="initial-note-import-options" class="space-y-3 text-xs text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-6">
->>>>>>> Stashed changes
                 <div class="flex items-center gap-4">
                     <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="file-plus" class="w-3.5 h-3.5"></i> Initial note</span>
                     <button type="button" id="btn-toggle-folder-note" onclick="toggleFolderNoteForm()" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition font-medium select-none shadow-sm">
@@ -305,22 +297,57 @@
         }
     }
 
+    function showFolderConfirmModal({ title, desc, actionText = 'Delete', onConfirm }) {
+        const modal = document.getElementById('custom-confirm-modal');
+        const titleEl = document.getElementById('confirm-modal-title');
+        const descEl = document.getElementById('confirm-modal-desc');
+        const cancelBtn = document.getElementById('confirm-modal-cancel');
+        const actionBtn = document.getElementById('confirm-modal-action');
+
+        if (!modal) return;
+
+        if (titleEl) titleEl.textContent = title || 'Confirm Action';
+        if (descEl) descEl.textContent = desc || 'Are you sure you want to proceed?';
+        if (actionBtn) {
+            const span = actionBtn.querySelector('span');
+            if (span) span.textContent = actionText;
+        }
+
+        const closeModal = () => modal.classList.add('hidden');
+
+        if (cancelBtn) cancelBtn.onclick = closeModal;
+        if (actionBtn) {
+            actionBtn.onclick = async () => {
+                closeModal();
+                if (onConfirm) await onConfirm();
+            };
+        }
+
+        modal.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+
     function confirmFolderBulkDelete() {
         const checked = document.querySelectorAll('.folder-item-checkbox:checked');
         if (checked.length === 0) return;
 
-        if (confirm(`Are you sure you want to delete these ${checked.length} folder(s)?`)) {
-            const hiddenContainer = document.getElementById('folder-hidden-inputs');
-            hiddenContainer.innerHTML = '';
-            checked.forEach(cb => {
-                const inp = document.createElement('input');
-                inp.type = 'hidden';
-                inp.name = 'folder_ids';
-                inp.value = cb.value;
-                hiddenContainer.appendChild(inp);
-            });
-            document.getElementById('folder-bulk-delete-form').submit();
-        }
+        showFolderConfirmModal({
+            title: 'Delete Selected Folders?',
+            desc: `Are you sure you want to delete these ${checked.length} folder(s)?`,
+            actionText: 'Delete',
+            onConfirm: () => {
+                const hiddenContainer = document.getElementById('folder-hidden-inputs');
+                hiddenContainer.innerHTML = '';
+                checked.forEach(cb => {
+                    const inp = document.createElement('input');
+                    inp.type = 'hidden';
+                    inp.name = 'folder_ids';
+                    inp.value = cb.value;
+                    hiddenContainer.appendChild(inp);
+                });
+                document.getElementById('folder-bulk-delete-form').submit();
+            }
+        });
     }
 
     function setFolderViewMode(mode) {
@@ -524,7 +551,9 @@
                 ${isPdf ? '<span class="px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 font-bold text-[10px]">PDF</span>' : ''}
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
-                ${isPdf ? `<button type="button" onclick="previewPdfFromList(${idx})" class="p-1.5 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition" title="Preview PDF"><i data-lucide="eye" class="w-3.5 h-3.5"></i></button>` : ''}
+                <button type="button" onclick="previewModalNote(${idx})" class="p-1.5 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition flex items-center justify-center" title="View note">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                </button>
                 <button type="button" onclick="editModalNote(${idx})" class="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition flex items-center gap-1 font-medium" title="Edit note">
                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                     <span>Edit</span>
@@ -594,7 +623,7 @@
         const item = modalNotesList[idx];
         editingNoteId = idx;
 
-        const isPdf = item.template_type === 'pdf' || (typeof item.content === 'string' && item.content.includes('pdf_data'));
+        const isPdf = item.template_type === 'pdf' || (typeof item.content === 'object' && item.content && item.content.pdf_data) || (typeof item.content === 'string' && item.content.includes('pdf_data'));
         toggleFolderNoteForm(true, isPdf);
 
         const titleInput = document.getElementById('folder-note-title');
@@ -602,48 +631,96 @@
         const templateInput = document.getElementById('folder-note-template-type');
 
         if (titleInput) titleInput.value = item.title;
-        if (templateInput) templateInput.value = item.template_type;
+        if (templateInput) templateInput.value = item.template_type || (isPdf ? 'pdf' : 'blank');
 
         if (contentInput) {
-            if (typeof item.content === 'object') {
-                contentInput.value = item.content.body || item.title;
-                contentInput.dataset.pdfPayload = JSON.stringify(item.content);
-            } else if (typeof item.content === 'string' && item.content.startsWith('{') && item.content.includes('pdf_data')) {
-                try {
-                    const parsed = JSON.parse(item.content);
-                    contentInput.value = parsed.body || item.title;
-                    contentInput.dataset.pdfPayload = item.content;
-                } catch (e) {
-                    contentInput.value = item.content;
+            let textVal = '';
+            if (typeof item.content === 'object' && item.content !== null) {
+                textVal = item.content.body || item.content.text || JSON.stringify(item.content);
+                if (item.content.pdf_data) {
+                    contentInput.dataset.pdfPayload = JSON.stringify(item.content);
                 }
-            } else {
-                contentInput.value = item.content;
-                delete contentInput.dataset.pdfPayload;
+            } else if (typeof item.content === 'string') {
+                if (item.content.startsWith('{') && item.content.includes('pdf_data')) {
+                    try {
+                        const parsed = JSON.parse(item.content);
+                        textVal = parsed.body || parsed.text || item.title;
+                        contentInput.dataset.pdfPayload = item.content;
+                    } catch (e) {
+                        textVal = item.content;
+                    }
+                } else if (item.content.startsWith('{')) {
+                    try {
+                        const parsed = JSON.parse(item.content);
+                        textVal = parsed.text || parsed.body || item.content;
+                    } catch (e) {
+                        textVal = item.content;
+                    }
+                } else {
+                    textVal = item.content;
+                }
             }
+            contentInput.value = textVal;
         }
     }
 
     function deleteModalNote(idx) {
-        if (confirm('Delete this note from the new folder?')) {
-            modalNotesList.splice(idx, 1);
-            renderAttachedNotesList();
-        }
+        showFolderConfirmModal({
+            title: 'Delete Attached Note?',
+            desc: 'Are you sure you want to remove this note from the folder?',
+            actionText: 'Delete',
+            onConfirm: () => {
+                modalNotesList.splice(idx, 1);
+                renderAttachedNotesList();
+            }
+        });
     }
 
-    function previewPdfFromList(idx) {
+    function previewModalNote(idx) {
         const item = modalNotesList[idx];
         if (!item) return;
 
-        let payload = item.content;
-        if (typeof payload === 'string' && payload.startsWith('{')) {
-            try { payload = JSON.parse(payload); } catch(e){}
+        const isPdf = item.template_type === 'pdf' || (typeof item.content === 'object' && item.content && item.content.pdf_data) || (typeof item.content === 'string' && item.content.includes('pdf_data')) || (item.title && item.title.toLowerCase().endsWith('.pdf'));
+
+        if (isPdf) {
+            let pdfDataUri = null;
+            let extractedText = '';
+
+            if (typeof item.content === 'object' && item.content !== null) {
+                pdfDataUri = item.content.pdf_data || null;
+                extractedText = item.content.body || item.content.text || item.title;
+            } else if (typeof item.content === 'string') {
+                if (item.content.startsWith('{') && item.content.includes('pdf_data')) {
+                    try {
+                        const parsed = JSON.parse(item.content);
+                        pdfDataUri = parsed.pdf_data || null;
+                        extractedText = parsed.body || parsed.text || item.title;
+                    } catch(e) {
+                        extractedText = item.content;
+                    }
+                } else if (item.content.startsWith('data:application/pdf')) {
+                    pdfDataUri = item.content;
+                    extractedText = item.title;
+                } else {
+                    extractedText = item.content;
+                }
+            }
+
+            if (!pdfDataUri && typeof latestImportedPdfData !== 'undefined' && latestImportedPdfData && latestImportedPdfData.pdfDataUri) {
+                pdfDataUri = latestImportedPdfData.pdfDataUri;
+            }
+
+            if (typeof openGoogleDrivePdfModal === 'function') {
+                openGoogleDrivePdfModal(pdfDataUri, item.title, extractedText);
+                return;
+            }
         }
 
-        if (payload && payload.pdf_data) {
-            openGoogleDrivePdfModal(payload.pdf_data, item.title, payload.body);
-        } else if (typeof latestImportedPdfData !== 'undefined' && latestImportedPdfData && latestImportedPdfData.pdfDataUri) {
-            openGoogleDrivePdfModal(latestImportedPdfData.pdfDataUri, item.title, item.content);
-        }
+        editModalNote(idx);
+    }
+
+    function previewPdfFromList(idx) {
+        previewModalNote(idx);
     }
 
     function openNewNoteInModal() {
@@ -766,4 +843,28 @@
         textarea.focus();
     }
 </script>
+
+<!-- SLEEK GLASSMORPHIC CONFIRMATION MODAL -->
+<div id="custom-confirm-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm hidden p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center shrink-0">
+                <i data-lucide="trash-2" class="w-6 h-6 text-rose-500"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 id="confirm-modal-title" class="font-bold text-base text-slate-100">Delete Item?</h3>
+                <p id="confirm-modal-desc" class="text-xs text-slate-400 leading-relaxed">Are you sure you want to remove this item?</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800/60">
+            <button type="button" id="confirm-modal-cancel" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition">
+                Cancel
+            </button>
+            <button type="button" id="confirm-modal-action" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition flex items-center gap-1.5">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>Delete</span>
+            </button>
+        </div>
+    </div>
+</div>
 {% endblock %}

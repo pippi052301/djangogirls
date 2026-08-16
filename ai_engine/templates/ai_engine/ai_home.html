@@ -1,0 +1,111 @@
+{% extends 'base_notes.html' %}
+
+{% block title %}Study with AI Assistant - Antigravity{% endblock %}
+
+{% block container_class %}max-w-4xl{% endblock %}
+
+{% block page_title %}Study with AI Assistant{% endblock %}
+
+{% block page_header %}
+<div class="pt-2 mb-6">
+    <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center text-xl font-bold shadow-md">
+            ✨
+        </div>
+        <div>
+            <h1 class="text-3xl font-bold text-slate-800 dark:text-slate-100">Study with AI Assistant</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Ask questions, generate practice quizzes, or summarize study notes</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-sm space-y-6">
+    <div id="ai-chat-history" class="space-y-4 min-h-[250px] max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+        <div class="flex gap-3">
+            <div class="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">AI</div>
+            <div class="px-4 py-3 rounded-2xl bg-purple-50 dark:bg-purple-950/50 border border-purple-100 dark:border-purple-900/50 text-slate-800 dark:text-slate-200 text-sm">
+                Hello! I am your AI Study Assistant. Ask me anything about your notes, or paste study content to get custom quizzes and summaries!
+            </div>
+        </div>
+    </div>
+
+    <form id="ai-chat-form" onsubmit="handleAIChatSubmit(event)" class="relative flex items-center gap-2">
+        <input type="text" id="ai-chat-input" value="{{ initial_prompt }}" placeholder="Ask AI a question or request study help..." class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-purple-500 font-medium">
+        <button type="submit" class="px-5 py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition shadow-sm shrink-0 flex items-center gap-1.5">
+            <span>Send</span>
+            <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+    </form>
+</div>
+
+<script>
+    function handleAIChatSubmit(e) {
+        e.preventDefault();
+        const input = document.getElementById('ai-chat-input');
+        const history = document.getElementById('ai-chat-history');
+        const text = input.value.trim();
+        if (!text) return;
+
+        // Append user msg
+        const userDiv = document.createElement('div');
+        userDiv.className = 'flex gap-3 justify-end';
+        userDiv.innerHTML = `
+            <div class="px-4 py-3 rounded-2xl bg-purple-600 text-white text-sm max-w-[80%] shadow-sm">
+                ${text}
+            </div>
+        `;
+        history.appendChild(userDiv);
+        input.value = '';
+        history.scrollTop = history.scrollHeight;
+
+        // Append AI loading
+        const aiDiv = document.createElement('div');
+        aiDiv.className = 'flex gap-3';
+        aiDiv.innerHTML = `
+            <div class="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">AI</div>
+            <div class="px-4 py-3 rounded-2xl bg-purple-50 dark:bg-purple-950/50 border border-purple-100 dark:border-purple-900/50 text-slate-800 dark:text-slate-200 text-sm animate-pulse">
+                Thinking...
+            </div>
+        `;
+        history.appendChild(aiDiv);
+        history.scrollTop = history.scrollHeight;
+
+        fetch('/ai/api/chat/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ message: text })
+        })
+        .then(r => r.json())
+        .then(data => {
+            const answer = data.answer || data.response || data.result || 'Here is your AI generated response.';
+            aiDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">AI</div>
+                <div class="px-4 py-3 rounded-2xl bg-purple-50 dark:bg-purple-950/50 border border-purple-100 dark:border-purple-900/50 text-slate-800 dark:text-slate-200 text-sm">
+                    ${answer}
+                </div>
+            `;
+            history.scrollTop = history.scrollHeight;
+        })
+        .catch(err => {
+            aiDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">AI</div>
+                <div class="px-4 py-3 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-sm">
+                    Error connecting to AI service.
+                </div>
+            `;
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const input = document.getElementById('ai-chat-input');
+        if (input && input.value.trim()) {
+            document.getElementById('ai-chat-form').dispatchEvent(new Event('submit'));
+        }
+    });
+</script>
+{% endblock %}

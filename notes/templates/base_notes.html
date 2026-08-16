@@ -129,13 +129,13 @@
     <!-- SIDEBAR -->
     <aside id="sidebar" class="w-60 bg-[#f7f6f3] dark:bg-slate-800/80 border-r border-slate-200 dark:border-slate-700 flex flex-col justify-between transition-all duration-200 select-none shrink-0">
         <div class="overflow-y-auto flex-1">
-            <!-- Workspace Header (Links directly to Profile Setting) -->
-            <a href="{% url 'accounts:profile' %}" class="flex items-center justify-between p-3 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 cursor-pointer transition group" title="Profile Setting">
+            <!-- Workspace Header -->
+            <div class="flex items-center justify-between p-3 border-b border-slate-200/60 dark:border-slate-700/60">
                 <div class="flex items-center gap-2 min-w-0">
                     <div class="w-5 h-5 min-w-[20px] rounded bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 flex items-center justify-center text-xs font-bold">
                         {{ request.user.username|slice:":1"|upper|default:"P" }}
                     </div>
-                    <span class="font-semibold text-slate-700 dark:text-slate-200 truncate text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                    <span class="font-semibold text-slate-700 dark:text-slate-200 truncate text-sm">
                         {% if request.user.is_authenticated %}
                             {{ request.user.username }}'s Personal Study Space
                         {% else %}
@@ -143,8 +143,7 @@
                         {% endif %}
                     </span>
                 </div>
-                <i data-lucide="settings" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 shrink-0 ml-1"></i>
-            </a>
+            </div>
 
                 <div class="mt-4 px-2">
                     <nav class="mt-1 space-y-0.5">
@@ -190,13 +189,23 @@
                             </div>
                         </a>
 
-                        <!-- Study with AI assistant Navigation Item (Links to Gemini AI Workspace) -->
+                        <!-- Study Plan Navigation Item -->
+                        <a href="{% url 'scheduler:schedule_list' %}" 
+                           class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'schedule_list' %}bg-slate-200/80 dark:bg-slate-700 text-slate-900 dark:text-white font-medium{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60{% endif %}"
+                           title="Study Plan">
+                            <div class="flex items-center gap-2 truncate">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 group-hover:scale-110 transition-transform shrink-0"></i>
+                                <span class="truncate">Study Plan</span>
+                            </div>
+                        </a>
+
+                        <!-- Study with AI assistant Navigation Item -->
                         <a href="{% url 'ai_home' %}" 
-                           class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'ai_home' %}bg-purple-100 dark:bg-purple-950/80 text-purple-900 dark:text-purple-200 font-semibold{% else %}text-slate-600 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300{% endif %}"
+                           class="flex items-center justify-between px-2 py-1.5 rounded transition group {% if request.resolver_match.url_name == 'ai_home' %}bg-slate-200/80 dark:bg-slate-700 text-slate-900 dark:text-white font-medium{% else %}text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60{% endif %}"
                            title="Study with AI assistant">
                             <div class="flex items-center gap-2 truncate">
-                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500 group-hover:scale-110 transition-transform shrink-0"></i>
-                                <span class="font-medium text-xs truncate">Study with AI assistant</span>
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 group-hover:scale-110 transition-transform shrink-0"></i>
+                                <span class="truncate">Study with AI assistant</span>
                             </div>
                         </a>
                     </nav>
@@ -289,7 +298,7 @@
             </div>
 
             <!-- Main Document Container -->
-            <div class="max-w-3xl mx-auto px-12 py-6">
+            <div class="{% block main_container_class %}max-w-6xl mx-auto px-6 sm:px-10 py-6{% endblock %}">
                 {% block page_header %}
                 <!-- Emoji Icon-->
                 <div class="pt-2 mb-4 inline-block">
@@ -476,9 +485,7 @@
             const fileExt = file.name.split('.').pop().toLowerCase();
             const rawName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
             let formattedTitle = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-            if (fileExt === 'pdf' && !formattedTitle.toLowerCase().endsWith('.pdf')) {
-                formattedTitle += '.pdf';
-            }
+            // Keep clean note title without file extension
 
             if (titleInput && (!titleInput.value || titleInput.value.trim() === '' || titleInput.value === 'Untitled' || titleInput.value.toLowerCase().includes('note title'))) {
                 titleInput.value = formattedTitle;
@@ -647,6 +654,16 @@
             <!-- Center Main Canvas Viewport -->
             <div class="flex-1 overflow-auto p-6 flex justify-center items-start bg-slate-900/90" id="gd-pdf-canvas-wrapper">
                 <canvas id="gd-pdf-main-canvas" class="shadow-2xl rounded-lg bg-white max-w-full transition-transform duration-150"></canvas>
+                <div id="gd-pdf-text-paper" class="hidden shadow-2xl rounded-3xl bg-slate-950 border border-slate-800/80 text-slate-100 p-8 sm:p-12 max-w-3xl w-full font-sans leading-relaxed text-sm space-y-6">
+                    <div class="border-b border-slate-800 pb-4 space-y-1">
+                        <div class="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                            <span>Extracted PDF Study Material</span>
+                        </div>
+                        <h2 id="gd-text-paper-title" class="text-xl sm:text-2xl font-bold text-white">Document Title</h2>
+                    </div>
+                    <div id="gd-text-paper-content" class="whitespace-pre-wrap text-slate-200 text-sm leading-relaxed space-y-4 max-h-[70vh] overflow-y-auto pr-2"></div>
+                </div>
             </div>
 
             <!-- Right Sidebar: Gemini AI Assistant Panel -->
@@ -707,19 +724,48 @@
                 </div>`;
             }
 
-            if (window.pdfjsLib && pdfDataUri) {
+            const canvasEl = document.getElementById('gd-pdf-main-canvas');
+            const paperEl = document.getElementById('gd-pdf-text-paper');
+            const paperTitle = document.getElementById('gd-text-paper-title');
+            const paperContent = document.getElementById('gd-text-paper-content');
+            const thumbsSidebar = document.getElementById('gd-pdf-thumbnails-sidebar');
+
+            let renderedPdf = false;
+
+            if (window.pdfjsLib && pdfDataUri && typeof pdfDataUri === 'string' && (pdfDataUri.startsWith('data:application/pdf') || pdfDataUri.length > 50)) {
                 try {
                     gdPdfDoc = await pdfjsLib.getDocument(pdfDataUri).promise;
-                    document.getElementById('gd-pdf-total-pages').textContent = gdPdfDoc.numPages;
-                    gdPdfPageNum = 1;
-                    gdPdfScale = 1.1;
-                    updateGdPdfZoomUI();
-                    await renderGdPdfPage(gdPdfPageNum);
-                    renderGdPdfThumbnails();
+                    if (gdPdfDoc && gdPdfDoc.numPages > 0) {
+                        renderedPdf = true;
+                        document.getElementById('gd-pdf-total-pages').textContent = gdPdfDoc.numPages;
+                        gdPdfPageNum = 1;
+                        gdPdfScale = 1.1;
+                        updateGdPdfZoomUI();
+                        await renderGdPdfPage(gdPdfPageNum);
+                        renderGdPdfThumbnails();
+                        if (canvasEl) canvasEl.classList.remove('hidden');
+                        if (paperEl) paperEl.classList.add('hidden');
+                        if (thumbsSidebar) thumbsSidebar.classList.remove('hidden');
+                    }
                 } catch (err) {
                     console.error('PDF Render Error:', err);
                 }
             }
+
+            if (!renderedPdf) {
+                if (canvasEl) canvasEl.classList.add('hidden');
+                if (thumbsSidebar) thumbsSidebar.classList.add('hidden');
+                if (paperEl) {
+                    paperEl.classList.remove('hidden');
+                    if (paperTitle) paperTitle.textContent = gdPdfFilename;
+                    if (paperContent) paperContent.textContent = gdPdfCurrentText || 'No text extracted from this study file.';
+                }
+                const totalPagesEl = document.getElementById('gd-pdf-total-pages');
+                const currPageEl = document.getElementById('gd-pdf-current-page');
+                if (totalPagesEl) totalPagesEl.textContent = '1';
+                if (currPageEl) currPageEl.textContent = '1';
+            }
+
             if (window.lucide) lucide.createIcons();
         }
 

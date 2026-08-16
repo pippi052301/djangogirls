@@ -2,7 +2,7 @@
 
 {% block title %}Study Plan - Personal Study Space{% endblock %}
 
-{% block container_class %}max-w-6xl{% endblock %}
+{% block main_container_class %}w-full max-w-full px-4 sm:px-8 py-6{% endblock %}
 
 <style>
     .custom-scrollbar::-webkit-scrollbar {
@@ -34,19 +34,18 @@
         </div>
         
         <div class="flex items-center gap-2">
-            <!-- Calendar View Mode Switcher (Weekly & Monthly Only) -->
-            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-                <button type="button" id="btn-week-view" onclick="setCalendarView('week')" class="px-3 py-1.5 text-xs rounded-lg font-medium flex items-center gap-1.5 transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm">
-                    <i data-lucide="calendar-days" class="w-3.5 h-3.5"></i>
-                    <span>Weekly</span>
+            <!-- Toggle View Buttons -->
+            <div class="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button type="button" id="btn-week-view" onclick="setCalendarView('week')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition flex items-center gap-1.5">
+                    <i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> Weekly
                 </button>
-                <button type="button" id="btn-month-view" onclick="setCalendarView('month')" class="px-3 py-1.5 text-xs rounded-lg font-medium flex items-center gap-1.5 transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-                    <span>Monthly</span>
+                <button type="button" id="btn-month-view" onclick="setCalendarView('month')" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1.5">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Monthly
                 </button>
             </div>
 
-            <button type="button" onclick="openPlanModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition shrink-0">
+            <!-- Create Plan Trigger Button -->
+            <button type="button" onclick="openPlanModal()" class="px-4 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition flex items-center gap-1.5">
                 <i data-lucide="plus-circle" class="w-4 h-4"></i>
                 <span>Create Plan</span>
             </button>
@@ -58,7 +57,7 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- 1. WEEKLY CALENDAR VIEW (LỊCH TUẦN - MAX-W-6XL SPACIOUS) -->
+    <!-- 1. WEEKLY CALENDAR VIEW (LỊCH TUẦN - FULL WIDTH) -->
     <div id="calendar-week-view" class="space-y-4">
         <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
             <div class="flex items-center gap-2">
@@ -87,10 +86,10 @@
                     <div class="space-y-2 mt-2 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
                         {% for schedule in schedules %}
                             {% if schedule.is_active %}
-                                {% if schedule.frequency == 'daily' or day|date:"D" in schedule.weekly_days or schedule.frequency == 'specific' and schedule.specific_date == day %}
+                                {% if schedule.frequency == 'daily' or schedule.frequency == 'weekly' and day|date:"D" in schedule.weekly_days or schedule.frequency == 'specific' and schedule.specific_date|date:"Y-m-d" == day|date:"Y-m-d" %}
                                 <div class="relative group/card">
-                                    <a href="{{ schedule.ai_study_url }}" class="flex flex-col items-center justify-center p-2.5 pb-6 rounded-xl border transition shadow-sm text-center {{ schedule.card_style }}" title="{{ schedule.topic }} (P{{ schedule.priority }})">
-                                        <div class="text-xs font-bold truncate w-full text-center pr-1">
+                                    <a href="{{ schedule.ai_study_url }}" class="flex flex-col items-center justify-center p-3 pb-7 rounded-xl border transition shadow-sm text-center {{ schedule.card_style }} w-full" title="{{ schedule.topic }} (P{{ schedule.priority }})">
+                                        <div class="text-xs font-bold w-full text-center px-1 break-words leading-tight line-clamp-2">
                                             {{ schedule.topic }}
                                         </div>
                                         <div class="text-[10px] font-mono flex items-center justify-center gap-1 mt-1 font-semibold whitespace-nowrap w-full opacity-90">
@@ -100,7 +99,7 @@
                                     </a>
                                     <!-- Edit & Delete Action Buttons -->
                                     <div class="absolute bottom-1 right-1.5 flex items-center gap-1 opacity-80 group-hover/card:opacity-100 transition">
-                                        <button type="button" onclick="openEditPlanModal('{{ schedule.id }}', '{{ schedule.topic|escapejs }}', '{{ schedule.frequency }}', '{{ schedule.weekly_days|escapejs }}', '{% if schedule.start_time %}{{ schedule.start_time|time:'H:i' }}{% else %}{{ schedule.time|time:'H:i'|default:'' }}{% endif %}', '{% if schedule.end_time %}{{ schedule.end_time|time:'H:i' }}{% endif %}', '{{ schedule.priority }}', '{{ schedule.difficulty }}', '{% if schedule.folder %}folder_{{ schedule.folder.id }}{% elif schedule.note %}note_{{ schedule.note.id }}{% endif %}', '{{ schedule.specific_date|date:"Y-m-d" }}')" class="p-1 rounded-md bg-slate-900/10 dark:bg-white/10 hover:bg-blue-600 hover:text-white transition text-slate-700 dark:text-slate-200" title="Edit Plan">
+                                        <button type="button" onclick="openEditPlanModal('{{ schedule.id }}', '{{ schedule.topic|escapejs }}', '{{ schedule.frequency }}', '{{ schedule.weekly_days|escapejs }}', '{% if schedule.start_time %}{{ schedule.start_time|time:'H:i' }}{% else %}{{ schedule.time|time:'H:i'|default:'' }}{% endif %}', '{% if schedule.end_time %}{{ schedule.end_time|time:'H:i' }}{% endif %}', '{{ schedule.priority }}', '{% if schedule.folder %}folder_{{ schedule.folder.id }}{% elif schedule.note %}note_{{ schedule.note.id }}{% endif %}', '{{ schedule.specific_date|date:"Y-m-d" }}')" class="p-1 rounded-md bg-slate-900/10 dark:bg-white/10 hover:bg-blue-600 hover:text-white transition text-slate-700 dark:text-slate-200" title="Edit Plan">
                                             <i data-lucide="pencil" class="w-3 h-3"></i>
                                         </button>
                                         <a href="{% url 'scheduler:delete' schedule.id %}" onclick="return confirm('Are you sure you want to delete this study plan?')" class="p-1 rounded-md bg-slate-900/10 dark:bg-white/10 hover:bg-red-600 hover:text-white transition text-slate-700 dark:text-slate-200" title="Delete Plan">
@@ -163,7 +162,7 @@
                         <div class="space-y-1 mt-1">
                             {% for schedule in schedules %}
                                 {% if schedule.is_active and day.month == current_month_num %}
-                                    {% if schedule.frequency == 'daily' or day|date:"D" in schedule.weekly_days %}
+                                    {% if schedule.frequency == 'daily' or schedule.frequency == 'weekly' and day|date:"D" in schedule.weekly_days or schedule.frequency == 'specific' and schedule.specific_date|date:"Y-m-d" == day|date:"Y-m-d" %}
                                     <a href="{{ schedule.ai_study_url }}" class="block text-[10px] truncate px-1.5 py-0.5 rounded border {{ schedule.priority_color }} font-medium transition hover:opacity-85 shadow-sm" title="{{ schedule.topic }} (Priority P{{ schedule.priority }})">
                                         <span class="truncate">{{ schedule.topic }}</span>
                                     </a>
@@ -196,19 +195,25 @@
             {% csrf_token %}
 
             <div class="space-y-6">
-                <!-- Visible Scrollable Resource List Box -->
+                <!-- Collapsible Target Resource Selector -->
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                            Select Target Resource <span class="text-xs font-normal text-slate-400">(Scroll to select Folder or Note)</span>
+                            Select Target Resource <span class="text-xs font-normal text-slate-400">(Folder or Note)</span>
                         </label>
                         <button type="button" onclick="selectResourceOption('')" class="text-xs text-blue-500 hover:underline font-medium">Clear Choice</button>
                     </div>
                     
                     <input type="hidden" name="target_resource" id="modal-target-resource" value="">
 
-                    <!-- Scrollable Box Container -->
-                    <div class="max-h-48 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3 custom-scrollbar">
+                    <!-- Dropdown Trigger Button -->
+                    <button type="button" onclick="toggleResourceDropdown()" id="modal-res-trigger-btn" class="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-200 hover:border-blue-500 transition cursor-pointer">
+                        <span id="modal-res-trigger-text" class="truncate text-slate-500 dark:text-slate-400">Select Folder or Note (Optional)...</span>
+                        <i data-lucide="chevron-down" id="modal-res-chevron" class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200"></i>
+                    </button>
+
+                    <!-- Collapsible Scrollable Box Container -->
+                    <div id="modal-res-dropdown-container" class="hidden mt-2 max-h-48 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-800/95 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3 custom-scrollbar shadow-lg">
                         <!-- Folders Section -->
                         <div>
                             <div class="px-2 py-1 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200/60 dark:border-slate-700/60 mb-1">
@@ -507,9 +512,28 @@
         badge.className = `flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${cfg.badge} border`;
     }
 
+    function toggleResourceDropdown(forceState) {
+        const container = document.getElementById('modal-res-dropdown-container');
+        const chevron = document.getElementById('modal-res-chevron');
+        if (!container) return;
+
+        const isHidden = container.classList.contains('hidden');
+        const shouldShow = (forceState !== undefined) ? forceState : isHidden;
+
+        if (shouldShow) {
+            container.classList.remove('hidden');
+            if (chevron) chevron.style.transform = 'rotate(180deg)';
+        } else {
+            container.classList.add('hidden');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
     function selectResourceOption(val, textName) {
         const hiddenRes = document.getElementById('modal-target-resource');
         if (hiddenRes) hiddenRes.value = val || '';
+
+        const triggerText = document.getElementById('modal-res-trigger-text');
 
         document.querySelectorAll('.modal-res-option').forEach(el => {
             el.classList.remove('bg-blue-100', 'dark:bg-blue-900/40', 'ring-1', 'ring-blue-500', 'text-blue-700', 'dark:text-blue-200');
@@ -525,9 +549,23 @@
                 if (check) check.classList.remove('hidden');
             }
 
+            const prefix = val.startsWith('folder_') ? '📂 ' : '📝 ';
+            if (triggerText && textName) {
+                triggerText.textContent = prefix + textName;
+                triggerText.className = "truncate text-slate-800 dark:text-slate-100 font-semibold";
+            }
+
             const topicInput = document.getElementById('modal-plan-topic');
             if (topicInput && textName) {
                 topicInput.value = textName;
+            }
+
+            // Auto-collapse scroll container after choosing
+            toggleResourceDropdown(false);
+        } else {
+            if (triggerText) {
+                triggerText.textContent = "Select Folder or Note (Optional)...";
+                triggerText.className = "truncate text-slate-500 dark:text-slate-400 font-medium";
             }
         }
     }
@@ -572,7 +610,7 @@
         toggleModalWeeklyDays();
     }
 
-    function openEditPlanModal(id, topic, frequency, weeklyDays, startTime, endTime, priority, difficulty, targetResource, specificDate) {
+    function openEditPlanModal(id, topic, frequency, weeklyDays, startTime, endTime, priority, targetResource, specificDate) {
         const modal = document.getElementById('plan-modal');
         if (modal) {
             modal.classList.remove('hidden');
@@ -588,7 +626,7 @@
         if (headerTitle) headerTitle.textContent = 'Edit Study Plan';
 
         const form = document.getElementById('plan-modal-form');
-        if (form) form.action = `/quiz schedule/${id}/edit/`;
+        if (form) form.action = `/quiz-schedule/update/${id}/`;
 
         const topicInput = document.getElementById('modal-plan-topic');
         if (topicInput) topicInput.value = topic;

@@ -6,14 +6,44 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('scheduler', '0004_quizschedule_created_at'),
+        ('scheduler', '0001_initial'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='quizschedule',
+            name='weekly_days',
+            field=models.CharField(blank=True, default='', max_length=100),
+        ),
+        migrations.AddField(
+            model_name='quizschedule',
             name='specific_date',
             field=models.DateField(blank=True, null=True),
+        ),
+        migrations.AddField(
+            model_name='quizschedule',
+            name='start_time',
+            field=models.TimeField(blank=True, null=True),
+        ),
+        migrations.AddField(
+            model_name='quizschedule',
+            name='end_time',
+            field=models.TimeField(blank=True, null=True),
+        ),
+        migrations.AddField(
+            model_name='quizschedule',
+            name='priority',
+            field=models.IntegerField(default=3),
+        ),
+        migrations.AddField(
+            model_name='quizschedule',
+            name='target_resource',
+            field=models.CharField(blank=True, default='', max_length=100),
+        ),
+        migrations.AlterField(
+            model_name='quizschedule',
+            name='time',
+            field=models.TimeField(blank=True, null=True),
         ),
         migrations.AlterField(
             model_name='quizschedule',
