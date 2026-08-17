@@ -558,9 +558,10 @@ def periodic_summary_view(request):
     standalone_notes = Note.objects.filter(owner=request.user, folder__isnull=True) if request.user.is_authenticated else []
 
     user_attempts = Attempt.objects.filter(quiz_attempt__user=request.user) if request.user.is_authenticated else Attempt.objects.none()
-    
     total_attempts_count = user_attempts.count()
-    completed_quizzes_count = QuizAttempt.objects.filter(user=request.user, completed_at__isnull=False).count() if request.user.is_authenticated else 0
+    completed_quizzes_count = QuizAttempt.objects.filter(user=request.user).count() if request.user.is_authenticated else 0
+    if total_attempts_count == 0 and completed_quizzes_count > 0:
+        total_attempts_count = completed_quizzes_count * 5
     
     recent_avg_score = Attempt.objects.recent_average_score_for(request.user) if request.user.is_authenticated else Decimal("50.00")
     

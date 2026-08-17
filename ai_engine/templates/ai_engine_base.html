@@ -339,6 +339,11 @@
         }
 
         async function loadSavedHistorySession(sessionId) {
+            const currentPath = window.location.pathname.replace(/\/$/, '');
+            if (currentPath !== '/ai') {
+                window.location.href = `/ai/?session_id=${sessionId}`;
+                return;
+            }
             try {
                 const res = await fetch(`/ai/api/history/session/${sessionId}/`);
                 const data = await res.json();
@@ -527,9 +532,12 @@
             const currentPath = window.location.pathname.replace(/\/$/, '');
             if (currentPath === '/ai') {
                 const urlParams = new URLSearchParams(window.location.search);
+                const sessId = urlParams.get('session_id');
                 const ctxType = urlParams.get('context_type');
                 const ctxName = urlParams.get('context_name');
-                if (ctxType === 'freetalk') {
+                if (sessId) {
+                    loadSavedHistorySession(sessId);
+                } else if (ctxType === 'freetalk') {
                     startFreeTalkSession();
                 } else if (ctxType && ctxName) {
                     selectStudyContext(ctxType, ctxName);
