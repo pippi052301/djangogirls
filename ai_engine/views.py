@@ -13,6 +13,26 @@ from .services.quiz_service import generate_quiz_from_text
 from .services.graph_service import generate_knowledge_graph
 from .services.adaptive_service import generate_adaptive_practice #, grade_user_answer
 
+
+def extract_clean_note_text(note):
+    """Extract plain text from a Note object's content field (which is a dict/JSON)."""
+    content = note.content
+    if not content:
+        return ''
+    # content is a dict like {'body': '<div>...</div>'} or {'text': '...'}
+    if isinstance(content, dict):
+        raw = content.get('body') or content.get('text') or content.get('content') or ''
+    else:
+        raw = str(content)
+    # Strip HTML tags
+    clean = re.sub(r'<[^>]+>', ' ', raw)
+    # Decode HTML entities
+    clean = html.unescape(clean)
+    # Collapse whitespace
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    return clean
+
+
 @csrf_exempt # Tạm thời tắt kiểm tra CSRF để Frontend dễ test API
 def create_quiz_api(request):
     """Multiple-Choice Question Generation API (Integrated Semantic Caching)"""
