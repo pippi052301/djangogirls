@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 
 # Import các hàm AI từ thư mục services của bạn
 from .services.quiz_service import generate_quiz_from_text
