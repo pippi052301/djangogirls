@@ -364,7 +364,7 @@
                 if (data && data.status === 'success' && data.session) {
                     const sess = data.session;
                     currentSessionId = sess.id;
-                    activeContext = { type: 'freetalk', name: sess.title };
+                    activeContext = { type: 'history', name: sess.title, isHistory: true };
                     highlightActiveSidebarContext();
                     updateTopActionButton();
                     refreshContextScoreBadge('freetalk', '');
@@ -805,7 +805,7 @@
             const graphBtn = document.getElementById('ai-graph-btn');
 
             if (graphBtn) {
-                if (!activeContext || activeContext.type === 'freetalk') {
+                if (!activeContext || activeContext.type === 'freetalk' || (activeContext && activeContext.isHistory)) {
                     graphBtn.classList.add('hidden');
                 } else {
                     graphBtn.classList.remove('hidden');
@@ -814,20 +814,25 @@
 
             if (!topBtn || !topLabel) return;
 
-            if (activeContext && activeContext.type === 'freetalk') {
-                topBtn.disabled = false;
-                topLabel.textContent = "New Chat";
-                topBtn.title = "Start a new Free Talk chat";
-                if (topIcon) topIcon.setAttribute('data-lucide', 'plus');
-            } else if (activeContext) {
-                topBtn.disabled = false;
-                topLabel.textContent = "Take Test";
-                topBtn.title = `Take quiz test for ${activeContext.name}`;
-                if (topIcon) topIcon.setAttribute('data-lucide', 'help-circle');
+            if (activeContext && activeContext.isHistory) {
+                topBtn.classList.add('hidden');
             } else {
-                topLabel.textContent = "Take Test";
-                topBtn.disabled = true;
-                if (topIcon) topIcon.setAttribute('data-lucide', 'help-circle');
+                topBtn.classList.remove('hidden');
+                if (activeContext && activeContext.type === 'freetalk') {
+                    topBtn.disabled = false;
+                    topLabel.textContent = "New Chat";
+                    topBtn.title = "Start a new Free Talk chat";
+                    if (topIcon) topIcon.setAttribute('data-lucide', 'plus');
+                } else if (activeContext) {
+                    topBtn.disabled = false;
+                    topLabel.textContent = "Take Test";
+                    topBtn.title = `Take quiz test for ${activeContext.name}`;
+                    if (topIcon) topIcon.setAttribute('data-lucide', 'help-circle');
+                } else {
+                    topLabel.textContent = "Take Test";
+                    topBtn.disabled = true;
+                    if (topIcon) topIcon.setAttribute('data-lucide', 'help-circle');
+                }
             }
             if (window.lucide) lucide.createIcons();
         }
