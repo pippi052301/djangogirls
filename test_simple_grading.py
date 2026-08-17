@@ -52,22 +52,22 @@ for test_name, student_answer in multiple_choice_tests:
 # ==========================================
 
 question = """
-Briefly explain the role of the Model in Django's MVT architecture.
+What is the discriminant of x^2-4x+4 = 0
 """
 
 correct_answer = """
-The Model manages data and handles interactions with the database.
+D = 0
 """
 
 explanation = """
-The Model defines the data structure of an application and is responsible for operations such as storing and retrieving data from the database.
+D = 0
 """
 
 
 short_answer_tests = [
     (
-        "SA-01 Completely Correct",
-        "The Model manages data and handles interactions with the database."
+        "test",
+        "D =               0"
     )
 ]
 
