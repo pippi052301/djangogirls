@@ -1055,7 +1055,7 @@
                 if (quizList && !Array.isArray(quizList) && typeof quizList === 'object') {
                     quizList = quizList.questions || quizList.quiz || quizList.data || quizList.items || [quizList];
                 }
-                if (!quizList || !Array.isArray(quizList) || quizList.length === 0) {
+                if (!quizList || !Array.isArray(quizList) || quizList.length < 3) {
                     quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material');
                 }
                 renderInteractiveQuiz(quizWrapperId + '-content', quizList, data ? data.recommendation_tip : '');
