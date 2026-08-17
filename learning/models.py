@@ -7,23 +7,16 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
+from django.utils import timezone
+
 
 class Quiz(models.Model):
-    class GenerationType(models.TextChoices):
-        STANDARD = "standard", "標準"
-        ADAPTIVE = "adaptive", "適応型"
-
     note = models.ForeignKey(
         "notes.Note",
         on_delete=models.CASCADE,
         related_name="quizzes",
     )
     title = models.CharField(max_length=100)
-    generation_type = models.CharField(
-        max_length=20,
-        choices=GenerationType.choices,
-        default=GenerationType.ADAPTIVE,
-    )
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -55,7 +48,7 @@ class Exercise(models.Model):
             MinValueValidator(0),
             MaxValueValidator(100),
         ],
-        help_text="この問題の難易度（0〜100）",
+        help_text="difficulty of this problem (0〜100)",
     )
     recent_average_score = models.DecimalField(
         max_digits=5,
@@ -65,7 +58,7 @@ class Exercise(models.Model):
             MinValueValidator(0),
             MaxValueValidator(100),
         ],
-        help_text="この問題を生成するときに使った直近5問の平均点",
+        help_text="recent average score for this problem (0〜100)",
     )
     question = models.TextField()
     options = models.JSONField(
@@ -122,18 +115,18 @@ class Exercise(models.Model):
                 or len(self.options) < 2
             ):
                 raise ValidationError(
-                    "選択問題には2つ以上の選択肢が必要です。"
+                    "Multiple choice questions require at least 2 options."
                 )
 
             if not self.correct_answer:
                 raise ValidationError(
-                    "選択問題には正解が必要です。"
+                    "Multiple choice questions require a correct answer."
                 )
 
         elif self.question_type == self.QuestionType.SHORT_ANSWER:
             if not self.correct_answer:
                 raise ValidationError(
-                    "短答問題には模範解答が必要です。"
+                    "Short answer questions require a correct answer."
                 )
 
         elif self.question_type == self.QuestionType.LONG_ANSWER:
@@ -142,7 +135,7 @@ class Exercise(models.Model):
                 or not self.key_points
             ):
                 raise ValidationError(
-                    "記述問題には採点用の要点が必要です。"
+                    "Long answer questions require key points for grading."
                 )
 
     def save(self, *args, **kwargs):
@@ -164,16 +157,6 @@ class QuizAttempt(models.Model):
         on_delete=models.CASCADE,
         related_name="quiz_attempts",
     )
-    score = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        validators=[
-            MinValueValidator(0),
-            MaxValueValidator(100),
-        ],
-    )
     started_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -184,29 +167,17 @@ class QuizAttempt(models.Model):
 
     class Meta:
         ordering = ["-started_at"]
-        constraints = [
-            models.CheckConstraint(
-                condition=(
-                    models.Q(score__isnull=True)
-                    | models.Q(
-                        score__gte=0,
-                        score__lte=100,
-                    )
-                ),
-                name="quiz_attempt_score_between_0_and_100",
-            )
-        ]
 
     def __str__(self):
-        return f"{self.user} - {self.quiz.title} ({self.score})"
+        return f"{self.user} - {self.quiz.title}"
 
 
 class AttemptQuerySet(models.QuerySet):
     def recent_average_score_for(self, user, limit=5):
         """
-        ユーザーの直近の採点済み5問から平均点を返す。
+        Returns the average score for the user's most recent 5 answered questions.
 
-        採点済みの問題がなければ50.00を返す。
+        Returns 50.00 if no answered questions are found.
         """
 
         average = (
@@ -241,7 +212,7 @@ class Attempt(models.Model):
     )
     user_answer = models.TextField()
     reasoning = models.TextField(
-        help_text="ユーザーが入力した、問題を解くための論理ステップ",
+        help_text="Logical steps taken by the user to solve the problem",
     )
     score = models.DecimalField(
         max_digits=5,
@@ -253,15 +224,16 @@ class Attempt(models.Model):
             MaxValueValidator(100),
         ],
     )
-    is_correct = models.BooleanField(
-        blank=True,
-        null=True,
-    )
     used_hint_count = models.PositiveSmallIntegerField(
         default=0,
     )
     feedback = models.TextField(
         blank=True,
+    )
+    rubric_details = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="AI-generated scores, justifications, and key points for each criterion",
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -291,15 +263,20 @@ class Attempt(models.Model):
     def clean(self):
         super().clean()
 
+        if not isinstance(self.rubric_details, dict):
+            raise ValidationError(
+                {"rubric_details": "Grading details must be saved as a JSON object."}
+            )
+
         if self.quiz_attempt_id and self.exercise_id:
             if self.quiz_attempt.quiz_id != self.exercise.quiz_id:
                 raise ValidationError(
-                    "受験中のテストに含まれない問題には回答できません。"
+                    "Answers can only be submitted for questions within the current quiz."
                 )
 
             if self.used_hint_count > len(self.exercise.hints):
                 raise ValidationError(
-                    "使用したヒント数が、問題のヒント数を超えています。"
+                    "The number of hints used exceeds the available hints for this question."
                 )
 
     def save(self, *args, **kwargs):
@@ -342,6 +319,52 @@ class TutorSession(models.Model):
 
     class Meta:
         ordering = ["-updated_at"]
+class MapNode(models.Model):
+    note = models.ForeignKey(
+        "notes.Note",
+        on_delete=models.CASCADE,
+        related_name="map_nodes",
+    )
+    key = models.CharField(
+        max_length=100,
+        help_text="Identifier within the note corresponding to the AI's nodes[].id",
+    )
+    label = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["note", "key"],
+                name="unique_map_node_key_per_note",
+            )
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class MapEdge(models.Model):
+    source = models.ForeignKey(
+        MapNode,
+        on_delete=models.CASCADE,
+        related_name="outgoing_edges",
+    )
+    target = models.ForeignKey(
+        MapNode,
+        on_delete=models.CASCADE,
+        related_name="incoming_edges",
+    )
+    label = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source", "target", "label"],
+                name="unique_map_edge",
+            )
+        ]
 
     def clean(self):
         super().clean()
@@ -364,6 +387,19 @@ class TutorSession(models.Model):
             if self.quiz_attempt.quiz_id != self.exercise.quiz_id:
                 raise ValidationError(
                     "受験中のクイズに含まれない問題です。"
+                )
+    def clean(self):
+        super().clean()
+
+        if self.source_id and self.target_id:
+            if self.source_id == self.target_id:
+                raise ValidationError(
+                    "A node cannot be connected to itself."
+                )
+
+            if self.source.note_id != self.target.note_id:
+                raise ValidationError(
+                    "Nodes from different notes cannot be connected."
                 )
 
     def save(self, *args, **kwargs):
@@ -398,3 +434,7 @@ class TutorMessage(models.Model):
 
     def __str__(self):
         return f"{self.session_id} - {self.role}"
+
+class MapEdge(models.Model):
+    def __str__(self):
+        return f"{self.source} -> {self.target}"
