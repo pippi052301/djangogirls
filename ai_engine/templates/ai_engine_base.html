@@ -1052,6 +1052,9 @@
                 }
 
                 let quizList = data.data;
+                if (quizList && !Array.isArray(quizList) && typeof quizList === 'object') {
+                    quizList = quizList.questions || quizList.quiz || quizList.data || quizList.items || [quizList];
+                }
                 if (!quizList || !Array.isArray(quizList) || quizList.length === 0) {
                     quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material');
                 }

@@ -60,6 +60,10 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
         data = json.loads(response.text)
+        if isinstance(data, dict):
+            data = data.get("questions") or data.get("quiz") or data.get("data") or data.get("items") or [data]
+        if not isinstance(data, list):
+            data = [data]
         return verify_and_fix_quiz_answers(data)
     except Exception as e:
         print(f"Error when calling API Adaptive: {e}")
