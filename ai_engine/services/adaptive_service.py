@@ -63,12 +63,37 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
 
 def grade_simple_answer(question_type, question, user_answer, correct_answer, explanation):
     """Lightning-fast automated grading system for Multiple Choice and Short Answer questions."""
-    if question_type == "multiple_choice" or question_type == "short_answer"  :
+    if question_type == "multiple_choice":
         is_correct = str(user_answer).strip().upper() == str(correct_answer).strip().upper()
         return {
             "is_correct": is_correct,
             "score": 100 if is_correct else 0,
             "feedback": f"Your answer is {'Correct' if is_correct else 'Incorrect'}. {explanation}"
+        }
+
+    # Short Answer smart mathematical equality check
+    u_clean = str(user_answer).strip().lower()
+    c_clean = str(correct_answer).strip().lower()
+
+    # Number word equivalence maps
+    num_map = {
+        '0': ['0', 'zero', 'none', 'no', 'no real', 'negative'],
+        '1': ['1', 'one', 'single', 'double root', 'one repeated'],
+        '2': ['2', 'two', 'distinct', 'two distinct', 'two real']
+    }
+
+    is_correct = u_clean == c_clean
+    if not is_correct:
+        for key, synonyms in num_map.items():
+            if any(s in u_clean for s in synonyms) and any(s in c_clean for s in synonyms):
+                is_correct = True
+                break
+
+    if is_correct:
+        return {
+            "is_correct": True,
+            "score": 100,
+            "feedback": f"Your answer is Correct! {explanation}"
         }
 
     prompt = f"""

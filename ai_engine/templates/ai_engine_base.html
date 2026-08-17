@@ -1360,27 +1360,56 @@
 
             if (cleanUser === targetStr) return true;
 
-            // Extract numbers for math equality
+            // Number word and digit equivalence category mapper
+            function getSolutionCountCategory(text) {
+                if (/\b(0|zero|none|no|no real|negative)\b/i.test(text)) return '0';
+                if (/\b(1|one|single|double root|one repeated)\b/i.test(text)) return '1';
+                if (/\b(2|two|distinct|two distinct|two real)\b/i.test(text)) return '2';
+                return null;
+            }
+
+            const userCat = getSolutionCountCategory(cleanUser);
+            const targetCat = getSolutionCountCategory(targetStr);
+
+            if (userCat && targetCat && userCat === targetCat) {
+                return true;
+            }
+
+            // Extract numbers for direct math equality
             const numUser = cleanUser.match(/-?\d+(?:\.\d+)?/g) || [];
             const numTarget = targetStr.match(/-?\d+(?:\.\d+)?/g) || [];
-            if (numTarget.length > 0) {
-                return JSON.stringify(numUser) === JSON.stringify(numTarget);
+
+            if (numUser.length > 0 && numTarget.length > 0) {
+                if (numUser.some(u => numTarget.includes(u))) {
+                    return true;
+                }
             }
 
             // Extract meaningful content words
             const userWords = extractMeaningfulWords(cleanUser);
             const targetWords = extractMeaningfulWords(targetStr);
-            if (targetWords.length === 0 || userWords.length === 0) return false;
 
-            let matchCount = 0;
-            targetWords.forEach(tw => {
-                if (userWords.some(uw => uw === tw || (uw.length >= 4 && tw.length >= 4 && (uw.includes(tw) || tw.includes(uw))))) {
-                    matchCount++;
+            if (userWords.length > 0) {
+                // Single word / number direct match check
+                const rawAlphaNum = cleanUser.replace(/[^\w]/g, '');
+                if (rawAlphaNum && targetStr.includes(rawAlphaNum)) {
+                    return true;
                 }
-            });
 
-            const coverage = matchCount / targetWords.length;
-            return coverage >= 0.75 && matchCount >= Math.min(targetWords.length, 2);
+                let matchCount = 0;
+                targetWords.forEach(tw => {
+                    if (userWords.some(uw => uw === tw || (uw.length >= 3 && tw.length >= 3 && (uw.includes(tw) || tw.includes(uw))))) {
+                        matchCount++;
+                    }
+                });
+
+                if (targetWords.length > 0) {
+                    const coverage = matchCount / targetWords.length;
+                    if (coverage >= 0.5 || matchCount >= 1) return true;
+                }
+            }
+
+            return false;
         }
 
         function evaluateLongAnswer(userAns, keyPoints, sampleAns) {
