@@ -103,7 +103,11 @@ def verify_and_fix_quiz_answers(quiz_data):
 
 
 def grade_simple_answer(question_type, question, user_answer, correct_answer, explanation):
-    """Lightning-fast automated grading system for Multiple Choice and Short Answer questions."""
+    """Grading for simple question types.
+    - multiple_choice: instant exact-match grading (A/B/C/D).
+    - short_answer: AI grading by meaning only, ignoring case/whitespace/punctuation/
+      word-order/phrasing differences.
+    """
     if question_type == "multiple_choice":
         is_correct = str(user_answer).strip().upper() == str(correct_answer).strip().upper()
         return {
@@ -169,9 +173,19 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     """Multidimensional AI grading system based on educational science principles."""
    # Chuẩn hóa: chấp nhận cả list (chuẩn mới, đồng bộ với tutor_chat) lẫn string (tương thích ngược)
     if isinstance(standard_key_points, (list, tuple)):
-        key_points_text = "\n".join(f"- {point}" for point in standard_key_points)
+        key_points_text = "\n".join(
+            f"- {point}"
+            for point in standard_key_points
+        )
     else:
-        key_points_text = standard_key_points
+        key_points_text = str(standard_key_points)
+    """
+    Hệ thống chấm điểm AI đa chiều dựa trên cơ sở khoa học giáo dục.
+    - standard_key_points: Đáp án chuẩn (RAG / Retrieval).
+    - sample_essays: (Tùy chọn) Danh sách các bài làm mẫu đã được người chấm (Few-shot learning).
+    """
+    
+    # 1. Xử lý phần "Học theo mẫu" (Few-shot Learning / Comparative Learning)
     few_shot_prompt = ""
     if sample_essays:
         few_shot_prompt = f"""
@@ -215,18 +229,15 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     """
     
     try:
-        response = get_client().models.generate_content(
-            model='gemini-flash-lite-latest', 
+        response = client.models.generate_content(
+            model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                system_instruction="You are a Senior Educational Evaluation Expert. Your task is to grade student responses "
-    "in the most sophisticated, scientific, and impartial manner possible. You must operate "
-    "with absolute precision and consistency like a machine, allowing no emotion or randomness "
-    "to alter the grading scale. Adhere to the rubric with extreme rigor."
-)
+                temperature=0.2 # Cố định temperature để AI đánh giá nhất quán
+            )
         )
         return json.loads(response.text)
     except Exception as e:
-        print(f"Error when call API Grading: {e}")
+        print(f"Lỗi khi gọi API Grading Nâng cao: {e}")
         return None

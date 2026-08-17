@@ -4,11 +4,11 @@ from .ai_config import get_client, types
 
 def generate_tutor_chat_response(conversation_history, student_input, question_prompt, required_key_points):
     """
-    Trợ lý AI đồng hành dạng chat gợi mở:
-    - Đối chiếu bài làm/ý kiến của học sinh với các ý chính bắt buộc.
-    - Tuyệt đối không đưa ra đáp án hoàn chỉnh hay viết hộ bài.
-    - Gợi mở, đặt câu hỏi định hướng nếu chưa đủ ý.
-    - Trả về JSON chứa phản hồi của AI và cờ (flag) cho biết đã đủ ý chính hay chưa để bật nút chấm điểm.
+    Socratic AI Tutor:
+    - Compare the student's ideas with the required key points.
+    - Do not provide the complete answer.
+    - Guide the student using questions and hints.
+    - Return readiness for grading and a compiled final answer.
     """
     client = get_client()
     
@@ -32,7 +32,7 @@ def generate_tutor_chat_response(conversation_history, student_input, question_p
     {{
         "ai_message": "Your conversational response, encouragement, and Socratic guidance goes here...",
         "is_ready_for_grading": false,
-                "compiled_final_answer": null
+        "compiled_final_answer": null
 
     }}
     """
@@ -54,21 +54,40 @@ def generate_tutor_chat_response(conversation_history, student_input, question_p
         role="user",
         parts=[types.Part.from_text(text=student_input)]
     ))
-    
-    try:
-        response = client.models.generate_content(
-            model='gemini-flash-lite-latest',
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json"
+
+    models_to_try = ["genmini-flash-lite-latest",
+                     "gemini-flash-latest",
+                     "gemini-3-flsh-preview",
+                     "gemini-2.5-flash-lite"
+    ]
+
+    for model_name in models_to_try:
+
+
+        try:
+            response = client.models.generate_content(
+                model='model_name',
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json"
+                ),
             )
-        )
-        return json.loads(response.text)
-    except Exception as e:
-        print(f"Error when calling Tutor Chat API: {e}")
-        return {
-            "ai_message": "Xin lỗi, hệ thống gia sư đang bận một chút. Bạn có thể chia sẻ lại ý tưởng của mình được không?",
-            "is_ready_for_grading": False,
-            "compiled_final_answer": None
-        }
+
+            if response and respose.text:
+                return json.loads(response.text)
+        
+        except Exception as e:
+            print(f"Error when calling Tutor Chat API: {e}")
+
+        continue
+
+    #when all Ai models failed
+    return {
+        "ai_message": (
+            "The AI tutor is currently busy. "
+            "Please try again in a moment."
+        ),
+        "is_ready_for_grading": False,
+        "compiled_final_answer": None,
+    }

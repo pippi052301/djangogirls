@@ -40,7 +40,11 @@ class Command(BaseCommand):
                 
                 # Bypassing vector storing error if SQLite dev DB is used without pgvector
                 if embedding_vector is None:
-                    embedding_vector = [0.0] * 3072
+                    self.stdout.write(
+                        self.style.ERROR(
+                            f"[ERROR] Failed to create embedding for {item['score']}pts"
+                        )
+                    )
 
                 try:
                     ReferenceSample.objects.create(
@@ -53,7 +57,7 @@ class Command(BaseCommand):
                     created_count += 1
                     self.stdout.write(self.style.SUCCESS(f"  [SUCCESS] Saved sample {item['score']} pts"))
                 except Exception as e:
-                    self.stdout.write(self.style.WARNING(f"  [NOTE] Bypassed DB vector insert for local DB: {e}"))
+                    self.stdout.write(self.style.WARNING(f"  [ERROR] Failed to save sample: {e}"))
             else:
                 self.stdout.write(f"[INFO] Sample (Score: {item['score']}) already exists, skipped.")
 

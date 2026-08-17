@@ -2,9 +2,20 @@ import json
 from ai_engine.services.adaptive_service import advanced_grade_essay
 
 # 1. DỮ LIỆU ĐẦU VÀO CỐ ĐỊNH (Không cần DB)
-question_text = "Phân tích kiến trúc MVT trong Django."
-standard_answer = "Django tuân theo kiến trúc MVT (Model - View - Template). Trong đó, Model xử lý dữ liệu và giao tiếp cơ sở dữ liệu. View xử lý logic nghiệp vụ. Template lo phần hiển thị giao diện người dùng bằng HTML."
-student_answer = "MVT là kiến trúc của Django. Model lo phần data, còn Template lo phần view, View lo logic."
+question_text = "Explain the discriminant D in a quadratic equation and describe how its value determines the number of real solutions."
+standard_answer = """The discriminant of a quadratic equation is defined as D = b² - 4ac.
+
+The value of D determines the number of real solutions of the quadratic equation.
+
+If D > 0, the equation has two distinct real solutions.
+If D = 0, the equation has one repeated real solution.
+If D < 0, the equation has no real solutions."""
+
+student_answer = """In a quadratic equation, you can calculate b² - 4ac and use that number to find out how many answers there are.
+If that number is greater than zero, there are two answers. 
+If it is zero, there is one same answer. 
+If it is less than zero, there is no answer in the ordinary number range.
+"""
 
 # 2. GIẢ LẬP DỮ LIỆU TỪ PGVECTOR (Bạn tự viết tay 2 bài mẫu)
 fake_retrieved_samples = """

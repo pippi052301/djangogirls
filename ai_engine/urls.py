@@ -23,12 +23,14 @@ urlpatterns = [
     path('grade_simple/', views.grade_simple_api, name='api_grade_simple'),
 
     # API 6: Chatbot
-    path('api/chat/', views.student_chat_api, name='api_chat'),
-    path('api/chat/student/', views.student_chat_api, name='student_chat_api'),
+    path('api/chat/', views.save_chat_message_api, name='api_chat'),
+    path('api/chat/student/', views.save_chat_message_api, name='student_chat_api'),
 
     # API 7: Attempt Recording & Context Score
     path('api/attempt/', views.record_attempt_api, name='api_record_attempt'),
-    path('api/context-score/', views.context_score_api, name='api_context_score'),
+    path('tutor/chat/', views.socratic_debate_api, name='tutor_chat_api'),
+    path('tutor/grade/', views.grade_essay_api, name='api_tutor_grade'),
+    path('tutor/history/', views.get_chat_history_sessions_api, name='api_tutor_history'),
 
     # API 8: Coursera Socratic Debate
     path('api/socratic-debate/', views.socratic_debate_api, name='api_socratic_debate'),

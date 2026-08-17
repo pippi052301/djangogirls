@@ -8,6 +8,7 @@ from django.core.validators import (
 )
 from django.db import models
 
+
 class Quiz(models.Model):
     class GenerationType(models.TextChoices):
         STANDARD = "standard", "標準"
@@ -19,11 +20,13 @@ class Quiz(models.Model):
         related_name="quizzes",
     )
     title = models.CharField(max_length=100)
+
     generation_type = models.CharField(
         max_length=20,
         choices=GenerationType.choices,
         default=GenerationType.ADAPTIVE,
     )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -43,12 +46,17 @@ class Exercise(models.Model):
         on_delete=models.CASCADE,
         related_name="exercises",
     )
-    order = models.PositiveSmallIntegerField(default=1)
+
+    order = models.PositiveSmallIntegerField(
+        default=1,
+    )
+
     question_type = models.CharField(
         max_length=20,
         choices=QuestionType.choices,
         default=QuestionType.MULTIPLE_CHOICE,
     )
+
     difficulty = models.PositiveSmallIntegerField(
         default=50,
         validators=[
@@ -57,6 +65,7 @@ class Exercise(models.Model):
         ],
         help_text="この問題の難易度（0〜100）",
     )
+
     recent_average_score = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -67,31 +76,39 @@ class Exercise(models.Model):
         ],
         help_text="この問題を生成するときに使った直近5問の平均点",
     )
+
     question = models.TextField()
+
     options = models.JSONField(
         default=dict,
         blank=True,
     )
+
     correct_answer = models.TextField(
         blank=True,
     )
+
     key_points = models.JSONField(
         default=list,
         blank=True,
     )
+
     hints = models.JSONField(
         default=list,
         blank=True,
     )
+
     explanation = models.TextField(
         blank=True,
     )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
 
     class Meta:
         ordering = ["order", "id"]
+
         constraints = [
             models.UniqueConstraint(
                 fields=["quiz", "order"],
@@ -159,11 +176,13 @@ class QuizAttempt(models.Model):
         on_delete=models.CASCADE,
         related_name="quiz_attempts",
     )
+
     quiz = models.ForeignKey(
         Quiz,
         on_delete=models.CASCADE,
         related_name="quiz_attempts",
     )
+
     score = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -174,9 +193,11 @@ class QuizAttempt(models.Model):
             MaxValueValidator(100),
         ],
     )
+
     started_at = models.DateTimeField(
         auto_now_add=True,
     )
+
     completed_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -184,6 +205,7 @@ class QuizAttempt(models.Model):
 
     class Meta:
         ordering = ["-started_at"]
+
         constraints = [
             models.CheckConstraint(
                 condition=(
@@ -240,20 +262,24 @@ class Attempt(models.Model):
         QuizAttempt,
         on_delete=models.CASCADE,
         related_name="answers",
-        null=True,        
+        null=True,
         blank=True,
     )
+
     exercise = models.ForeignKey(
         Exercise,
         on_delete=models.CASCADE,
         related_name="attempts",
     )
+
     user_answer = models.TextField()
+
     reasoning = models.TextField(
         blank=True,
         default="",
         help_text="ユーザーが入力した、問題を解くための論理ステップ",
     )
+
     score = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -264,16 +290,30 @@ class Attempt(models.Model):
             MaxValueValidator(100),
         ],
     )
+
     is_correct = models.BooleanField(
         blank=True,
         null=True,
     )
+
     used_hint_count = models.PositiveSmallIntegerField(
         default=0,
     )
+
     feedback = models.TextField(
         blank=True,
     )
+
+    # AI記述式採点の詳細
+    rubric_details = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "AI-generated scores, justifications, "
+            "and key points for each criterion"
+        ),
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -282,6 +322,7 @@ class Attempt(models.Model):
 
     class Meta:
         ordering = ["exercise__order", "id"]
+
         constraints = [
             models.UniqueConstraint(
                 fields=["quiz_attempt", "exercise"],
@@ -302,6 +343,14 @@ class Attempt(models.Model):
     def clean(self):
         super().clean()
 
+        if not isinstance(self.rubric_details, dict):
+            raise ValidationError(
+                {
+                    "rubric_details":
+                    "Grading details must be saved as a JSON object."
+                }
+            )
+
         if self.quiz_attempt_id and self.exercise_id:
             if self.quiz_attempt.quiz_id != self.exercise.quiz_id:
                 raise ValidationError(
@@ -320,17 +369,20 @@ class Attempt(models.Model):
     def __str__(self):
         return f"{self.quiz_attempt.user} - {self.exercise}"
 
+
 class TutorSession(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="tutor_sessions",
     )
+
     exercise = models.ForeignKey(
         Exercise,
         on_delete=models.CASCADE,
         related_name="tutor_sessions",
     )
+
     quiz_attempt = models.ForeignKey(
         QuizAttempt,
         on_delete=models.CASCADE,
@@ -338,15 +390,19 @@ class TutorSession(models.Model):
         null=True,
         blank=True,
     )
+
     is_ready_for_grading = models.BooleanField(
         default=False,
     )
+
     compiled_final_answer = models.TextField(
         blank=True,
     )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
+
     updated_at = models.DateTimeField(
         auto_now=True,
     )
@@ -395,11 +451,14 @@ class TutorMessage(models.Model):
         on_delete=models.CASCADE,
         related_name="messages",
     )
+
     role = models.CharField(
         max_length=10,
         choices=Role.choices,
     )
+
     content = models.TextField()
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -409,3 +468,90 @@ class TutorMessage(models.Model):
 
     def __str__(self):
         return f"{self.session_id} - {self.role}"
+
+
+class MapNode(models.Model):
+    note = models.ForeignKey(
+        "notes.Note",
+        on_delete=models.CASCADE,
+        related_name="map_nodes",
+    )
+
+    key = models.CharField(
+        max_length=100,
+        help_text=(
+            "Identifier within the note corresponding "
+            "to the AI's nodes[].id"
+        ),
+    )
+
+    label = models.CharField(
+        max_length=100,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["note", "key"],
+                name="unique_map_node_key_per_note",
+            )
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class MapEdge(models.Model):
+    source = models.ForeignKey(
+        MapNode,
+        on_delete=models.CASCADE,
+        related_name="outgoing_edges",
+    )
+
+    target = models.ForeignKey(
+        MapNode,
+        on_delete=models.CASCADE,
+        related_name="incoming_edges",
+    )
+
+    label = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source", "target", "label"],
+                name="unique_map_edge",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+
+        if self.source_id and self.target_id:
+            if self.source_id == self.target_id:
+                raise ValidationError(
+                    "A node cannot be connected to itself."
+                )
+
+            if self.source.note_id != self.target.note_id:
+                raise ValidationError(
+                    "Nodes from different notes cannot be connected."
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.source} -> {self.target}"

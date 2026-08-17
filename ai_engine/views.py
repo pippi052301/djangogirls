@@ -7,324 +7,77 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ValidationError 
-from django.utils import timezone
-from pgvector.django import CosineDistance
 
-from .models import SemanticAICache, ReferenceSample 
-
+# Import các hàm AI từ thư mục services của bạn
 from .services.quiz_service import generate_quiz_from_text
 from .services.graph_service import generate_knowledge_graph
-from .services.adaptive_service import generate_adaptive_practice, advanced_grade_essay, grade_simple_answer
-from .services.tutor_chat_service import generate_tutor_chat_response
-from .services.embedding_service import get_text_embedding 
-from .services.chat_service import generate_chat_answer
+from .services.adaptive_service import generate_adaptive_practice #, grade_user_answer
 
-# --- CACHING HELPER FUNCTIONS ---
-SIMILARITY_THRESHOLD = 0.035 
-
-def check_semantic_cache(text_content, feature_type):
-    try:
-        input_vector = get_text_embedding(text_content)
-        if not input_vector:
-            return None, None
-            
-        matched_cache = SemanticAICache.objects.filter(
-            feature_type=feature_type
-        ).annotate(
-            distance=CosineDistance('text_embedding', input_vector)
-        ).filter(
-            distance__lt=SIMILARITY_THRESHOLD
-        ).order_by('distance').first()
-        
-        return matched_cache, input_vector
-    except Exception as e:
-        print(f"Semantic Cache bypass (pgvector/SQLite compatibility): {e}")
-        return None, None
-
-def save_to_cache(text_content, feature_type, input_vector, ai_response):
-    """Save new to DB"""
-    try:
-        if input_vector:
-            SemanticAICache.objects.create(
-                feature_type=feature_type,
-                original_text=text_content,
-                text_embedding=input_vector,
-                ai_response=ai_response
-            )
-    except Exception as e:
-        print(f"Save to Cache bypass: {e}")
-
-# --- Main API ---
-
-@csrf_exempt
+@csrf_exempt # Tạm thời tắt kiểm tra CSRF để Frontend dễ test API
 def create_quiz_api(request):
     """Multiple-Choice Question Generation API (Integrated Semantic Caching)"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
             text_content = body.get('text', '')
-            num_questions = body.get('num_questions', 3)
+            num_questions = int(body.get('num_questions', 3))
             
             if not text_content:
-                return JsonResponse({"error": "No input text provided."}, status=400)
+                return JsonResponse({"error": "Thiếu nội dung văn bản (text)"}, status=400)
             
-            feature_key = "quiz_generation"
-            matched_cache, input_vector = check_semantic_cache(text_content, feature_key)
-            
-            if matched_cache:
-                return JsonResponse({
-                    "status": "success", 
-                    "data": matched_cache.ai_response,
-                    "is_cached": True 
-                }, status=200)
-            
+            # Gọi hàm AI của bạn
             quiz_data = generate_quiz_from_text(text_content, num_questions)
             
             if quiz_data:
-                save_to_cache(text_content, feature_key, input_vector, quiz_data)
-                return JsonResponse({
-                    "status": "success", 
-                    "data": quiz_data,
-                    "is_cached": False
-                }, status=200)
-            
-            return JsonResponse({"error": "AI busy"}, status=503)
+                return JsonResponse({"status": "success", "data": quiz_data}, status=200)
+            else:
+                return JsonResponse({"error": "AI đang bận hoặc lỗi xử lý"}, status=503)
+                
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
-    return JsonResponse({"error": "Just accept POST"}, status=405)
+            
+    return JsonResponse({"error": "Chỉ chấp nhận phương thức POST"}, status=405)
 
-
-import html
-
-def extract_clean_note_text(note_obj):
-    """Extract plain text or PDF text content without raw JSON/data URI or HTML noise."""
-    if not note_obj:
-        return ""
-    c = note_obj.content
-    text_out = ""
-    if isinstance(c, dict):
-        text_out = c.get('body') or c.get('text') or ""
-    elif isinstance(c, str):
-        if c.startswith('{') and ('pdf_data' in c or 'body' in c or 'text' in c):
-            try:
-                parsed = json.loads(c)
-                text_out = parsed.get('body') or parsed.get('text') or ""
-            except Exception:
-                text_out = c
-        else:
-            text_out = c
-    else:
-        text_out = str(c or '')
-
-    if text_out:
-        text_out = html.unescape(text_out)
-        text_out = re.sub(r'<br\s*/?>', '\n', text_out, flags=re.I)
-        text_out = re.sub(r'</p>', '\n', text_out, flags=re.I)
-        text_out = re.sub(r'</div>', '\n', text_out, flags=re.I)
-        text_out = re.sub(r'<[^>]+>', '', text_out)
-        text_out = re.sub(r'[ \t]+', ' ', text_out)
-
-    if not text_out.strip():
-        text_out = note_obj.title
-    return text_out.strip()
-
-
-def check_sufficient_content(text_content, context_name=""):
-    """
-    Validates study text:
-    - Minimum requirement: 15 words AND 60 characters
-    - Recommended target for optimal AI accuracy: 50+ words (300+ characters)
-    """
-    if not text_content:
-        return False, f"This item '{context_name}' does not contain enough information for AI to generate a Knowledge Graph or Practice Test. (Minimum required: 15 words / 60 characters). Please add more study content to your note or select a different folder/note!", False
-
-    clean_text = text_content.strip()
-    words = [w for w in clean_text.split() if len(w) > 1 and w not in ('Note', 'Title', 'Content', 'Folder')]
-    char_count = len(clean_text)
-
-    # Minimum Required Threshold
-    if len(words) < 15 or char_count < 60:
-        return False, f"This item '{context_name or 'Study Material'}' does not contain enough information for AI to generate a Knowledge Graph or Practice Test. (Minimum required: 15 words / 60 characters). Please add more study content to your note or select a different folder/note!", False
-
-    # Recommended Target for Maximum AI Precision
-    is_recommended = (len(words) >= 50 or char_count >= 300)
-    rec_tip = "" if is_recommended else "💡 Recommended: For maximum AI question precision and deep Knowledge Graphs, we recommend adding 50+ words (300+ characters) of detailed study content!"
-
-    return True, rec_tip, is_recommended
 
 @csrf_exempt
 def create_graph_api(request):
-    """Knowledge Graph API: Combines DB Folder/Notes tree with Gemini AI Concept Extraction"""
+    """API Bóc tách Sơ đồ tư duy"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
             context_type = body.get('context_type', '')
             context_name = body.get('context_name', '')
             text_content = body.get('text', '')
-
-            from notes.models import Note, Folder
-
-            nodes_list = []
-            edges_list = []
-            full_text_to_analyze = ""
-            raw_user_text = ""
-
-            # 1. Gather DB Folder and Notes structure
-            if request.user.is_authenticated and context_type == 'folder' and context_name:
-                folder = Folder.objects.filter(owner=request.user, name=context_name).first()
-                if folder:
-                    folder_notes = folder.notes.all()
-                    if not folder_notes.exists():
-                        return JsonResponse({
-                            "status": "warning",
-                            "insufficient_content": True,
-                            "message": f"This item '{folder.name}' does not contain enough information for AI to generate a Knowledge Graph or Practice Test. (Minimum required: 15 words / 60 characters). Please add more study content to your note or select a different folder/note!"
-                        }, status=200)
-
-                    folder_id = f"folder_{folder.id}"
-                    nodes_list.append({"id": folder_id, "label": f"📁 {folder.name}"})
-                    
-                    full_text_to_analyze = f"Folder '{folder.name}' study material:\n"
-                    for note_obj in folder_notes:
-                        note_id = f"note_{note_obj.id}"
-                        nodes_list.append({"id": note_id, "label": f"📄 {note_obj.title}"})
-                        edges_list.append({"from": folder_id, "to": note_id, "label": "contains"})
-                        
-                        note_body = extract_clean_note_text(note_obj)
-                        full_text_to_analyze += f"\nNote Title: {note_obj.title}\nContent: {note_body}\n"
-                        raw_user_text += f" {note_obj.title} {note_body}"
-
-            elif request.user.is_authenticated and context_type == 'note' and context_name:
-                note = Note.objects.filter(owner=request.user, title=context_name).first()
-                if note:
-                    note_id = f"note_{note.id}"
-                    nodes_list.append({"id": note_id, "label": f"📄 Note: {note.title}"})
-                    note_body = extract_clean_note_text(note)
-                    full_text_to_analyze = f"Note Title: {note.title}\nContent: {note_body}"
-                    raw_user_text = f"{note.title} {note_body}"
-
-            if not full_text_to_analyze:
-                full_text_to_analyze = text_content
-                raw_user_text = text_content
-
-            # Check content sufficiency using raw user study text
-            is_valid, rec_tip, is_recommended = check_sufficient_content(raw_user_text, context_name)
-            if not is_valid:
-                return JsonResponse({
-                    "status": "warning",
-                    "insufficient_content": True,
-                    "message": rec_tip
-                }, status=200)
-
-            # 2. Extract Key Concepts & Relationships via Gemini AI
-            ai_graph = generate_knowledge_graph(full_text_to_analyze)
-
-            if ai_graph and isinstance(ai_graph, dict):
-                ai_nodes = ai_graph.get('nodes', [])
-                ai_edges = ai_graph.get('edges', [])
-
-                # Add AI extracted concept nodes
-                existing_ids = {n['id'] for n in nodes_list}
-                for ai_n in ai_nodes:
-                    node_id = str(ai_n.get('id', ''))
-                    if node_id and node_id not in existing_ids:
-                        nodes_list.append({
-                            "id": node_id,
-                            "label": f"💡 {ai_n.get('label', node_id)}"
-                        })
-                        existing_ids.add(node_id)
-                        # Link root folder/note ONLY if no edges exist
-                        if len(nodes_list) > 1 and not edges_list:
-                            edges_list.append({
-                                "from": nodes_list[0]['id'],
-                                "to": node_id,
-                                "label": "concept"
-                            })
-
-                for ai_e in ai_edges:
-                    src = str(ai_e.get('from', ''))
-                    tgt = str(ai_e.get('to', ''))
-                    if src and tgt and src in existing_ids and tgt in existing_ids:
-                        edges_list.append({
-                            "from": src,
-                            "to": tgt,
-                            "label": ai_e.get('label', 'relates')
-                        })
-
-            # Return merged Knowledge Graph
-            if nodes_list:
-                return JsonResponse({
-                    "status": "success",
-                    "recommendation_tip": rec_tip,
-                    "is_recommended": is_recommended,
-                    "data": {
-                        "nodes": nodes_list,
-                        "edges": edges_list
-                    }
-                }, status=200)
-
-            return JsonResponse({"error": "AI busy"}, status=503)
+            
+            if not text_content:
+                return JsonResponse({"error": "Thiếu nội dung văn bản (text)"}, status=400)
+            
+            graph_data = generate_knowledge_graph(text_content)
+            
+            if graph_data:
+                return JsonResponse({"status": "success", "data": graph_data}, status=200)
+            else:
+                return JsonResponse({"error": "AI đang bận hoặc lỗi xử lý"}, status=503)
+                
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "Invalid method"}, status=405)
 
 @csrf_exempt
 def create_adaptive_practice_api(request):
-    """Adaptive Exam Generation API with Content Validation and Recommendation Tip"""
+    """API Sinh đề thi thích ứng (có lời giải)"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
             context_type = body.get('context_type', '')
             context_name = body.get('context_name', '')
             text_content = body.get('text', '')
-            recent_score = body.get('recent_score', 50)
+            recent_score = int(body.get('recent_score', 50))
             
-            from notes.models import Note, Folder
-            full_text_to_analyze = text_content
-            raw_user_text = text_content
-
-            if request.user.is_authenticated:
-                from learning.models import Attempt
-                db_recent_avg = Attempt.objects.recent_average_score_for(request.user)
-                if db_recent_avg is not None:
-                    recent_score = float(db_recent_avg)
-
-                if context_type == 'folder' and context_name:
-                    folder = Folder.objects.filter(owner=request.user, name=context_name).first()
-                    if folder:
-                        folder_notes = folder.notes.all()
-                        if not folder_notes.exists():
-                            return JsonResponse({
-                                "status": "warning",
-                                "insufficient_content": True,
-                                "message": f"This item '{folder.name}' does not contain enough information for AI to generate a Knowledge Graph or Practice Test. (Minimum required: 15 words / 60 characters). Please add more study content to your note or select a different folder/note!"
-                            }, status=200)
-
-                        full_text_to_analyze = f"Folder '{folder.name}' study material:\n"
-                        raw_user_text = ""
-                        for note_obj in folder_notes:
-                            note_body = extract_clean_note_text(note_obj)
-                            full_text_to_analyze += f"\nNote Title: {note_obj.title}\nContent: {note_body}\n"
-                            raw_user_text += f" {note_obj.title} {note_body}"
-
-                elif context_type == 'note' and context_name:
-                    note = Note.objects.filter(owner=request.user, title=context_name).first()
-                    if note:
-                        note_body = extract_clean_note_text(note)
-                        full_text_to_analyze = f"Note Title: {note.title}\nContent: {note_body}"
-                        raw_user_text = f"{note.title} {note_body}"
-
-            # Check content sufficiency using raw user study text
-            is_valid, rec_tip, is_recommended = check_sufficient_content(raw_user_text, context_name)
-            if not is_valid:
-                return JsonResponse({
-                    "status": "warning",
-                    "insufficient_content": True,
-                    "message": rec_tip
-                }, status=200)
+            if not text_content:
+                return JsonResponse({"error": "Thiếu nội dung văn bản"}, status=400)
             
-            practice_data = generate_adaptive_practice(full_text_to_analyze, recent_score)
+            practice_data = generate_adaptive_practice(text_content, recent_score)
             
             def get_server_5_question_fallback(topic_name):
                 return [
@@ -398,39 +151,10 @@ def grade_essay_api(request):
             if 'sample_essays' in body:
                 sample_essays_text = body.get('sample_essays')
             else:
-                try:
-                    student_vector = get_text_embedding(user_answer)
-                    if student_vector:
-                        query = ReferenceSample.objects.all()
-                        if exercise_id:
-                            query = query.filter(exercise_id=exercise_id)
-                            
-                        similar_samples = query.order_by(CosineDistance('embedding', student_vector))[:3]
-                        for idx, sample in enumerate(similar_samples, 1):
-                            sample_essays_text += f"\n--- Sample ID {idx} (SCORE: {sample.score}/100) ---\nAnswer: {sample.content}\nFeedback: {sample.feedback}\n"
-                except Exception as e:
-                    print(f"pgvector ReferenceSample search bypass: {e}")
-            
-            grading_result = advanced_grade_essay(question, user_answer, standard_key_points, sample_essays_text)
-            if grading_result:
-                return JsonResponse({"status": "success", "data": grading_result}, status=200)
-            return JsonResponse({"error": "AI busy"}, status=503)
+                return JsonResponse({"error": "AI đang bận"}, status=503)
                 
-        except ValidationError as ve:
-            return JsonResponse({"error": f"Error data Model: {str(ve)}"}, status=400)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
-    return JsonResponse({"error": "Invalid Method"}, status=405)
-
-@csrf_exempt
-def student_chat_api(request):
-    """AI Chat API with Integrated Semantic Caching & Rich Notes Context Support"""
-    if request.method == 'POST':
-        try:
-            body = json.loads(request.body)
-            user_question = (body.get('question') or body.get('prompt') or '').strip()
-            context_type = body.get('context_type')
-            context_name = body.get('context_name')
             
             if not user_question:
                 return JsonResponse({"error": "Please enter your question", "response": "Please enter your question."}, status=400)
