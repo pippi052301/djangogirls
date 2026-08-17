@@ -202,9 +202,10 @@ class QuizAttempt(models.Model):
 
 
 class AttemptQuerySet(models.QuerySet):
-    def recent_average_score_for(self, user, limit=5):
+    def recent_average_score_for(self, user, limit=3):
         """
-        ユーザーの直近の採点済み5回のテストから平均点を返す。
+        Returns average score percent across recent quiz attempts.
+        Prioritizes immediate performance level shift when latest score >= 75 or < 40.
         """
         from learning.models import QuizAttempt
         recent_quizzes = QuizAttempt.objects.filter(
@@ -213,6 +214,13 @@ class AttemptQuerySet(models.QuerySet):
         ).order_by("-completed_at")[:limit]
 
         if recent_quizzes.exists():
+            latest_quiz = recent_quizzes.first()
+            if latest_quiz and latest_quiz.score is not None:
+                latest_val = float(latest_quiz.score)
+                # Immediate level jump when student scores >= 75% or < 40% on their latest attempt
+                if latest_val >= 75 or latest_val < 40:
+                    return Decimal(str(latest_val))
+
             avg = recent_quizzes.aggregate(val=models.Avg("score"))["val"]
             if avg is not None:
                 return avg
