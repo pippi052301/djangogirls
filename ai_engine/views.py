@@ -601,8 +601,8 @@ def periodic_summary_view(request):
             q_sum_score = latest_attempt.score
 
         q_count = quiz.exercises.count()
-        if q_count <= 1:
-            q_count = max(5, attempts.count()) if attempts.exists() else 5
+        if q_count == 0 and attempts.exists():
+            q_count = attempts.count()
 
         exercises_list = []
         for ex in quiz.exercises.all():
@@ -717,63 +717,6 @@ def record_attempt_api(request):
             score=Decimal(str(score_percent)),
             completed_at=timezone.now()
         )
-
-        # Ensure questions list has exactly 5 items
-        topic_name = note_obj.title if note_obj else 'Study Topic'
-        default_fallback_questions = [
-            {
-                "question": f"What is the primary core focus when studying '{topic_name}'?",
-                "question_type": "multiple_choice",
-                "options": {"A": f"Mastering core principles of {topic_name}", "B": "Memorizing without understanding", "C": "Ignoring examples", "D": "None"},
-                "correct_answer": "A",
-                "user_answer": "A",
-                "explanation": f"Understanding core principles is essential to mastering {topic_name}.",
-                "score": 20
-            },
-            {
-                "question": f"Which approach is most effective for reviewing '{topic_name}'?",
-                "question_type": "multiple_choice",
-                "options": {"A": "Passive reading", "B": f"Active recall & analytical practice on {topic_name}", "C": "Skipping review", "D": "Guessing"},
-                "correct_answer": "B",
-                "user_answer": "B",
-                "explanation": f"Active recall reinforces long-term memory.",
-                "score": 20
-            },
-            {
-                "question": f"What is the key objective of applying knowledge from '{topic_name}'?",
-                "question_type": "multiple_choice",
-                "options": {"A": "No practical use", "B": "Short term memory", "C": f"Solving real-world problems in {topic_name}", "D": "Bypassing logic"},
-                "correct_answer": "C",
-                "user_answer": "C",
-                "explanation": f"Applying concepts ensures deep functional understanding.",
-                "score": 20
-            },
-            {
-                "question": f"Briefly summarize the main learning goal for '{topic_name}'.",
-                "question_type": "short_answer",
-                "options": {},
-                "correct_answer": f"To understand the core mechanisms and practical applications of {topic_name}.",
-                "user_answer": f"Understood key mechanisms of {topic_name}.",
-                "explanation": f"Mastery involves acquiring core principles and applying them.",
-                "score": 20
-            },
-            {
-                "question": f"Critical Analysis Essay: Analyze the key principles required when solving problems in '{topic_name}'.",
-                "question_type": "long_answer",
-                "options": {},
-                "correct_answer": f"Core concepts and logical problem solving for {topic_name}.",
-                "user_answer": f"Analyzed core concepts of {topic_name}.",
-                "key_points": [f"Core mechanisms of {topic_name}", "Data analysis methodology"],
-                "explanation": f"Detailed response explaining logical steps in {topic_name}.",
-                "score": 20
-            }
-        ]
-
-        while len(questions) < 5:
-            questions.append(default_fallback_questions[len(questions)])
-        
-        if len(questions) > 5:
-            questions = questions[:5]
 
         for idx, q in enumerate(questions):
             q_type = q.get('question_type', 'multiple_choice')
