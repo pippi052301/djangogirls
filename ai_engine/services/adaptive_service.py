@@ -159,9 +159,10 @@ def grade_simple_answer(question_type, question, user_answer, correct_answer, ex
         response = get_client().models.generate_content(
             model='gemini-flash-lite-latest', 
             contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type="application/json",
-            system_instruction="You are an automated grading system. Grade objectively, strictly based on mathematical logic and semantic keyword matching. Results must be completely deterministic and identical across runs for identical inputs. Respond strictly with JSON."
-        )
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                system_instruction="You are an automated grading system. Grade objectively, strictly based on mathematical logic and semantic keyword matching. Results must be completely deterministic and identical across runs for identical inputs. Respond strictly with JSON."
+            )
         )
         return json.loads(response.text)
     except Exception as e:
@@ -170,8 +171,12 @@ def grade_simple_answer(question_type, question, user_answer, correct_answer, ex
 
 
 def advanced_grade_essay(question, user_answer, standard_key_points, sample_essays=None):
-    """Multidimensional AI grading system based on educational science principles."""
-   # Chuẩn hóa: chấp nhận cả list (chuẩn mới, đồng bộ với tutor_chat) lẫn string (tương thích ngược)
+    """Multidimensional AI grading system based on educational science principles.
+    
+    - standard_key_points: Đáp án chuẩn (RAG / Retrieval). Accepts both list and string.
+    - sample_essays: (Tùy chọn) Danh sách các bài làm mẫu đã được người chấm (Few-shot learning).
+    """
+    # Chuẩn hóa: chấp nhận cả list (chuẩn mới, đồng bộ với tutor_chat) lẫn string (tương thích ngược)
     if isinstance(standard_key_points, (list, tuple)):
         key_points_text = "\n".join(
             f"- {point}"
@@ -179,12 +184,7 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
         )
     else:
         key_points_text = str(standard_key_points)
-    """
-    Hệ thống chấm điểm AI đa chiều dựa trên cơ sở khoa học giáo dục.
-    - standard_key_points: Đáp án chuẩn (RAG / Retrieval).
-    - sample_essays: (Tùy chọn) Danh sách các bài làm mẫu đã được người chấm (Few-shot learning).
-    """
-    
+
     # 1. Xử lý phần "Học theo mẫu" (Few-shot Learning / Comparative Learning)
     few_shot_prompt = ""
     if sample_essays:
@@ -229,12 +229,12 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     """
     
     try:
-        response = client.models.generate_content(
-            model='gemini-3.6-flash', 
+        response = get_client().models.generate_content(
+            model='gemini-2.5-flash-lite',
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                temperature=0.2 # Cố định temperature để AI đánh giá nhất quán
+                temperature=0.2  # Cố định temperature để AI đánh giá nhất quán
             )
         )
         return json.loads(response.text)
