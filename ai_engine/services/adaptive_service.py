@@ -61,6 +61,62 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
         return None
 
 
+def grade_simple_answer(question_type, question, user_answer, correct_answer, explanation):
+    """Grading for simple question types.
+    - multiple_choice: instant exact-match grading (A/B/C/D).
+    - short_answer: AI grading by meaning only, ignoring case/whitespace/punctuation/
+      word-order/phrasing differences.
+    """
+    if question_type == "multiple_choice":
+        is_correct = str(user_answer).strip().upper() == str(correct_answer).strip().upper()
+        return {
+            "is_correct": is_correct,
+            "score": 100 if is_correct else 0,
+            "feedback": f"Your answer is {'Correct' if is_correct else 'Incorrect'}. {explanation}"
+        }
+
+    if question_type == "short_answer":
+        prompt = f"""
+        - Question: "{question}"
+        - Correct answer / Reference keywords: "{correct_answer}"
+        - Student's response: "{user_answer}"
+        - Reference explanation: "{explanation}"
+
+        Requirement: Judge ONLY whether the student's response conveys the same core meaning/idea
+        as the correct answer above. Ignore differences in letter case, whitespace, punctuation,
+        word order, and phrasing/synonyms; none of that should affect the result. Minor spelling
+        mistakes that do not change the meaning should also be ignored. Only mark it wrong if the
+        idea itself is incorrect or missing.
+
+        RETURN 100% JSON:
+        {{
+            "is_correct": true/false,
+            "score": (0 to 100, 100 = fully correct in meaning, lower if only partially correct),
+            "feedback": "(Must insert the reference explanation here so the student understands)"
+        }}
+        """
+        try:
+            response = get_client().models.generate_content(
+                model='gemini-3.6-flash',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    system_instruction="You are an automated grading system. Grade objectively based on semantic "
+    "meaning only: ignore case, whitespace, punctuation, word order, and paraphrasing/synonyms. "
+    "Results must be completely deterministic and identical across runs for identical inputs. "
+    "Respond strictly with JSON."
+                )
+            )
+            return json.loads(response.text)
+        except Exception as e:
+            print(f"Error calling Simple Grading API: {e}")
+            return None
+
+    # Unsupported question_type: avoid silently sending it to an AI prompt meant for short_answer.
+    print(f"grade_simple_answer: unsupported question_type '{question_type}'")
+    return None
+
+
 def advanced_grade_essay(question, user_answer, standard_key_points, sample_essays=None):
 
     client = get_client()
