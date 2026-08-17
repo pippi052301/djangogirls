@@ -1686,10 +1686,12 @@
                         displayUserAns = `${userChoice}: ${q.options[userChoice]}`;
                     }
 
-                    let displayCorrectAns = q.correct_answer || q.sample_answer || (q.key_points ? q.key_points.join(', ') : '');
+                    let displayCorrectAns = q.correct_answer || q.sample_answer || (q.key_points ? (Array.isArray(q.key_points) ? q.key_points.join(', ') : String(q.key_points)) : '');
                     if (qType === 'multiple_choice' && q.options && q.options[q.correct_answer]) {
                         displayCorrectAns = `${q.correct_answer}: ${q.options[q.correct_answer]}`;
                     }
+
+                    const safeKeyPoints = Array.isArray(q.key_points) ? q.key_points : (q.key_points ? [String(q.key_points)] : (q.sample_answer ? [q.sample_answer] : []));
 
                     questionsData.push({
                         question: q.question,
@@ -1697,7 +1699,7 @@
                         options: q.options || {},
                         user_answer: displayUserAns || '(No answer provided)',
                         correct_answer: displayCorrectAns,
-                        key_points: q.key_points || (q.sample_answer ? [q.sample_answer] : []),
+                        key_points: safeKeyPoints,
                         explanation: q.explanation || 'Analyzed by AI Assistant',
                         score: qScore
                     });
@@ -1709,13 +1711,14 @@
                     }
                 } catch (qErr) {
                     console.log('Error evaluating question ' + idx + ':', qErr);
+                    const safeKeyPoints = Array.isArray(q.key_points) ? q.key_points : (q.key_points ? [String(q.key_points)] : []);
                     questionsData.push({
                         question: q.question || `Question ${idx + 1}`,
                         question_type: q.type || (q.options ? 'multiple_choice' : 'short_answer'),
                         options: q.options || {},
                         user_answer: (quizSelectedAnswers[containerId + '-' + idx]) || '(No answer provided)',
                         correct_answer: q.correct_answer || q.sample_answer || '',
-                        key_points: q.key_points || [],
+                        key_points: safeKeyPoints,
                         explanation: q.explanation || 'Analyzed by AI Assistant',
                         score: 0
                     });
