@@ -22,4 +22,6 @@ urlpatterns = [
     
     #API 7: Tutor chat
     path('tutor/chat/', views.tutor_chat_api, name='tutor_chat_api'),
+    path('tutor/grade/', views.submit_tutor_essay_for_grading_api, name='api_tutor_grade'),
+    path('tutor/history/', views.tutor_history_api, name='api_tutor_history'),
 ]

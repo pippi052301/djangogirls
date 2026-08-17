@@ -30,7 +30,7 @@ def generate_tutor_chat_response(conversation_history, student_input, question_p
     Return your response strictly as a JSON object with the following structure:
     {{
         "ai_message": "Your conversational response, encouragement, and Socratic guidance goes here...",
-        "is_ready_for_grading": false
+        "is_ready_for_grading": false,
                 "compiled_final_answer": null
 
     }}
