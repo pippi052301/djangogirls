@@ -198,7 +198,7 @@ def create_adaptive_practice_api(request):
             if not practice_data or not isinstance(practice_data, list) or len(practice_data) < 5:
                 practice_data = get_server_5_question_fallback(context_name or 'Study Material')
 
-            rec_tip = f"Adaptive Test tailored for '{context_name or 'Study Material'}' (Average Score: {recent_score:.1f}%)"
+            rec_tip = ''
             is_recommended = True
 
             return JsonResponse({

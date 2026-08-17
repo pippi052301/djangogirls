@@ -1076,7 +1076,7 @@
                 if (Array.isArray(quizList) && quizList.length > 5) {
                     quizList = quizList.slice(0, 5);
                 }
-                renderInteractiveQuiz(quizWrapperId + '-content', quizList, data ? data.recommendation_tip : '');
+                renderInteractiveQuiz(quizWrapperId + '-content', quizList, '');
             })
             .catch(err => {
                 const fallbackScore = parseFloat(document.getElementById('header-user-avg-val')?.textContent?.replace('%','').trim()) || 50;
