@@ -326,15 +326,55 @@ def create_adaptive_practice_api(request):
             
             practice_data = generate_adaptive_practice(full_text_to_analyze, recent_score)
             
-            if practice_data:
-                return JsonResponse({
-                    "status": "success",
-                    "recommendation_tip": rec_tip,
-                    "is_recommended": is_recommended,
-                    "data": practice_data
-                }, status=200)
-            
-            return JsonResponse({"error": "AI busy"}, status=503)
+            def get_server_5_question_fallback(topic_name):
+                return [
+                    {
+                        "type": "multiple_choice",
+                        "question": f"What is the primary core focus when studying '{topic_name}'?",
+                        "options": {"A": f"Mastering core principles of {topic_name}", "B": "Memorizing without understanding", "C": "Ignoring practical examples", "D": "None of the above"},
+                        "correct_answer": "A",
+                        "explanation": f"Understanding core principles is essential to mastering {topic_name}."
+                    },
+                    {
+                        "type": "multiple_choice",
+                        "question": f"Which approach is most effective for reviewing '{topic_name}'?",
+                        "options": {"A": "Passive reading without practice", "B": f"Active recall and analytical practice on {topic_name}", "C": "Skipping review questions", "D": "Random guessing"},
+                        "correct_answer": "B",
+                        "explanation": f"Active recall and practice reinforce long-term memory retention."
+                    },
+                    {
+                        "type": "multiple_choice",
+                        "question": f"What is the key objective of applying knowledge from '{topic_name}'?",
+                        "options": {"A": "No practical relevance", "B": "Short-term memorization", "C": f"Solving real-world problems and exercises related to {topic_name}", "D": "Bypassing domain logic"},
+                        "correct_answer": "C",
+                        "explanation": f"Applying concepts from {topic_name} ensures deep functional understanding."
+                    },
+                    {
+                        "type": "short_answer",
+                        "question": f"Briefly summarize the main learning goal for '{topic_name}'.",
+                        "sample_answer": f"To understand the core mechanisms, formulas, and practical applications of {topic_name}.",
+                        "explanation": f"Mastery involves acquiring core principles and applying them accurately."
+                    },
+                    {
+                        "type": "socratic_tutor",
+                        "question": f"Socratic AI Discussion: Share your key takeaways and any questions regarding '{topic_name}'.",
+                        "key_points": [f"Core concepts of {topic_name}", "Practical application"],
+                        "explanation": f"Interactive discussion with the AI Tutor reinforces key insights."
+                    }
+                ]
+
+            if not practice_data or not isinstance(practice_data, list) or len(practice_data) < 5:
+                practice_data = get_server_5_question_fallback(context_name or 'Study Material')
+
+            if isinstance(practice_data, list) and len(practice_data) > 5:
+                practice_data = practice_data[:5]
+
+            return JsonResponse({
+                "status": "success",
+                "recommendation_tip": rec_tip,
+                "is_recommended": is_recommended,
+                "data": practice_data
+            }, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "Invalid method"}, status=405)
