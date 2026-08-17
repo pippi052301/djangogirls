@@ -1044,7 +1044,7 @@
                 body: JSON.stringify({
                     context_type: activeContext ? activeContext.type : '',
                     context_name: activeContext ? activeContext.name : '',
-                    text: `Study material for ${activeContext ? activeContext.type : ''} "${activeContext ? activeContext.name : ''}"`
+                    recent_score: parseFloat(document.getElementById('header-user-avg-val')?.textContent?.replace('%','').trim()) || 50
                 })
             })
             .then(res => res.json())

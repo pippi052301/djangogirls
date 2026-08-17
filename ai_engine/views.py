@@ -115,19 +115,48 @@ def create_graph_api(request):
 
 @csrf_exempt
 def create_adaptive_practice_api(request):
-    """API Sinh đề thi thích ứng (có lời giải)"""
+    """API Sinh đề thi thích ứng (có lời giải) - reads actual note/folder content from DB"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
             context_type = body.get('context_type', '')
             context_name = body.get('context_name', '')
-            text_content = body.get('text', '')
-            recent_score = int(body.get('recent_score', 50))
-            
-            if not text_content:
-                return JsonResponse({"error": "Thiếu nội dung văn bản"}, status=400)
-            
+            # recent_score from frontend badge; default 50 (Standard) if missing/invalid
+            try:
+                recent_score = float(body.get('recent_score', 50))
+            except (TypeError, ValueError):
+                recent_score = 50.0
+
+            # --- Fetch real note content from database ---
+            from notes.models import Note, Folder
+            real_text = ''
+            if context_type == 'folder' and context_name:
+                user_filter = {'owner': request.user} if request.user.is_authenticated else {}
+                folder = Folder.objects.filter(name=context_name, **user_filter).first()
+                if not folder:
+                    folder = Folder.objects.filter(name=context_name).first()
+                if folder:
+                    notes = Note.objects.filter(folder=folder)
+                    if notes.exists():
+                        real_text = '\n\n'.join(
+                            [f"Note Title: {n.title}\nContent:\n{extract_clean_note_text(n)}" for n in notes]
+                        )
+            elif context_type == 'note' and context_name:
+                user_filter = {'owner': request.user} if request.user.is_authenticated else {}
+                note = Note.objects.filter(title=context_name, **user_filter).first()
+                if not note:
+                    note = Note.objects.filter(title=context_name).first()
+                if note:
+                    real_text = f"Note Title: {note.title}\nContent:\n{extract_clean_note_text(note)}"
+
+            # Fallback to context name as topic if note has no content
+            text_content = real_text.strip() or context_name or 'Study Material'
+
+            if len(text_content) < 20:
+                return JsonResponse({"insufficient_content": True, "message": "Ghi chú chưa có nội dung đủ để tạo bài kiểm tra. Hãy thêm nội dung vào ghi chú trước!"}, status=200)
+
             practice_data = generate_adaptive_practice(text_content, recent_score)
+
             
             def get_server_5_question_fallback(topic_name):
                 return [
