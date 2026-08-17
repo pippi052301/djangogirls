@@ -26,6 +26,7 @@ def generate_tutor_chat_response(conversation_history, student_input, question_p
     3. If the student has NOT covered all or most of the essential key points, guide them with Socratic questioning, hints, and scaffolding questions to help them think deeper and cover the missing points.
     4. Evaluate whether the student has successfully addressed all the mandatory key points well enough to trigger the grading phase. Set "is_ready_for_grading" to true ONLY when they have explicitly or sufficiently touched upon the main required concepts. Otherwise, keep it false.
     5. WHEN "is_ready_for_grading" is true, compile everything the student has expressed across the ENTIRE conversation (all turns, including this one) into one single, coherent piece of writing in "compiled_final_answer" — use the student's own ideas and wording, do not improve, correct, or add content they didn't say. WHEN "is_ready_for_grading" is false, set "compiled_final_answer" to null.
+    6. For math equations and formulas, write clean notation ($equation$ for inline, $$equation$$ for block) so formulas render beautifully and are 100% copy-pasteable.
     [MANDATORY OUTPUT FORMAT]
     Return your response strictly as a JSON object with the following structure:
     {{

@@ -499,11 +499,11 @@
             return parsed;
         }
 
-        function applyKaTeXToFeed() {
-            const feed = document.getElementById('ai-chat-feed');
-            if (feed && window.renderMathInElement) {
+        function applyKaTeXToFeed(targetEl) {
+            const container = targetEl || document.getElementById('ai-chat-feed') || document.body;
+            if (container && window.renderMathInElement) {
                 try {
-                    renderMathInElement(feed, {
+                    renderMathInElement(container, {
                         delimiters: [
                             {left: '$$', right: '$$', display: true},
                             {left: '$', right: '$', display: false},
@@ -1148,9 +1148,9 @@
                 if (qType === 'short_answer') {
                     badgeLabel = 'Short Answer';
                     badgeClass = 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300';
-                } else if (qType === 'long_answer') {
-                    badgeLabel = 'Essay / Long Answer';
-                    badgeClass = 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-300';
+                } else if (qType === 'socratic_tutor' || qType === 'long_answer') {
+                    badgeLabel = 'Oral Questioning (Vấn đáp AI)';
+                    badgeClass = 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800';
                 }
 
                 html += `
@@ -1229,6 +1229,7 @@
 
             container.innerHTML = html;
             if (window.lucide) lucide.createIcons();
+            applyKaTeXToFeed(container);
         }
 
         function sendSocraticTutorMsg(containerId, idx) {
@@ -1301,10 +1302,11 @@
                     <div class="w-6 h-6 rounded-lg ${isReady ? 'bg-emerald-600' : 'bg-purple-600'} text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
                     <div class="p-2.5 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border ${isReady ? 'border-emerald-400 dark:border-emerald-600' : 'border-slate-200/80 dark:border-slate-700'} shadow-sm leading-relaxed space-y-1">
                         ${isReady ? '<div class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">&check; Ready for Grading!</div>' : ''}
-                        <div>${escapeHtml(aiMsg)}</div>
+                        <div class="ai-body">${renderMarkdownAndMath(aiMsg)}</div>
                     </div>
                 </div>`;
                 historyBox.insertAdjacentHTML('beforeend', aiHtml);
+                applyKaTeXToFeed(historyBox);
                 historyBox.scrollTop = historyBox.scrollHeight;
             })
             .catch(err => {

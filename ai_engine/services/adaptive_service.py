@@ -5,22 +5,22 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
     """Generate difficulty-adaptive questions (with detailed solutions).."""
     # 1. Configure ratios based on student proficiency levels.
     if recent_average_score < 40:
-        ratio_mc, ratio_short = 0.8, 0.2  # Below-average: 80% Easy, 20% Medium, 0% Hard
+        ratio_mc, ratio_short = 0.6, 0.2  # Below-average: 3 Easy (MC), 1 Medium (Short), 1 Hard (Oral)
     elif recent_average_score < 75:
-        ratio_mc, ratio_short = 0.4, 0.4  # Above-average: 40% Easy, 40% Medium, 20% Hard
+        ratio_mc, ratio_short = 0.4, 0.4  # Standard: 2 Easy (MC), 2 Medium (Short), 1 Hard (Oral)
     else:
-        ratio_mc, ratio_short = 0.2, 0.4  # Advanced: 20% Easy, 20% Medium, 60% Hard
+        ratio_mc, ratio_short = 0.2, 0.4  # Advanced: 1 Easy (MC), 2 Medium (Short), 2 Hard (Oral)
 
     # 2. Calculate actual quantities (Handling rounding errors thoroughly)
     mc_count = round(total_questions * ratio_mc)
     short_count = round(total_questions * ratio_short)
-    long_count = total_questions - mc_count - short_count  
+    oral_count = total_questions - mc_count - short_count  
     prompt = f"""
     You are an education expert. Generate {total_questions} practice questions in English.
     DIFFICULTY DISTRIBUTION:
     - {mc_count} multiple choice questions (multiple_choice): VERY EASY.
     - {short_count} short answer questions (short_answer): MEDIUM.
-    - {long_count} long answer questions (long_answer): HARD.
+    - {oral_count} Socratic oral questioning / interactive tutor questions (socratic_tutor): HARD / ADVANCED.
     MUST include the "explanation" field (in English).
     
     RETURN 100% A JSON ARRAY WITH THE FOLLOWING STRUCTURE:
@@ -39,10 +39,10 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
             "explanation": "Explanation."
         }},
         {{
-            "type": "long_answer",
-            "question": "Content?",
-            "key_points": ["Key point 1"],
-            "explanation": "Explanation."
+            "type": "socratic_tutor",
+            "question": "Oral questioning prompt for interactive discussion...",
+            "required_key_points": ["Key point 1", "Key point 2"],
+            "explanation": "Reference answer & explanation."
         }}
     ]
 
