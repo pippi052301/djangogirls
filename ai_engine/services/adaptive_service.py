@@ -196,19 +196,37 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     }}
     """
     
-    try:
-        response = get_client().models.generate_content(
-            model='gemini-3.6-flash', 
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                system_instruction="You are a Senior Educational Evaluation Expert. Your task is to grade student responses "
-    "in the most sophisticated, scientific, and impartial manner possible. You must operate "
-    "with absolute precision and consistency like a machine, allowing no emotion or randomness "
-    "to alter the grading scale. Adhere to the rubric with extreme rigor."
-)
-        )
-        return json.loads(response.text)
-    except Exception as e:
-        print(f"Error when call API Grading: {e}")
-        return None
+    models_to_try = [
+        "gemini-3.6-flash",
+        "gemini-flash-lite-latest",
+        "gemini-flash-latest",
+        "gemini-3-flash-preview",
+        "gemini-2.5-flash-lite",
+    ]
+
+    for model_name in models_to_try:
+        try:
+            response = get_client().models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    system_instruction=(
+                        "You are a Senior Educational Evaluation Expert. "
+                        "Your task is to grade student responses in the most sophisticated, "
+                        "scientific, and impartial manner possible. "
+                        "You must operate with absolute precision and consistency like a machine, "
+                        "allowing no emotion or randomness to alter the grading scale. "
+                        "Adhere to the rubric with extreme rigor."
+                    )
+                )
+            )
+
+            if response and response.text:
+                return json.loads(response.text)
+
+        except Exception as e:
+            print(f"Essay grading model {model_name} failed: {e}")
+            continue
+
+    return None

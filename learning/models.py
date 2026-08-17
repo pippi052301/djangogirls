@@ -175,26 +175,45 @@ class QuizAttempt(models.Model):
 class AttemptQuerySet(models.QuerySet):
     def recent_average_score_for(self, user, limit=5):
         """
-        Returns the average score for the user's most recent 5 answered questions.
-
-        Returns 50.00 if no answered questions are found.
+        Returns the average total score of the user's most recent quiz attempts.
+        Each QuizAttempt is treated as one set scored out of 100.
+        Returns 50.00 if no scored quiz attempts are found.
         """
 
-        average = (
-            self.filter(
-                quiz_attempt__user=user,
-                score__isnull=False,
+        recent_quiz_attempt_ids = list(
+            QuizAttempt.objects
+            .filter(
+                user=user,
+                answers__score__isnull=False,
             )
-            .order_by("-created_at")[:limit]
-            .aggregate(
-                value=models.Avg("score"),
-            )["value"]
+            .order_by("-started_at")
+            .values_list("id", flat=True)
+            .distinct()[:limit]
         )
 
-        if average is None:
+        if not recent_quiz_attempt_ids:
             return Decimal("50.00")
 
-        return average
+        set_scores = []
+
+        for quiz_attempt_id in recent_quiz_attempt_ids:
+            total = (
+                self.filter(
+                    quiz_attempt_id=quiz_attempt_id,
+                    score__isnull=False,
+                )
+                .aggregate(
+                    value=models.Sum("score"),
+                )["value"]
+            )
+
+            if total is not None:
+                set_scores.append(total)
+
+        if not set_scores:
+            return Decimal("50.00")
+
+        return sum(set_scores, Decimal("0.00")) / Decimal(len(set_scores))
 
 
 class Attempt(models.Model):

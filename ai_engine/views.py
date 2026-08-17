@@ -276,7 +276,7 @@ def create_adaptive_practice_api(request):
                     recent_score = float(db_recent_avg)
                 
                 
-                
+                print("DEBUG recent_score =", recent_score)
             
 
                 if context_type == 'folder' and context_name:
