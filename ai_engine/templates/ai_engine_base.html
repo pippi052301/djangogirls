@@ -364,8 +364,10 @@
                 if (data && data.status === 'success' && data.session) {
                     const sess = data.session;
                     currentSessionId = sess.id;
-                    activeContext = { type: sess.context_type, name: sess.context_name };
+                    activeContext = { type: 'freetalk', name: sess.title };
                     highlightActiveSidebarContext();
+                    updateTopActionButton();
+                    refreshContextScoreBadge('freetalk', '');
 
                     const banner = document.getElementById('ai-active-session-banner');
                     if (banner) {
