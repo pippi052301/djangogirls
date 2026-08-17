@@ -1,10 +1,12 @@
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ValidationError 
+from django.views.decorators.http import require_GET
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 from pgvector.django import CosineDistance
 
-from .models import SemanticAICache, ReferenceSample 
+from .models import SemanticAICache, ReferenceSample, TutorSession
 
 from .services.quiz_service import generate_quiz_from_text
 from .services.graph_service import generate_knowledge_graph
@@ -230,43 +232,154 @@ def grade_simple_api(request):
     return JsonResponse({"error": "Invalid method"}, status=405)
 
 
-@csrf_exempt
 def tutor_chat_api(request):
     """
-    API Chat Gia sư gợi mở: 
-    - Nhận lịch sử chat, câu trả lời hiện tại của học sinh và bộ ý chính chuẩn (required_key_points).
-    - Trả về phản hồi gợi mở từ AI và cờ kiểm tra xem đã đủ điều kiện hiển thị nút chấm điểm chưa.
+    API Chat Gia sư gợi mở:
+    - Lượt đầu tiên: client gửi question_prompt, required_key_points, student_input
+      (không cần session_id) -> server tạo mới 1 TutorSession gắn với request.user và trả về session_id.
+    - Các lượt sau: client chỉ cần gửi session_id, student_input
+      -> server tự lấy lại lịch sử hội thoại đã lưu trong DB (không tin 'history' do client tự gửi,
+      tránh trường hợp client gửi sai/giả lịch sử).
+    - Mỗi lượt chat đều được ghi lại vào TutorSession.transcript => đây chính là lịch sử làm bài.
+    - Yêu cầu học sinh đã đăng nhập (request.user), không cần client tự gửi student_id nữa.
     """
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Bạn cần đăng nhập để sử dụng gia sư AI."}, status=401)
+
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
             student_input = body.get('student_input', '').strip()
-            conversation_history = body.get('history', [])  # Danh sách lịch sử tin nhắn [{"role": "user"/"model", "content": "..."}]
+            session_id = body.get('session_id')  # None nếu là lượt chat đầu tiên của bài này
             question_prompt = body.get('question_prompt', '')
-            required_key_points = body.get('required_key_points', []) # Danh sách các ý chính bắt buộc
-            
-            if not student_input or not question_prompt:
-                return JsonResponse({"error": "Thiếu nội dung câu hỏi hoặc câu trả lời của học sinh."}, status=400)
-            
-            # Gọi service xử lý logic với Gemini
+            required_key_points = body.get('required_key_points', [])
+
+            if not student_input:
+                return JsonResponse({"error": "Thiếu nội dung câu trả lời của học sinh."}, status=400)
+
+            # 1. Lấy lại session cũ (nếu có session_id) hoặc tạo session mới
+            session = None
+            if session_id:
+                session = TutorSession.objects.filter(session_id=session_id, student=request.user).first()
+                if not session:
+                    return JsonResponse({"error": "Không tìm thấy session, hoặc session không thuộc về bạn."}, status=404)
+
+            if session is None:
+                if not question_prompt:
+                    return JsonResponse({"error": "Thiếu question_prompt cho lượt chat đầu tiên."}, status=400)
+                session = TutorSession.objects.create(
+                    student=request.user,
+                    question_prompt=question_prompt,
+                    required_key_points=required_key_points,
+                    transcript=[],
+                )
+
+            # 2. Nguồn lịch sử hội thoại duy nhất là DB, không lấy 'history' client tự gửi lên
+            conversation_history = session.transcript
+
+            # 3. Gọi service xử lý logic với Gemini
             ai_result = generate_tutor_chat_response(
                 conversation_history=conversation_history,
                 student_input=student_input,
-                question_prompt=question_prompt,
-                required_key_points=required_key_points
+                question_prompt=session.question_prompt,
+                required_key_points=session.required_key_points
             )
-            
-            if ai_result:
-                return JsonResponse({
-                    "status": "success", 
-                    "data": ai_result  # Cấu trúc gồm {"ai_message": "...", "is_ready_for_grading": true/false}
-                }, status=200)
-            
-            return JsonResponse({"error": "Hệ thống AI đang bận, vui lòng thử lại sau."}, status=503)
-            
+
+            if not ai_result:
+                return JsonResponse({"error": "Hệ thống AI đang bận, vui lòng thử lại sau."}, status=503)
+
+            # 4. Ghi lại lượt chat này (cả câu học sinh và câu AI trả lời) vào lịch sử
+            session.transcript = conversation_history + [
+                {"role": "user", "content": student_input},
+                {"role": "model", "content": ai_result.get("ai_message", "")},
+            ]
+            session.is_ready_for_grading = bool(ai_result.get("is_ready_for_grading", False))
+            if ai_result.get("compiled_final_answer"):
+                session.compiled_final_answer = ai_result["compiled_final_answer"]
+            session.save()
+
+            return JsonResponse({
+                "status": "success",
+                "session_id": str(session.session_id),
+                "data": ai_result  # Cấu trúc gồm {"ai_message": "...", "is_ready_for_grading": true/false, "compiled_final_answer": ...}
+            }, status=200)
+
         except json.JSONDecodeError:
             return JsonResponse({"error": "Dữ liệu gửi lên không phải định dạng JSON hợp lệ."}, status=400)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
-            
+
     return JsonResponse({"error": "Chỉ chấp nhận phương thức POST."}, status=405)
+
+def build_grading_payload_from_tutor_result(tutor_result, question_prompt, required_key_points):
+    """Cầu nối giữa tutor_chat_api và grade_essay_api."""
+    return {
+        "question": question_prompt,
+        "user_answer": tutor_result["compiled_final_answer"],
+        "standard_key_points": required_key_points,
+    }
+
+
+def submit_tutor_essay_for_grading_api(request):
+    """
+    Chấm điểm bài luận sau khi tutor chat báo is_ready_for_grading=True.
+    Client chỉ cần gửi session_id; toàn bộ dữ liệu bài làm
+    (question_prompt, required_key_points, compiled_final_answer) lấy thẳng
+    từ TutorSession đã lưu, tránh trường hợp client tự gửi sai lệch dữ liệu.
+    Kết quả chấm được lưu ngược lại vào chính session đó (session.grading_result).
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Bạn cần đăng nhập để sử dụng tính năng này."}, status=401)
+
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            session_id = body.get('session_id')
+
+            if not session_id:
+                return JsonResponse({"error": "Thiếu session_id"}, status=400)
+
+            session = TutorSession.objects.filter(session_id=session_id, student=request.user).first()
+            if not session:
+                return JsonResponse({"error": "Không tìm thấy session"}, status=404)
+
+            if not session.is_ready_for_grading or not session.compiled_final_answer:
+                return JsonResponse({"error": "Session chưa sẵn sàng để chấm điểm (is_ready_for_grading=False)"}, status=400)
+
+            payload = build_grading_payload_from_tutor_result(
+                {"compiled_final_answer": session.compiled_final_answer},
+                session.question_prompt,
+                session.required_key_points
+            )
+            grading_result = advanced_grade_essay(**payload)  # unpack đúng khớp tên tham số
+
+            if grading_result:
+                session.grading_result = grading_result
+                session.graded_at = timezone.now()
+                session.save()
+                return JsonResponse({"status": "success", "data": grading_result}, status=200)
+            return JsonResponse({"error": "AI busy"}, status=503)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Invalid method"}, status=405)
+
+
+@require_GET
+def tutor_history_api(request):
+    """Xem lại lịch sử làm bài (các phiên tutor chat) của học sinh đang đăng nhập."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Bạn cần đăng nhập để xem lịch sử."}, status=401)
+
+    sessions = TutorSession.objects.filter(student=request.user)[:50]
+    data = [
+        {
+            "session_id": str(s.session_id),
+            "question_prompt": s.question_prompt,
+            "is_ready_for_grading": s.is_ready_for_grading,
+            "score": (s.grading_result or {}).get("total_score"),
+            "created_at": s.created_at.isoformat(),
+            "updated_at": s.updated_at.isoformat(),
+        }
+        for s in sessions
+    ]
+    return JsonResponse({"status": "success", "data": data}, status=200)
