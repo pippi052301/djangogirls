@@ -23,8 +23,8 @@ urlpatterns = [
     path('grade_simple/', views.grade_simple_api, name='api_grade_simple'),
 
     # API 6: Chatbot
-    path('api/chat/', views.save_chat_message_api, name='api_chat'),
-    path('api/chat/student/', views.save_chat_message_api, name='student_chat_api'),
+    path('api/chat/', views.chat_with_ai_api, name='api_chat'),
+    path('api/chat/student/', views.chat_with_ai_api, name='student_chat_api'),
 
     # API 7: Attempt Recording & Context Score
     path('api/attempt/', views.record_attempt_api, name='api_record_attempt'),

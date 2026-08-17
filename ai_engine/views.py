@@ -213,32 +213,21 @@ def create_adaptive_practice_api(request):
 
 
 @csrf_exempt
-def grade_essay_api(request):
-    """Multidimensional Essay Grading API with Vector Search (RAG) Integration"""
+def chat_with_ai_api(request):
+    """Main chat API: receives user prompt, reads note context from DB, calls AI, returns response"""
     if request.method == 'POST':
         try:
+            from .services.chat_service import generate_chat_answer
             body = json.loads(request.body)
-            question = body.get('question', '')
-            user_answer = body.get('user_answer', '')
-            standard_key_points = body.get('standard_key_points', '')
-            exercise_id = body.get('exercise_id', None) 
-            
-            if not all([question, user_answer, standard_key_points]):
-                return JsonResponse({"error": "Not enough content."}, status=400)
-            
-            sample_essays_text = ""
-            if 'sample_essays' in body:
-                sample_essays_text = body.get('sample_essays')
-            else:
-                return JsonResponse({"error": "AI đang bận"}, status=503)
-                
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
-            
+            user_question = (body.get('prompt') or body.get('message') or body.get('question') or '').strip()
+            context_type = body.get('context_type', 'freetalk')
+            context_name = body.get('context_name', '')
+
             if not user_question:
                 return JsonResponse({"error": "Please enter your question", "response": "Please enter your question."}, status=400)
-            
-            context_text = ""
+
+            # --- Fetch real note content from database ---
+            context_text = ''
             from notes.models import Note, Folder
             if context_type == 'folder' and context_name:
                 user_filter = {'owner': request.user} if request.user.is_authenticated else {}
@@ -248,7 +237,9 @@ def grade_essay_api(request):
                 if folder:
                     notes = Note.objects.filter(folder=folder)
                     if notes.exists():
-                        context_text = "\n\n".join([f"Note Title: {n.title}\nContent:\n{extract_clean_note_text(n)}" for n in notes])
+                        context_text = '\n\n'.join(
+                            [f"Note Title: {n.title}\nContent:\n{extract_clean_note_text(n)}" for n in notes]
+                        )
             elif context_type == 'note' and context_name:
                 user_filter = {'owner': request.user} if request.user.is_authenticated else {}
                 note = Note.objects.filter(title=context_name, **user_filter).first()
@@ -257,41 +248,48 @@ def grade_essay_api(request):
                 if note:
                     context_text = f"Note Title: {note.title}\nContent:\n{extract_clean_note_text(note)}"
 
-            feature_key = "chat_qa"
-            matched_cache = None
-            input_vector = None
-
-            # Bypass cache for Free Talk mode to ensure dynamic responses
-            if context_type != 'freetalk':
-                matched_cache, input_vector = check_semantic_cache(user_question, feature_key)
-                if matched_cache:
-                    resp_text = matched_cache.ai_response if isinstance(matched_cache.ai_response, str) else str(matched_cache.ai_response)
-                    if "ready to help" not in resp_text:
-                        return JsonResponse({
-                            "status": "success", 
-                            "data": resp_text,
-                            "response": resp_text,
-                            "is_cached": True 
-                        }, status=200)
-            
             ai_answer = generate_chat_answer(user_question, context_type, context_name, context_text)
-            
+
             if ai_answer:
-                if context_type != 'freetalk' and "ready to help" not in ai_answer:
-                    save_to_cache(user_question, feature_key, input_vector, ai_answer)
                 return JsonResponse({
-                    "status": "success", 
+                    "status": "success",
                     "data": ai_answer,
                     "response": ai_answer,
-                    "is_cached": False
                 }, status=200)
-            
+
             return JsonResponse({"error": "The AI tutor is busy, please try again later", "response": "The AI tutor is currently busy. Please try again in a moment."}, status=503)
         except Exception as e:
             return JsonResponse({"error": str(e), "response": f"Error: {str(e)}"}, status=400)
     return JsonResponse({"error": "Invalid method"}, status=405)
 
+
 @csrf_exempt
+def grade_essay_api(request):
+    """Multidimensional Essay Grading API with Vector Search (RAG) Integration"""
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            question = body.get('question', '')
+            user_answer = body.get('user_answer', '')
+            standard_key_points = body.get('standard_key_points', '')
+
+            if not all([question, user_answer, standard_key_points]):
+                return JsonResponse({"error": "Not enough content."}, status=400)
+
+            sample_essays_text = body.get('sample_essays', None)
+
+            from .services.adaptive_service import advanced_grade_essay
+            result = advanced_grade_essay(question, user_answer, standard_key_points, sample_essays_text)
+            if result:
+                return JsonResponse({"status": "success", "data": result}, status=200)
+            return JsonResponse({"error": "AI grading is unavailable"}, status=503)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Invalid method"}, status=405)
+
+@csrf_exempt
+
 def grade_simple_api(request):
     """Rapid Grading API (For Multiple-Choice & Fill-in-the-Blank)"""
     if request.method == 'POST':
