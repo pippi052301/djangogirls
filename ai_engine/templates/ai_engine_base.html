@@ -1058,10 +1058,16 @@
                 if (!quizList || !Array.isArray(quizList) || quizList.length < 3) {
                     quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material');
                 }
+                if (Array.isArray(quizList) && quizList.length > 5) {
+                    quizList = quizList.slice(0, 5);
+                }
                 renderInteractiveQuiz(quizWrapperId + '-content', quizList, data ? data.recommendation_tip : '');
             })
             .catch(err => {
-                const quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material');
+                let quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material');
+                if (Array.isArray(quizList) && quizList.length > 5) {
+                    quizList = quizList.slice(0, 5);
+                }
                 renderInteractiveQuiz(quizWrapperId + '-content', quizList, '');
             });
         }
@@ -1079,7 +1085,7 @@
                         options: { "A": `Nắm vững các khái niệm và nguyên lý chính của ${topicName}`, "B": "Học thuộc lòng không cần hiểu bản chất", "C": "Bỏ qua các ví dụ thực hành", "D": "Tất cả các đáp án đều sai" },
                         correct_answer: "A",
                         explanation: `Hiểu rõ bản chất và khái niệm chính giúp làm chủ nội dung ${topicName}.`,
-                        max_score: 10
+                        max_score: 20
                     },
                     {
                         type: "multiple_choice",
@@ -1087,7 +1093,7 @@
                         options: { "A": "Đọc lướt qua một lần", "B": `Chủ động phân tích và làm bài tập thực hành về ${topicName}`, "C": "Bỏ qua các câu hỏi ôn tập", "D": "Ghi nhớ ngẫu nhiên" },
                         correct_answer: "B",
                         explanation: `Chủ động phân tích và làm bài tập giúp ghi nhớ lâu dài kiến thức ${topicName}.`,
-                        max_score: 10
+                        max_score: 20
                     },
                     {
                         type: "multiple_choice",
@@ -1095,15 +1101,7 @@
                         options: { "A": "Không có ứng dụng thực tế", "B": "Chỉ dùng để làm bài trắc nghiệm", "C": `Giải quyết các bài toán và tình huống thực tế liên quan đến ${topicName}`, "D": "Tăng dung lượng lưu trữ" },
                         correct_answer: "C",
                         explanation: `Áp dụng kiến thức ${topicName} vào giải quyết bài tập và tình huống thực tế.`,
-                        max_score: 10
-                    },
-                    {
-                        type: "multiple_choice",
-                        question: `Yếu tố nào giúp đánh giá mức độ hiểu sâu kiến thức về "${topicName}"?`,
-                        options: { "A": "Bỏ qua các chi tiết quan trọng", "B": `Khả năng giải thích và phân tích lại các quy tắc trong ${topicName}`, "C": "Chỉ nhớ tên tiêu đề bài học", "D": "Đoán mò đáp án" },
-                        correct_answer: "B",
-                        explanation: `Giải thích và phân tích lại kiến thức thể hiện mức độ làm chủ chủ đề.`,
-                        max_score: 10
+                        max_score: 20
                     },
                     {
                         type: "short_answer",
@@ -1113,17 +1111,10 @@
                         max_score: 20
                     },
                     {
-                        type: "short_answer",
-                        question: `Nêu phương pháp chính được sử dụng để giải quyết bài tập thuộc "${topicName}".`,
-                        sample_answer: `Phân tích dữ kiện đề bài và áp dụng quy tắc/công thức chuẩn của ${topicName}.`,
-                        explanation: `Phân tích dữ kiện và áp dụng đúng quy tắc toán học/khoa học.`,
-                        max_score: 20
-                    },
-                    {
-                        type: "long_answer",
-                        question: `Bài luận phân tích chuyên sâu: Hãy phân tích các nguyên lý chính và trình bày quy trình giải quyết một bài toán thuộc chủ đề "${topicName}".`,
-                        key_points: [`Khái niệm cốt lõi của ${topicName}`, "Quy trình phân tích dữ kiện", "Áp dụng công thức và đánh giá kết quả"],
-                        explanation: `Bài luận cần trình bày rõ các bước phân tích và cơ sở khoa học của ${topicName}.`,
+                        type: "socratic_tutor",
+                        question: `Vấn đáp AI Tutor: Nêu các suy nghĩ hoặc thắc mắc của bạn về ứng dụng thực tế của "${topicName}".`,
+                        required_key_points: [`Ứng dụng ${topicName}`, "Thực hành bài tập"],
+                        explanation: `Trao đổi với AI Tutor giúp bạn củng cố sâu sắc kiến thức bài học.`,
                         max_score: 20
                     }
                 ];
@@ -1135,7 +1126,7 @@
                     options: { "A": `Mastering the core principles and mechanisms of ${topicName}`, "B": "Memorizing terms without understanding", "C": "Ignoring practical examples", "D": "None of the above" },
                     correct_answer: "A",
                     explanation: `Understanding core principles is essential to mastering ${topicName}.`,
-                    max_score: 10
+                    max_score: 20
                 },
                 {
                     type: "multiple_choice",
@@ -1143,7 +1134,7 @@
                     options: { "A": "Passive reading without practice", "B": `Active recall and analytical practice on ${topicName}`, "C": "Skipping review questions", "D": "Random guessing" },
                     correct_answer: "B",
                     explanation: `Active recall and practice reinforce long-term memory retention.`,
-                    max_score: 10
+                    max_score: 20
                 },
                 {
                     type: "multiple_choice",
@@ -1151,15 +1142,7 @@
                     options: { "A": "No practical relevance", "B": "Short-term memorization", "C": `Solving real-world problems and exercises related to ${topicName}`, "D": "Bypassing domain logic" },
                     correct_answer: "C",
                     explanation: `Applying concepts from ${topicName} ensures deep functional understanding.`,
-                    max_score: 10
-                },
-                {
-                    type: "multiple_choice",
-                    question: `How can you best demonstrate mastery of "${topicName}"?`,
-                    options: { "A": "Ignoring key details", "B": `Explaining and synthesizing the core rules of ${topicName}`, "C": "Only remembering the title", "D": "Guessing answers" },
-                    correct_answer: "B",
-                    explanation: `Explaining and synthesizing concepts proves conceptual depth.`,
-                    max_score: 10
+                    max_score: 20
                 },
                 {
                     type: "short_answer",
@@ -1169,17 +1152,10 @@
                     max_score: 20
                 },
                 {
-                    type: "short_answer",
-                    question: `State the primary method used to analyze problems in "${topicName}".`,
-                    sample_answer: `Deconstruct given data and apply established principles of ${topicName}.`,
-                    explanation: `Deconstructing problem constraints leads to logical solutions.`,
-                    max_score: 20
-                },
-                {
-                    type: "long_answer",
-                    question: `Critical Analysis Essay: Analyze the key principles and step-by-step methodology required when solving problems in "${topicName}".`,
-                    key_points: [`Core mechanisms of ${topicName}`, "Data analysis methodology", "Verification of results"],
-                    explanation: `A thorough response details the foundational mechanisms and logical steps.`,
+                    type: "socratic_tutor",
+                    question: `Socratic AI Discussion: Share your key takeaways and any questions regarding "${topicName}".`,
+                    required_key_points: [`Core concepts of ${topicName}`, "Practical application"],
+                    explanation: `Interactive discussion with the AI Tutor reinforces key insights.`,
                     max_score: 20
                 }
             ];
