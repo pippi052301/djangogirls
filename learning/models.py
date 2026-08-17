@@ -435,6 +435,3 @@ class TutorMessage(models.Model):
     def __str__(self):
         return f"{self.session_id} - {self.role}"
 
-class MapEdge(models.Model):
-    def __str__(self):
-        return f"{self.source} -> {self.target}"

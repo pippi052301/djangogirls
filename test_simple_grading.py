@@ -66,8 +66,8 @@ The Model defines the data structure of an application and is responsible for op
 
 short_answer_tests = [
     (
-        "SA-06 Blank Answer",
-        ""
+        "SA-01 Completely Correct",
+        "The Model manages data and handles interactions with the database."
     )
 ]
 

@@ -11,7 +11,10 @@ If D > 0, the equation has two distinct real solutions.
 If D = 0, the equation has one repeated real solution.
 If D < 0, the equation has no real solutions."""
 
-student_answer = """
+student_answer = """In a quadratic equation, you can calculate b² - 4ac and use that number to find out how many answers there are.
+If that number is greater than zero, there are two answers. 
+If it is zero, there is one same answer. 
+If it is less than zero, there is no answer in the ordinary number range.
 """
 
 # 2. GIẢ LẬP DỮ LIỆU TỪ PGVECTOR (Bạn tự viết tay 2 bài mẫu)
