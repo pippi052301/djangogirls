@@ -26,8 +26,9 @@ urlpatterns = [
     path('api/chat/', views.student_chat_api, name='api_chat'),
     path('api/chat/student/', views.student_chat_api, name='student_chat_api'),
 
-    # API 7: Attempt Recording
+    # API 7: Attempt Recording & Context Score
     path('api/attempt/', views.record_attempt_api, name='api_record_attempt'),
+    path('api/context-score/', views.context_score_api, name='api_context_score'),
 
     # API 8: Coursera Socratic Debate
     path('api/socratic-debate/', views.socratic_debate_api, name='api_socratic_debate'),

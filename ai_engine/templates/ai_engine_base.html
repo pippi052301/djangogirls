@@ -845,6 +845,32 @@
             });
         }
 
+        function refreshContextScoreBadge(type, name) {
+            let url = '{% url "api_context_score" %}';
+            if (type && name && type !== 'freetalk') {
+                url += `?context_type=${encodeURIComponent(type)}&context_name=${encodeURIComponent(name)}`;
+            }
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data) return;
+                    const avgEl = document.getElementById('header-user-avg-val');
+                    const tagEl = document.getElementById('header-user-level-tag');
+                    if (avgEl && data.recent_avg_score !== undefined) {
+                        avgEl.textContent = data.recent_avg_score + '%';
+                    }
+                    if (tagEl && data.level_name) {
+                        tagEl.textContent = data.level_name;
+                        tagEl.className = 'px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide ' +
+                            (data.level_name === 'Advanced' ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800' :
+                             data.level_name === 'Basic' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' :
+                             'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border border-amber-200 dark:border-amber-800');
+                    }
+                })
+                .catch(err => console.log('Context score refresh error:', err));
+        }
+
         function selectStudyContext(type, name) {
             if (window.location.pathname !== '/ai/' && window.location.pathname !== '/ai') {
                 window.location.href = `/ai/?context_type=${encodeURIComponent(type)}&context_name=${encodeURIComponent(name)}`;
@@ -856,6 +882,7 @@
 
             highlightActiveSidebarContext();
             loadChatHistorySessions();
+            refreshContextScoreBadge(type, name);
 
             // Update browser URL bar to match active folder/note context
             const newUrl = `/ai/?context_type=${encodeURIComponent(type)}&context_name=${encodeURIComponent(name)}`;

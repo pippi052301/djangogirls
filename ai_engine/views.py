@@ -774,6 +774,33 @@ def record_attempt_api(request):
 
 
 @csrf_exempt
+def context_score_api(request):
+    """Fetch recent average score & level name for specific Note or Folder context"""
+    if not request.user.is_authenticated:
+        return JsonResponse({"recent_avg_score": 50.0, "level_name": "Standard"})
+
+    context_type = request.GET.get('context_type', '')
+    context_name = request.GET.get('context_name', '')
+
+    from learning.models import Attempt
+    avg_val = Attempt.objects.recent_average_score_for(request.user, context_type=context_type, context_name=context_name)
+    recent_avg = round(float(avg_val), 1) if avg_val is not None else 50.0
+
+    if recent_avg < 40:
+        lvl = "Basic"
+    elif recent_avg < 75:
+        lvl = "Standard"
+    else:
+        lvl = "Advanced"
+
+    return JsonResponse({
+        "status": "success",
+        "recent_avg_score": recent_avg,
+        "level_name": lvl
+    })
+
+
+@csrf_exempt
 def socratic_debate_api(request):
     """Coursera-Style Interactive Socratic Debate API"""
     if request.method == 'POST':

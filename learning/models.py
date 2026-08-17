@@ -202,36 +202,33 @@ class QuizAttempt(models.Model):
 
 
 class AttemptQuerySet(models.QuerySet):
-    def recent_average_score_for(self, user, limit=5):
+    def recent_average_score_for(self, user, context_type=None, context_name=None, limit=5):
         """
-        Returns average score percent across recent 5 quiz attempts.
+        Returns average score percent across recent 5 quiz attempts for specific context or globally.
         """
         from learning.models import QuizAttempt
-        recent_quizzes = QuizAttempt.objects.filter(
-            user=user,
-            score__isnull=False
-        ).order_by("-completed_at")[:limit]
+        query = QuizAttempt.objects.filter(user=user, score__isnull=False)
+
+        if context_type == 'folder' and context_name:
+            query = query.filter(quiz__note__folder__name=context_name)
+        elif context_type == 'note' and context_name:
+            query = query.filter(quiz__note__title=context_name)
+
+        recent_quizzes = query.order_by("-completed_at")[:limit]
 
         if recent_quizzes.exists():
             avg = recent_quizzes.aggregate(val=models.Avg("score"))["val"]
             if avg is not None:
                 return avg
 
-        average = (
-            self.filter(
-                quiz_attempt__user=user,
-                score__isnull=False,
-            )
-            .order_by("-created_at")[:limit * 5]
-            .aggregate(
-                value=models.Avg("score"),
-            )["value"]
-        )
+        # Fallback to overall user average if specific context has no test history yet
+        fallback_quizzes = QuizAttempt.objects.filter(user=user, score__isnull=False).order_by("-completed_at")[:limit]
+        if fallback_quizzes.exists():
+            fallback_avg = fallback_quizzes.aggregate(val=models.Avg("score"))["val"]
+            if fallback_avg is not None:
+                return fallback_avg
 
-        if average is None:
-            return Decimal("50.00")
-
-        return average
+        return Decimal("50.00")
 
 
 class Attempt(models.Model):
