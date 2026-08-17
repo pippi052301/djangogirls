@@ -38,12 +38,24 @@ class Command(BaseCommand):
             ).exists()
 
             if not exists:
-                self.stdout.write(f"⏳ Creating Vector for exercise_id: {item['exercise_id']} (Score: {item['score']})...")
-                
-                # Call API Gemini to create Vector for sample
+                self.stdout.write(
+                    f"Processing exercise_id: {item['exercise_id']} "
+                    f"(Score: {item['score']})..."
+                )
+
                 embedding_vector = get_text_embedding(item["content"])
-                
-                if embedding_vector:
+
+                # Embedding生成に失敗した場合は保存しない
+                if embedding_vector is None:
+                    self.stdout.write(
+                        self.style.ERROR(
+                            f"  [ERROR] Failed to create embedding "
+                            f"for {item['score']} pts"
+                        )
+                    )
+                    continue
+
+                try:
                     ReferenceSample.objects.create(
                         exercise_id=item["exercise_id"],
                         content=item["content"],
@@ -51,11 +63,32 @@ class Command(BaseCommand):
                         feedback=item["feedback"],
                         embedding=embedding_vector
                     )
-                    created_count += 1
-                    self.stdout.write(self.style.SUCCESS(f"  ✓ save sample  {item['score']}đ"))
-                else:
-                    self.stdout.write(self.style.ERROR(f"  ✗ error in creating vector {item['score']}đ"))
-            else:
-                self.stdout.write(f"ℹ️ Sample (Score: {item['score']}) existed, skip.")
 
-        self.stdout.write(self.style.SUCCESS(f'\n🎉 Done! Success {created_count} new sample to DB.'))
+                    created_count += 1
+
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"  [SUCCESS] Saved sample "
+                            f"{item['score']} pts"
+                        )
+                    )
+
+                except Exception as e:
+                    self.stdout.write(
+                        self.style.ERROR(
+                            f"  [ERROR] Failed to save sample: {e}"
+                        )
+                    )
+
+            else:
+                self.stdout.write(
+                    f"[INFO] Sample (Score: {item['score']}) "
+                    "already exists, skipped."
+                )
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"\n[DONE] Successfully ingested "
+                f"{created_count} samples."
+            )
+        )

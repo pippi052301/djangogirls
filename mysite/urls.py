@@ -38,6 +38,12 @@ urlpatterns = [
         "ai/",
         include("ai_engine.urls")
     ),
+    
+    #scheduler
+        path(
+        "quiz-schedule/",
+        include("scheduler.urls")
+    ),
 ]
 
 

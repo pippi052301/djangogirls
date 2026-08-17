@@ -5,26 +5,41 @@
 {% block page_title %}{{ folder.name }}{% endblock %}
 
 {% block page_header %}
-<div class="-mt-14 mb-6">
+<div class="pt-2 mb-6">
     <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700 mb-4">
-        <a href="{% url 'notes:folder_list' %}" class="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1">
+        <a href="{% url 'notes:folder_list' %}" class="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 font-semibold">
             <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to Library
         </a>
         <div class="flex items-center gap-2">
-            <a href="{% url 'notes:folder_edit' pk=folder.pk %}" class="px-3 py-1 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded font-medium transition">
-                Edit Folder
+            <a href="{% url 'notes:folder_edit' pk=folder.pk %}" class="px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-semibold transition flex items-center gap-1 border border-slate-200 dark:border-slate-700">
+                <i data-lucide="edit-2" class="w-3.5 h-3.5"></i> Edit Folder
             </a>
-            <a href="{% url 'notes:folder_delete' pk=folder.pk %}" class="px-3 py-1 text-xs bg-red-50 dark:bg-red-950/30 hover:bg-red-100 text-red-600 dark:text-red-400 rounded font-medium transition">
-                Delete Folder
+            <a href="{% url 'notes:folder_delete' pk=folder.pk %}" class="px-3 py-1.5 text-xs bg-red-50 dark:bg-red-950/30 hover:bg-red-100 text-red-600 dark:text-red-400 rounded-lg font-semibold transition flex items-center gap-1 border border-red-200/50 dark:border-red-900/50">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete Folder
             </a>
         </div>
     </div>
     
-    <div class="flex items-center gap-3">
-        <span class="text-5xl">📁</span>
-        <div>
-            <h1 class="text-3xl font-bold text-slate-800 dark:text-slate-100">{{ folder.name }}</h1>
-            <p class="text-xs text-slate-400 mt-1">Created {{ folder.created_at|date:"M d, Y" }}</p>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/60 dark:border-blue-800/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm">
+                <i data-lucide="folder-open" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800 dark:text-slate-100">{{ folder.name }}</h1>
+                <p class="text-xs text-slate-400 mt-0.5">Created {{ folder.created_at|date:"M d, Y" }}</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="openFolderCreateNoteModal()" class="px-4 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition flex items-center gap-1.5">
+                <i data-lucide="file-plus" class="w-4 h-4"></i>
+                <span>+ New Note in Folder</span>
+            </button>
+            <button type="button" onclick="openFolderCreateSubfolderModal()" class="px-4 py-2 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold transition flex items-center gap-1.5 border border-slate-200 dark:border-slate-700">
+                <i data-lucide="folder-plus" class="w-4 h-4 text-blue-500"></i>
+                <span>+ New Subfolder</span>
+            </button>
         </div>
     </div>
 </div>
@@ -34,37 +49,156 @@
 <div class="space-y-6">
     {% if subfolders %}
     <div class="space-y-2">
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Subfolders</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Subfolders inside {{ folder.name }}</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {% for sub in subfolders %}
-            <a href="{% url 'notes:folder_detail' pk=sub.pk %}" class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/60 hover:border-blue-500 flex items-center gap-2 transition">
-                <i data-lucide="folder" class="w-4 h-4 text-purple-500"></i>
-                <span class="text-xs font-medium text-slate-800 dark:text-slate-200">{{ sub.name }}</span>
+            <a href="{% url 'notes:folder_detail' pk=sub.pk %}" class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/60 hover:border-blue-500 flex items-center gap-2.5 transition group">
+                <i data-lucide="folder" class="w-4.5 h-4.5 text-blue-500 group-hover:scale-110 transition"></i>
+                <span class="text-xs font-medium text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">{{ sub.name }}</span>
             </a>
             {% endfor %}
         </div>
     </div>
     {% endif %}
 
-    <div class="space-y-2">
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes in this folder</h3>
-        <div class="divide-y divide-slate-100 dark:divide-slate-800 border-y border-slate-100 dark:border-slate-800">
+    <div class="space-y-3">
+        <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes & Documents inside {{ folder.name }}</h3>
+            <span class="text-xs text-slate-400 font-mono">{{ notes.count }} note{{ notes.count|pluralize }}</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {% for note in notes %}
-            <div class="py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/40 px-2 rounded transition">
-                <div class="flex items-center gap-2">
-                    <span>📝</span>
-                    <a href="{% url 'notes:note_detail' pk=note.pk %}" class="text-xs font-medium text-slate-800 dark:text-slate-200 hover:underline">
-                        {{ note.title }}
-                    </a>
+                {% if note.template_type == 'pdf' or '.pdf' in note.title|lower %}
+                <!-- PDF Card -->
+                <div class="bg-white dark:bg-slate-800/90 border border-red-200 dark:border-red-900/50 hover:border-red-500/80 rounded-xl p-4 transition-all shadow-sm hover:shadow-md flex flex-col justify-between group">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-800/60 flex items-center justify-center text-red-600 dark:text-red-400 font-bold text-xs">
+                                PDF
+                            </div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800/50">
+                                PDF File
+                            </span>
+                        </div>
+                        <a href="{% url 'notes:note_detail' pk=note.pk %}" class="font-semibold text-slate-800 dark:text-slate-100 hover:text-red-600 dark:hover:text-red-400 transition text-sm line-clamp-2">
+                            {{ note.title }}
+                        </a>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
+                        <span>{{ note.created_at|date:"d M, Y" }}</span>
+                        <a href="{% url 'notes:note_detail' pk=note.pk %}" class="text-red-600 dark:text-red-400 hover:underline font-semibold flex items-center gap-1">
+                            Open PDF <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                        </a>
+                    </div>
                 </div>
-                <span class="text-[11px] text-slate-400">{{ note.created_at|date:"d M, Y" }}</span>
-            </div>
+                {% else %}
+                <!-- Standard Note Card -->
+                <div class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 hover:border-blue-500/80 rounded-xl p-4 transition-all shadow-sm hover:shadow-md flex flex-col justify-between group">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+                                TXT
+                            </div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
+                                Text Note
+                            </span>
+                        </div>
+                        <a href="{% url 'notes:note_detail' pk=note.pk %}" class="font-semibold text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition text-sm line-clamp-2">
+                            {{ note.title }}
+                        </a>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
+                        <span>{{ note.created_at|date:"d M, Y" }}</span>
+                        <a href="{% url 'notes:note_detail' pk=note.pk %}" class="text-blue-600 dark:text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                            Open Note <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
             {% empty %}
-            <div class="py-8 text-center text-xs text-slate-400 italic">
-                No notes in this folder yet.
+            <div class="col-span-full py-12 text-center text-slate-400 dark:text-slate-500 text-xs italic space-y-3">
+                <p>No notes or files inside folder "{{ folder.name }}" yet.</p>
+                <button type="button" onclick="openFolderCreateNoteModal()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm">
+                    <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
+                    <span>+ Create First Note in "{{ folder.name }}"</span>
+                </button>
             </div>
             {% endfor %}
         </div>
     </div>
 </div>
+
+<!-- Modal 1: Create Note inside this Folder -->
+<div id="folder-create-note-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
+                <i data-lucide="file-plus" class="w-5 h-5 text-blue-600"></i>
+                <span>Create New Note in "{{ folder.name }}"</span>
+            </h3>
+            <button type="button" onclick="closeFolderCreateNoteModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'notes:note_create' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="folder" value="{{ folder.id }}">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Note Title</label>
+                <input type="text" name="title" required placeholder="e.g. Lesson 1 Summary" class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Note Content (Optional)</label>
+                <textarea name="content" rows="4" placeholder="Start typing note content..." class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 resize-none"></textarea>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onclick="closeFolderCreateNoteModal()" class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition font-medium">Cancel</button>
+                <button type="submit" class="px-5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition">Create Note</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 2: Create Subfolder inside this Folder -->
+<div id="folder-create-subfolder-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
+                <i data-lucide="folder-plus" class="w-5 h-5 text-blue-600"></i>
+                <span>Create Subfolder in "{{ folder.name }}"</span>
+            </h3>
+            <button type="button" onclick="closeFolderCreateSubfolderModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'notes:folder_create' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="parent" value="{{ folder.id }}">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Subfolder Name</label>
+                <input type="text" name="name" required placeholder="e.g. Advanced Practice" class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500">
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onclick="closeFolderCreateSubfolderModal()" class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition font-medium">Cancel</button>
+                <button type="submit" class="px-5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition">Create Subfolder</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openFolderCreateNoteModal() {
+        document.getElementById('folder-create-note-modal').classList.remove('hidden');
+    }
+    function closeFolderCreateNoteModal() {
+        document.getElementById('folder-create-note-modal').classList.add('hidden');
+    }
+    function openFolderCreateSubfolderModal() {
+        document.getElementById('folder-create-subfolder-modal').classList.remove('hidden');
+    }
+    function closeFolderCreateSubfolderModal() {
+        document.getElementById('folder-create-subfolder-modal').classList.add('hidden');
+    }
+</script>
 {% endblock %}

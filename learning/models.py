@@ -212,6 +212,8 @@ class Attempt(models.Model):
     )
     user_answer = models.TextField()
     reasoning = models.TextField(
+        blank=True,
+        default="",
         help_text="Logical steps taken by the user to solve the problem",
     )
     score = models.DecimalField(
@@ -292,11 +294,13 @@ class TutorSession(models.Model):
         on_delete=models.CASCADE,
         related_name="tutor_sessions",
     )
+
     exercise = models.ForeignKey(
         Exercise,
         on_delete=models.CASCADE,
         related_name="tutor_sessions",
     )
+
     quiz_attempt = models.ForeignKey(
         QuizAttempt,
         on_delete=models.CASCADE,
@@ -304,67 +308,25 @@ class TutorSession(models.Model):
         null=True,
         blank=True,
     )
+
     is_ready_for_grading = models.BooleanField(
         default=False,
     )
+
     compiled_final_answer = models.TextField(
         blank=True,
     )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
+
     updated_at = models.DateTimeField(
         auto_now=True,
     )
 
     class Meta:
         ordering = ["-updated_at"]
-class MapNode(models.Model):
-    note = models.ForeignKey(
-        "notes.Note",
-        on_delete=models.CASCADE,
-        related_name="map_nodes",
-    )
-    key = models.CharField(
-        max_length=100,
-        help_text="Identifier within the note corresponding to the AI's nodes[].id",
-    )
-    label = models.CharField(max_length=100)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["note", "key"],
-                name="unique_map_node_key_per_note",
-            )
-        ]
-
-    def __str__(self):
-        return self.label
-
-
-class MapEdge(models.Model):
-    source = models.ForeignKey(
-        MapNode,
-        on_delete=models.CASCADE,
-        related_name="outgoing_edges",
-    )
-    target = models.ForeignKey(
-        MapNode,
-        on_delete=models.CASCADE,
-        related_name="incoming_edges",
-    )
-    label = models.CharField(max_length=100, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["source", "target", "label"],
-                name="unique_map_edge",
-            )
-        ]
 
     def clean(self):
         super().clean()
@@ -388,19 +350,6 @@ class MapEdge(models.Model):
                 raise ValidationError(
                     "受験中のクイズに含まれない問題です。"
                 )
-    def clean(self):
-        super().clean()
-
-        if self.source_id and self.target_id:
-            if self.source_id == self.target_id:
-                raise ValidationError(
-                    "A node cannot be connected to itself."
-                )
-
-            if self.source.note_id != self.target.note_id:
-                raise ValidationError(
-                    "Nodes from different notes cannot be connected."
-                )
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -420,11 +369,14 @@ class TutorMessage(models.Model):
         on_delete=models.CASCADE,
         related_name="messages",
     )
+
     role = models.CharField(
         max_length=10,
         choices=Role.choices,
     )
+
     content = models.TextField()
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -435,3 +387,86 @@ class TutorMessage(models.Model):
     def __str__(self):
         return f"{self.session_id} - {self.role}"
 
+
+class MapNode(models.Model):
+    note = models.ForeignKey(
+        "notes.Note",
+        on_delete=models.CASCADE,
+        related_name="map_nodes",
+    )
+
+    key = models.CharField(
+        max_length=100,
+        help_text="Identifier within the note corresponding to the AI's nodes[].id",
+    )
+
+    label = models.CharField(
+        max_length=100,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["note", "key"],
+                name="unique_map_node_key_per_note",
+            )
+        ]
+
+    def __str__(self):
+        return self.label
+
+
+class MapEdge(models.Model):
+    source = models.ForeignKey(
+        MapNode,
+        on_delete=models.CASCADE,
+        related_name="outgoing_edges",
+    )
+
+    target = models.ForeignKey(
+        MapNode,
+        on_delete=models.CASCADE,
+        related_name="incoming_edges",
+    )
+
+    label = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source", "target", "label"],
+                name="unique_map_edge",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+
+        if self.source_id and self.target_id:
+            if self.source_id == self.target_id:
+                raise ValidationError(
+                    "A node cannot be connected to itself."
+                )
+
+            if self.source.note_id != self.target.note_id:
+                raise ValidationError(
+                    "Nodes from different notes cannot be connected."
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.source} -> {self.target}"

@@ -1,0 +1,20 @@
+{% extends 'base_notes.html' %}
+
+{% block title %}Create Study Plan - Personal Study Space{% endblock %}
+{% block page_title %}Create Study Plan{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-8">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+        <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100">Create Study Plan</h2>
+        <form method="POST" action="{% url 'scheduler:create' %}" class="space-y-4">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="flex justify-end gap-2 pt-4">
+                <a href="{% url 'scheduler:schedule_list' %}" class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition font-medium">Cancel</a>
+                <button type="submit" class="px-5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition">Create Plan</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -191,39 +191,6 @@
 
         <!-- Logo -->
         <a href="{% url 'learning:home' %}" class="nav-logo">Study Support</a>
-
-        <!-- Avatar Profile -->
-
-        {% if user.is_authenticated %}
-        <div class="user-profile-wrapper">
-            <button class="profile-avatar-btn" id="avatarBtn">
-                {{ user.username|slice:":1"|upper }}
-            </button>
-            <div class="profile-card-popup" id="profilePopup">
-                <div class="popup-email">{{ user.email|default:user.username }}</div>
-                <div class="popup-large-avatar" id="largeAvatar">
-                    {{ user.username|slice:":1"|upper }}
-                </div>
-                <div class="popup-greeting">Hi, {{ user.username }}!</div>
-                <div class="popup-actions">
-
-                    <!--  Edit Profile  -->
-                    <a href="#" class="btn-popup-action btn-edit-profile">
-                        Edit Profile
-                    </a>
-
-                    <!--  Sign out  -->
-                    <form method="post" action="{% url 'accounts:logout' %}" style="width: 100%; margin: 0;">
-                        {% csrf_token %}
-                         <button type="submit" class="btn-popup-action">
-                            Sign out
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-        {% else %}
-        {% endif %}
     </div>
 
 </header>

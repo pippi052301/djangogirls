@@ -4,12 +4,7 @@
 
 {% block page_title %}Study Notes{% endblock %}
 
-{% block page_header %}
-<!-- Emoji Icon-->
-<div class="-mt-14 mb-4 inline-block">
-    <span class="text-6xl hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded cursor-pointer transition">📝</span>
-</div>
-{% endblock %}
+{% block page_header %}{% endblock %}
 
 {% block content %}
 <div class="space-y-6 relative">
@@ -32,6 +27,8 @@
                     </a>
                 {% endif %}
             </form>
+
+
 
             <!-- Sort Dropdown Menu (3 Horizontal Bars Icon) -->
             <div class="relative inline-block text-left">
@@ -110,14 +107,14 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     {% for note in notes %}
-                    <tr class="note-row-item hover:bg-slate-50 dark:hover:bg-slate-800/50 group transition" data-note-title="{{ note.title|lower }}" data-note-tags="{% for tag in note.tags.all %}{{ tag.name|lower }} {% endfor %}">
+                    <tr class="note-row-item hover:bg-slate-50 dark:hover:bg-slate-800/50 group transition cursor-pointer" oncontextmenu="showNoteContextMenu(event, '{{ note.title|escapejs }}')" data-note-title="{{ note.title|lower }}" data-note-tags="{% for tag in note.tags.all %}{{ tag.name|lower }} {% endfor %}">
                         <td class="py-2 px-2 text-center select-checkbox-col hidden">
                             <input type="checkbox" name="note_ids" value="{{ note.id }}" onchange="updateBulkState()" class="note-item-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer">
                         </td>
                         <td class="py-2 px-3 font-medium text-slate-800 dark:text-slate-200">
                             <div class="flex items-center gap-2">
-                                <span>✏️</span>
-                                <a href="{% url 'notes:note_detail' pk=note.pk %}" class="hover:underline font-semibold">{{ note.title }}</a>
+                                <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-500 shrink-0"></i>
+                                <button type="button" onclick="openEditNoteModal('{{ note.pk }}', '{{ note.title|escapejs }}', '{{ note.folder.id|default:'' }}', '{{ note.content_text|escapejs }}', [{% for t in note.tags.all %}'{{ t.id }}'{% if not forloop.last %},{% endif %}{% endfor %}])" class="hover:underline font-semibold text-left text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition">{{ note.title }}</button>
                             </div>
                         </td>
                         <td class="py-2 px-3">
@@ -212,8 +209,8 @@
 </div>
 
 <!-- SIDE PEEK MODAL (New Note) -->
-<div id="note-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end hidden transition-opacity">
-    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800/80 rounded-l-3xl overflow-y-auto transform transition-transform">
+<div id="note-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end hidden drawer-backdrop">
+    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800/80 rounded-l-3xl overflow-y-auto drawer-panel">
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
             <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">New note</span>
             <button onclick="closeNoteModal()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
@@ -225,11 +222,20 @@
         <form method="POST" action="{% url 'notes:note_create' %}" class="space-y-6 flex-1 flex flex-col">
             {% csrf_token %}
             <div>
-                <input type="text" name="title" placeholder="Untitled" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent">
+                <input type="text" name="title" autocomplete="off" placeholder="Untitled" required class="w-full text-3xl font-bold border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent dark:bg-transparent">
             </div>
 
             <!-- Page Properties -->
             <div class="space-y-3 text-xs text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-6">
+                <div class="flex items-center gap-4">
+                    <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="file-up" class="w-3.5 h-3.5 text-blue-500"></i> Import file</span>
+                    <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 text-xs text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition font-medium select-none shadow-sm group">
+                        <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-blue-500 group-hover:scale-110 transition-transform"></i>
+                        <span>Upload .txt file</span>
+                        <input type="file" accept=".txt" class="hidden" onchange="handleNoteModalFileImport(event)">
+                    </label>
+                </div>
+
                 <div class="flex items-center gap-4">
                     <span class="w-24 flex items-center gap-1.5 text-slate-400 font-medium"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Date created</span>
                     <span class="text-slate-700 dark:text-slate-300 font-semibold">{% now "M d, Y" %}</span>
@@ -423,7 +429,15 @@
         document.querySelectorAll('.tag-checkbox').forEach(cb => cb.checked = false);
         updateSelectedTagsDisplay();
 
-        modal.classList.remove('hidden');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.remove('active');
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(() => modal.classList.add('active'));
+            } else {
+                requestAnimationFrame(() => modal.classList.add('active'));
+            }
+        }
     }
 
     function openEditNoteModal(noteId, title, folderId, contentText, tagIds) {
@@ -450,7 +464,15 @@
         });
         updateSelectedTagsDisplay();
 
-        modal.classList.remove('hidden');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.remove('active');
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(() => modal.classList.add('active'));
+            } else {
+                requestAnimationFrame(() => modal.classList.add('active'));
+            }
+        }
     }
 
     window.openNoteSidePeek = openEditNoteModal;
@@ -472,7 +494,22 @@
     });
 
     function closeNoteModal() {
-        document.getElementById('note-modal').classList.add('hidden');
+        const modal = document.getElementById('note-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            const hideAction = () => {
+                setTimeout(() => {
+                    if (!modal.classList.contains('active')) {
+                        modal.classList.add('hidden');
+                    }
+                }, 350);
+            };
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(hideAction);
+            } else {
+                hideAction();
+            }
+        }
     }
 
     // Toggle Popover Menu
@@ -867,6 +904,104 @@
             if (countText) countText.textContent = checked.length + ' selected';
         } else {
             if (bar) bar.classList.add('hidden');
+        }
+    }
+</script>
+
+<!-- Custom Context Menu for Right Click on Note -->
+<div id="note-context-menu" class="hidden fixed bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl py-1 z-50 text-xs w-56 select-none">
+    <div class="px-3 py-1.5 border-b border-slate-100 dark:border-slate-700 text-[11px] font-semibold text-slate-400 dark:text-slate-500 truncate" id="context-note-title">
+        Selected Note
+    </div>
+    <button type="button" onclick="goToAIPageWithNote()" class="w-full text-left flex items-center gap-2.5 px-3 py-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 font-medium transition">
+        <i data-lucide="sparkles" class="w-4 h-4 text-purple-500"></i>
+        <span>Text with AI about this</span>
+    </button>
+</div>
+
+<script>
+    let selectedContextNoteTitle = '';
+
+    function showNoteContextMenu(e, title) {
+        e.preventDefault();
+        selectedContextNoteTitle = title;
+        
+        const menu = document.getElementById('note-context-menu');
+        const titleEl = document.getElementById('context-note-title');
+        if (titleEl) titleEl.textContent = title;
+        
+        if (menu) {
+            menu.style.left = Math.min(e.clientX, window.innerWidth - 230) + 'px';
+            menu.style.top = Math.min(e.clientY, window.innerHeight - 100) + 'px';
+            menu.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function goToAIPageWithNote() {
+        if (selectedContextNoteTitle) {
+            window.location.href = "{% url 'ai_home' %}?prompt=" + encodeURIComponent("Let's analyze and discuss my study note: " + selectedContextNoteTitle);
+        } else {
+            window.location.href = "{% url 'ai_home' %}";
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('note-context-menu');
+        if (menu && !menu.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
+
+    async function handleNoteModalFileImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const titleInput = document.querySelector('input[name="title"]');
+        const editor = document.getElementById('rich-note-editor');
+        const hiddenContent = document.getElementById('hidden-note-content');
+
+        const rawName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+        const formattedTitle = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+        if (titleInput && (!titleInput.value || titleInput.value.trim() === '' || titleInput.value === 'Untitled')) {
+            titleInput.value = formattedTitle;
+        }
+
+        const fileExt = file.name.split('.').pop().toLowerCase();
+
+        try {
+            let textContent = '';
+            if (fileExt === 'txt') {
+                textContent = await file.text();
+                showImportToast(`Imported TXT file: ${file.name}`);
+            } else if (fileExt === 'pdf') {
+                showImportToast(`Reading PDF: ${file.name}...`);
+                const arrayBuffer = await file.arrayBuffer();
+                if (window.pdfjsLib) {
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    let fullText = '';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContentObj = await page.getTextContent();
+                        const pageText = textContentObj.items.map(item => item.str).join(' ');
+                        fullText += pageText + '\n\n';
+                    }
+                    textContent = fullText.trim();
+                    showImportToast(`Imported ${pdf.numPages} pages from ${file.name}!`);
+                } else {
+                    alert('PDF reader module is loading. Please try again.');
+                    return;
+                }
+            }
+
+            if (editor) {
+                const formattedHtml = textContent.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '<br>').join('');
+                editor.innerHTML = formattedHtml;
+                if (hiddenContent) hiddenContent.value = editor.innerHTML;
+            }
+        } catch (err) {
+            console.error('File import error:', err);
+            alert('Could not import file: ' + err.message);
         }
     }
 </script>

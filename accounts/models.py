@@ -32,6 +32,9 @@ class PasswordResetOTP(models.Model):
 
     @classmethod
     def generate_otp(cls, user):
+        # Invalidate previous unused OTP codes for this user so only the latest is active
+        cls.objects.filter(user=user, used_at__isnull=True).update(used_at=timezone.now())
+
         code = f"{secrets.randbelow(1_000_000):06d}"
 
         cls.objects.create(
@@ -43,25 +46,3 @@ class PasswordResetOTP(models.Model):
 
     def __str__(self):
         return f"Password reset OTP for {self.user}"
-
-
-class UserProfile(models.Model):
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="profile"
-    )
-    name = models.CharField(max_length=255, blank=True, default="")
-    avatar_url = models.CharField(max_length=500, blank=True, default="")
-    bio = models.TextField(blank=True, default="")
-    pronouns = models.CharField(max_length=100, blank=True, default="Don't specify")
-    company = models.CharField(max_length=255, blank=True, default="")
-    location = models.CharField(max_length=255, blank=True, default="")
-    website = models.CharField(max_length=255, blank=True, default="")
-    social_1 = models.CharField(max_length=255, blank=True, default="")
-    social_2 = models.CharField(max_length=255, blank=True, default="")
-    social_3 = models.CharField(max_length=255, blank=True, default="")
-    social_4 = models.CharField(max_length=255, blank=True, default="")
-
-    def __str__(self):
-        return f"Profile of {self.user.username}"

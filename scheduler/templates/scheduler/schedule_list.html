@@ -1,0 +1,785 @@
+{% extends 'base_notes.html' %}
+
+{% block title %}Study Plan - Personal Study Space{% endblock %}
+
+{% block main_container_class %}w-full max-w-full px-4 sm:px-8 py-6{% endblock %}
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.7);
+    }
+</style>
+
+{% block page_title %}Study Plan{% endblock %}
+
+{% block page_header %}
+<div class="pt-2 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
+                <i data-lucide="calendar" class="w-7 h-7 text-blue-600 dark:text-blue-400"></i>
+                <span>Study Plan</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">Weekly schedule & monthly planner</p>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <!-- Toggle View Buttons -->
+            <div class="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button type="button" id="btn-week-view" onclick="setCalendarView('week')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition flex items-center gap-1.5">
+                    <i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> Weekly
+                </button>
+                <button type="button" id="btn-month-view" onclick="setCalendarView('month')" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1.5">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Monthly
+                </button>
+            </div>
+
+            <!-- Create Plan Trigger Button -->
+            <button type="button" onclick="openPlanModal()" class="px-4 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition flex items-center gap-1.5">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Create Plan</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. WEEKLY CALENDAR VIEW (LỊCH TUẦN - FULL WIDTH) -->
+    <div id="calendar-week-view" class="space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+            <div class="flex items-center gap-2">
+                <i data-lucide="calendar-days" class="w-4 h-4 text-blue-500"></i>
+                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                    Weekly Schedule ({{ week_days.0|date:"M d" }} - {{ week_days.6|date:"M d, Y" }})
+                </h3>
+            </div>
+            <span class="text-xs text-slate-400 font-semibold">Current Week</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-7 gap-3.5">
+            {% for day in week_days %}
+            <div class="bg-white dark:bg-slate-800/90 border {% if day == today %}border-blue-500 ring-2 ring-blue-500/20 shadow-md{% else %}border-slate-200 dark:border-slate-700/80{% endif %} rounded-2xl p-3.5 flex flex-col justify-between min-h-[220px] transition">
+                <div>
+                    <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-100 dark:border-slate-700/60">
+                        <span class="text-xs font-bold uppercase tracking-wider {% if day == today %}text-blue-600 dark:text-blue-400{% else %}text-slate-400{% endif %}">
+                            {{ day|date:"D" }}
+                        </span>
+                        <span class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center {% if day == today %}bg-blue-600 text-white shadow-sm{% else %}text-slate-700 dark:text-slate-300{% endif %}">
+                            {{ day|date:"j" }}
+                        </span>
+                    </div>
+
+                    <!-- Scheduled Events for this Day (Scrollable if long list) -->
+                    <div class="space-y-2 mt-2 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
+                        {% for schedule in schedules %}
+                            {% if schedule.is_active %}
+                                {% if schedule.frequency == 'daily' or schedule.frequency == 'weekly' and day|date:"D" in schedule.weekly_days or schedule.frequency == 'specific' and schedule.specific_date|date:"Y-m-d" == day|date:"Y-m-d" %}
+                                <div class="relative group/card">
+                                    <div onclick="window.location.href='{{ schedule.ai_study_url }}'" class="flex flex-col items-center justify-center p-3 pb-7 rounded-xl border transition shadow-sm text-center {{ schedule.card_style }} w-full cursor-pointer hover:scale-[1.02] active:scale-[0.98]" title="{{ schedule.topic }} (P{{ schedule.priority }})">
+                                        <div class="text-xs font-bold w-full text-center px-1 break-words leading-tight line-clamp-2">
+                                            {{ schedule.topic }}
+                                        </div>
+                                        <div class="text-[10px] font-mono flex items-center justify-center gap-1 mt-1 font-semibold whitespace-nowrap w-full opacity-90">
+                                            <i data-lucide="clock" class="w-3 h-3 shrink-0"></i>
+                                            <span>{% if schedule.start_time %}{{ schedule.start_time|time:"H:i" }}{% else %}{{ schedule.time|time:"H:i" }}{% endif %}{% if schedule.end_time %} - {{ schedule.end_time|time:"H:i" }}{% endif %}</span>
+                                        </div>
+                                    </div>
+                                     <!-- Edit & Delete Action Buttons -->
+                                     <div class="absolute bottom-1 right-1.5 z-30 flex items-center gap-1 opacity-90 group-hover/card:opacity-100 transition">
+                                         <button type="button" class="btn-edit-plan p-1 rounded-md bg-slate-900/30 dark:bg-white/20 hover:bg-blue-600 hover:text-white transition text-slate-800 dark:text-slate-100 cursor-pointer shadow-sm"
+                                             data-id="{{ schedule.id }}"
+                                             data-topic="{{ schedule.topic }}"
+                                             data-frequency="{{ schedule.frequency }}"
+                                             data-weekly-days="{{ schedule.weekly_days }}"
+                                             data-start-time="{% if schedule.start_time %}{{ schedule.start_time|time:'H:i' }}{% else %}{{ schedule.time|time:'H:i'|default:'' }}{% endif %}"
+                                             data-end-time="{% if schedule.end_time %}{{ schedule.end_time|time:'H:i' }}{% endif %}"
+                                             data-priority="{{ schedule.priority }}"
+                                             data-target-item="{% if schedule.folder %}folder_{{ schedule.folder.id }}{% elif schedule.note %}note_{{ schedule.note.id }}{% endif %}"
+                                             data-specific-date="{{ schedule.specific_date|date:'Y-m-d' }}"
+                                             title="Edit Plan">
+                                             <i data-lucide="pencil" class="w-3 h-3 pointer-events-none"></i>
+                                         </button>
+                                         <button type="button" class="btn-delete-plan p-1 rounded-md bg-slate-900/30 dark:bg-white/20 hover:bg-red-600 hover:text-white transition text-slate-800 dark:text-slate-100 cursor-pointer shadow-sm"
+                                             data-delete-url="{% url 'scheduler:delete' schedule.id %}"
+                                             data-topic="{{ schedule.topic }}"
+                                             title="Delete Plan">
+                                             <i data-lucide="trash-2" class="w-3 h-3 pointer-events-none"></i>
+                                         </button>
+                                     </div>
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        {% empty %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 2. MONTHLY CALENDAR VIEW (LỊCH THÁNG) -->
+    <div id="calendar-month-view" class="hidden space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+            <div class="flex items-center gap-2">
+                <i data-lucide="calendar" class="w-4 h-4 text-purple-500"></i>
+                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                    Monthly Overview — {{ month_name }} {{ year }}
+                </h3>
+            </div>
+            <div class="flex items-center gap-1 text-xs text-slate-400 font-mono">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> Today
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-sm overflow-hidden">
+            <!-- Day of Week Headers -->
+            <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 uppercase tracking-wider pb-3 border-b border-slate-100 dark:border-slate-700">
+                <div>Sun</div>
+                <div>Mon</div>
+                <div>Tue</div>
+                <div>Wed</div>
+                <div>Thu</div>
+                <div>Fri</div>
+                <div>Sat</div>
+            </div>
+
+            <!-- Month Days Grid -->
+            <div class="grid grid-cols-7 gap-1 pt-2">
+                {% for week in month_weeks %}
+                    {% for day in week %}
+                    <div class="min-h-[85px] p-2 rounded-xl border {% if day == today %}border-blue-500 bg-blue-50/40 dark:bg-blue-950/30 font-bold{% elif day.month == current_month_num %}border-slate-100 dark:border-slate-700/60 bg-slate-50/30 dark:bg-slate-800/40{% else %}border-transparent opacity-30 bg-slate-100/30 dark:bg-slate-900/30{% endif %} flex flex-col justify-between transition hover:border-blue-400">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs {% if day == today %}text-blue-600 dark:text-blue-400 font-bold{% else %}text-slate-700 dark:text-slate-300{% endif %}">
+                                {{ day|date:"j" }}
+                            </span>
+                            {% if day == today %}
+                            <span class="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-600 text-white uppercase font-bold">Today</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Active Schedules Badges (Color-Coded by Priority) -->
+                        <div class="space-y-1 mt-1">
+                            {% for schedule in schedules %}
+                                {% if schedule.is_active and day.month == current_month_num %}
+                                    {% if schedule.frequency == 'daily' or schedule.frequency == 'weekly' and day|date:"D" in schedule.weekly_days or schedule.frequency == 'specific' and schedule.specific_date|date:"Y-m-d" == day|date:"Y-m-d" %}
+                                    <a href="{{ schedule.ai_study_url }}" class="block text-[10px] truncate px-1.5 py-0.5 rounded border {{ schedule.priority_color }} font-medium transition hover:opacity-85 shadow-sm" title="{{ schedule.topic }} (Priority P{{ schedule.priority }})">
+                                        <span class="truncate">{{ schedule.topic }}</span>
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
+                            {% empty %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NOTION SIDE PEEK MODAL (Create/Edit Plan) -->
+<div id="plan-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end hidden drawer-backdrop">
+    <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl p-8 flex flex-col border-l border-slate-200 dark:border-slate-800/80 rounded-l-3xl overflow-y-auto drawer-panel">
+        <!-- Close Modal Button -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
+            <span id="modal-plan-header-title" class="text-xs font-bold text-slate-400 uppercase tracking-wider">Create Study Plan</span>
+            <button type="button" onclick="closePlanModal()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Plan Form -->
+        <form method="POST" action="{% url 'scheduler:create' %}" id="plan-modal-form" class="space-y-6 flex-1 flex flex-col justify-between">
+            {% csrf_token %}
+
+            <div class="space-y-6">
+                <!-- Collapsible Target Resource Selector -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            Select Target Resource <span class="text-xs font-normal text-slate-400">(Folder or Note)</span>
+                        </label>
+                        <button type="button" onclick="selectResourceOption('')" class="text-xs text-blue-500 hover:underline font-medium">Clear Choice</button>
+                    </div>
+                    
+                    <input type="hidden" name="target_resource" id="modal-target-resource" value="">
+
+                    <!-- Dropdown Trigger Button -->
+                    <button type="button" onclick="toggleResourceDropdown()" id="modal-res-trigger-btn" class="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-200 hover:border-blue-500 transition cursor-pointer">
+                        <span id="modal-res-trigger-text" class="truncate text-slate-500 dark:text-slate-400">Select Folder or Note (Optional)...</span>
+                        <i data-lucide="chevron-down" id="modal-res-chevron" class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200"></i>
+                    </button>
+
+                    <!-- Collapsible Scrollable Box Container -->
+                    <div id="modal-res-dropdown-container" class="hidden mt-2 max-h-48 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-800/95 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3 custom-scrollbar shadow-lg">
+                        <!-- Folders Section -->
+                        <div>
+                            <div class="px-2 py-1 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200/60 dark:border-slate-700/60 mb-1">
+                                <span>📂 Folders</span>
+                            </div>
+                            <div class="space-y-1">
+                                {% for f in user_folders %}
+                                <div onclick="selectResourceOption('folder_{{ f.id }}', '{{ f.name|escapejs }}')" id="res-option-folder_{{ f.id }}" class="modal-res-option flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/60 cursor-pointer transition select-none">
+                                    <span class="flex items-center gap-2 truncate">
+                                        <span>📂</span>
+                                        <span class="truncate">{{ f.name }}</span>
+                                    </span>
+                                    <i data-lucide="check" class="w-4 h-4 text-blue-500 hidden check-icon"></i>
+                                </div>
+                                {% empty %}
+                                <div class="px-3 py-1 text-xs text-slate-400 italic">No folders available</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Notes Section -->
+                        <div>
+                            <div class="px-2 py-1 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200/60 dark:border-slate-700/60 mb-1">
+                                <span>📝 Notes</span>
+                            </div>
+                            <div class="space-y-1">
+                                {% for n in user_notes %}
+                                <div onclick="selectResourceOption('note_{{ n.id }}', '{{ n.title|escapejs }}')" id="res-option-note_{{ n.id }}" class="modal-res-option flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/60 cursor-pointer transition select-none">
+                                    <span class="flex items-center gap-2 truncate">
+                                        <span>📝</span>
+                                        <span class="truncate">{{ n.title }}</span>
+                                    </span>
+                                    <i data-lucide="check" class="w-4 h-4 text-blue-500 hidden check-icon"></i>
+                                </div>
+                                {% empty %}
+                                <div class="px-3 py-1 text-xs text-slate-400 italic">No notes available</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Topic Input -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Study Topic / Title</label>
+                    <input type="text" name="topic" id="modal-plan-topic" autocomplete="off" required placeholder="e.g. Learning New Languages (English, Japanese, Python...)" class="w-full text-xl sm:text-2xl font-bold border-b border-slate-200 dark:border-slate-700 outline-none text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 bg-transparent dark:bg-transparent py-1.5">
+                </div>
+
+                <!-- Frequency & Priority -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Frequency</label>
+                        <div class="relative">
+                            <select name="frequency" id="modal-plan-frequency" onchange="toggleModalWeeklyDays()" class="w-full appearance-none px-4 py-2.5 pr-10 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-medium cursor-pointer">
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="specific">Specific Date</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 flex items-center justify-between">
+                            <span>Priority Level</span>
+                            <span id="modal-priority-dot-badge" class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                <span id="modal-priority-dot" class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span>
+                                <span id="modal-priority-text">P3</span>
+                            </span>
+                        </label>
+                        <div class="relative">
+                            <select name="priority" id="modal-plan-priority" onchange="updatePriorityDot()" class="w-full appearance-none px-4 py-2.5 pr-10 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-semibold cursor-pointer">
+                                <option value="1">P1 - Highest Priority</option>
+                                <option value="2">P2 - High Priority</option>
+                                <option value="3" selected>P3 - Medium Priority</option>
+                                <option value="4">P4 - Low Priority</option>
+                                <option value="5">P5 - Lowest Priority</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Specific Date Input Container -->
+                <div id="modal-specific-date-container" class="hidden space-y-2 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/80 text-sm">
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Target Date:</label>
+                    <input type="date" name="specific_date" id="modal-plan-specific-date" class="w-full px-4 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-medium cursor-pointer">
+                </div>
+
+                <!-- Weekly Repeat Days -->
+                <div id="modal-weekly-days-container" class="hidden space-y-2 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/80 text-sm">
+                    <span class="font-semibold text-slate-700 dark:text-slate-200">Repeat Days:</span>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                            <input type="checkbox" name="weekly_days_list" value="Mon" checked class="modal-weekly-day-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <span>Mon</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                            <input type="checkbox" name="weekly_days_list" value="Tue" checked class="modal-weekly-day-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <span>Tue</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                            <input type="checkbox" name="weekly_days_list" value="Wed" checked class="modal-weekly-day-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <span>Wed</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                            <input type="checkbox" name="weekly_days_list" value="Thu" checked class="modal-weekly-day-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <span>Thu</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                            <input type="checkbox" name="weekly_days_list" value="Fri" checked class="modal-weekly-day-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <span>Fri</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                            <input type="checkbox" name="weekly_days_list" value="Sat" class="modal-weekly-day-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <span>Sat</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition">
+                            <input type="checkbox" name="weekly_days_list" value="Sun" class="modal-weekly-day-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <span>Sun</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Start & End Time Custom Selectors -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Start Time Custom Controls -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5 flex items-center justify-between">
+                            <span>Start Time</span>
+                            <span class="text-xs font-mono text-blue-600 dark:text-blue-400 font-bold" id="modal-start-time-preview">08:00 AM</span>
+                        </label>
+                        <input type="hidden" name="start_time" id="modal_start_time_hidden" value="08:00">
+                        <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl">
+                            <select id="modal-start-hr" onchange="syncModalTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer text-center">
+                                <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08" selected>08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                            </select>
+                            <select id="modal-start-min" onchange="syncModalTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer text-center">
+                                <option value="00" selected>:00</option><option value="15">:15</option><option value="30">:30</option><option value="45">:45</option>
+                            </select>
+                            <select id="modal-start-ampm" onchange="syncModalTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 focus:outline-none cursor-pointer text-center">
+                                <option value="AM" selected>AM</option><option value="PM">PM</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- End Time Custom Controls -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5 flex items-center justify-between">
+                            <span>End Time</span>
+                            <span class="text-xs font-mono text-purple-600 dark:text-purple-400 font-bold" id="modal-end-time-preview">10:00 AM</span>
+                        </label>
+                        <input type="hidden" name="end_time" id="modal_end_time_hidden" value="10:00">
+                        <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl">
+                            <select id="modal-end-hr" onchange="syncModalTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer text-center">
+                                <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10" selected>10</option><option value="11">11</option><option value="12">12</option>
+                            </select>
+                            <select id="modal-end-min" onchange="syncModalTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer text-center">
+                                <option value="00" selected>:00</option><option value="15">:15</option><option value="30">:30</option><option value="45">:45</option>
+                            </select>
+                            <select id="modal-end-ampm" onchange="syncModalTimes()" class="px-2 py-2 text-sm font-bold rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60 focus:outline-none cursor-pointer text-center">
+                                <option value="AM" selected>AM</option><option value="PM">PM</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Save Buttons -->
+            <div class="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onclick="closePlanModal()" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition">
+                    Save Plan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function setCalendarView(mode) {
+        const weekView = document.getElementById('calendar-week-view');
+        const monthView = document.getElementById('calendar-month-view');
+
+        const btnWeek = document.getElementById('btn-week-view');
+        const btnMonth = document.getElementById('btn-month-view');
+
+        const activeClass = 'px-3 py-1.5 text-xs rounded-lg font-medium flex items-center gap-1.5 transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm';
+        const inactiveClass = 'px-3 py-1.5 text-xs rounded-lg font-medium flex items-center gap-1.5 transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+
+        if (mode === 'week') {
+            weekView.classList.remove('hidden');
+            monthView.classList.add('hidden');
+            btnWeek.className = activeClass;
+            btnMonth.className = inactiveClass;
+        } else {
+            weekView.classList.add('hidden');
+            monthView.classList.remove('hidden');
+            btnMonth.className = activeClass;
+            btnWeek.className = inactiveClass;
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function convert12to24Modal(hr, min, ampm) {
+        let hour = parseInt(hr, 10);
+        if (ampm === 'PM' && hour < 12) hour += 12;
+        if (ampm === 'AM' && hour === 12) hour = 0;
+        const hourStr = hour < 10 ? '0' + hour : '' + hour;
+        return `${hourStr}:${min}`;
+    }
+
+    function syncModalTimes() {
+        const sHr = document.getElementById('modal-start-hr').value;
+        const sMin = document.getElementById('modal-start-min').value;
+        const sAmPm = document.getElementById('modal-start-ampm').value;
+
+        const eHr = document.getElementById('modal-end-hr').value;
+        const eMin = document.getElementById('modal-end-min').value;
+        const eAmPm = document.getElementById('modal-end-ampm').value;
+
+        const start24 = convert12to24Modal(sHr, sMin, sAmPm);
+        const end24 = convert12to24Modal(eHr, eMin, eAmPm);
+
+        const sHidden = document.getElementById('modal_start_time_hidden');
+        if (sHidden) sHidden.value = start24;
+        const eHidden = document.getElementById('modal_end_time_hidden');
+        if (eHidden) eHidden.value = end24;
+
+        const sPrev = document.getElementById('modal-start-time-preview');
+        if (sPrev) sPrev.textContent = `${sHr}:${sMin} ${sAmPm}`;
+        const ePrev = document.getElementById('modal-end-time-preview');
+        if (ePrev) ePrev.textContent = `${eHr}:${eMin} ${eAmPm}`;
+    }
+
+    function setModalTimeDropdowns(start24, end24) {
+        if (start24 && start24.includes(':')) {
+            const parts = start24.split(':');
+            let h = parseInt(parts[0], 10);
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            if (h > 12) h -= 12;
+            if (h === 0) h = 12;
+            const hStr = h < 10 ? '0' + h : '' + h;
+            const sHr = document.getElementById('modal-start-hr');
+            if (sHr) sHr.value = hStr;
+            const sMin = document.getElementById('modal-start-min');
+            if (sMin) sMin.value = parts[1] || '00';
+            const sAmPm = document.getElementById('modal-start-ampm');
+            if (sAmPm) sAmPm.value = ampm;
+        }
+
+        if (end24 && end24.includes(':')) {
+            const parts = end24.split(':');
+            let h = parseInt(parts[0], 10);
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            if (h > 12) h -= 12;
+            if (h === 0) h = 12;
+            const hStr = h < 10 ? '0' + h : '' + h;
+            const eHr = document.getElementById('modal-end-hr');
+            if (eHr) eHr.value = hStr;
+            const eMin = document.getElementById('modal-end-min');
+            if (eMin) eMin.value = parts[1] || '00';
+            const eAmPm = document.getElementById('modal-end-ampm');
+            if (eAmPm) eAmPm.value = ampm;
+        }
+
+        syncModalTimes();
+    }
+
+    function updatePriorityDot() {
+        const prioEl = document.getElementById('modal-plan-priority');
+        if (!prioEl) return;
+        const prioVal = prioEl.value;
+        const dot = document.getElementById('modal-priority-dot');
+        const badge = document.getElementById('modal-priority-dot-badge');
+        const text = document.getElementById('modal-priority-text');
+        if (!dot || !badge || !text) return;
+
+        text.textContent = `P${prioVal}`;
+
+        const colorMap = {
+            '1': { dot: 'bg-red-500', badge: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20' },
+            '2': { dot: 'bg-orange-500', badge: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20' },
+            '3': { dot: 'bg-amber-500', badge: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
+            '4': { dot: 'bg-blue-500', badge: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
+            '5': { dot: 'bg-slate-500', badge: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20' }
+        };
+
+        const cfg = colorMap[prioVal] || colorMap['3'];
+        dot.className = `w-2.5 h-2.5 rounded-full ${cfg.dot} shadow-sm`;
+        badge.className = `flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${cfg.badge} border`;
+    }
+
+    function toggleResourceDropdown(forceState) {
+        const container = document.getElementById('modal-res-dropdown-container');
+        const chevron = document.getElementById('modal-res-chevron');
+        if (!container) return;
+
+        const isHidden = container.classList.contains('hidden');
+        const shouldShow = (forceState !== undefined) ? forceState : isHidden;
+
+        if (shouldShow) {
+            container.classList.remove('hidden');
+            if (chevron) chevron.style.transform = 'rotate(180deg)';
+        } else {
+            container.classList.add('hidden');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function selectResourceOption(val, textName) {
+        const hiddenRes = document.getElementById('modal-target-resource');
+        if (hiddenRes) hiddenRes.value = val || '';
+
+        const triggerText = document.getElementById('modal-res-trigger-text');
+
+        document.querySelectorAll('.modal-res-option').forEach(el => {
+            el.classList.remove('bg-blue-100', 'dark:bg-blue-900/40', 'ring-1', 'ring-blue-500', 'text-blue-700', 'dark:text-blue-200');
+            const check = el.querySelector('.check-icon');
+            if (check) check.classList.add('hidden');
+        });
+
+        if (val) {
+            const activeEl = document.getElementById(`res-option-${val}`);
+            if (activeEl) {
+                activeEl.classList.add('bg-blue-100', 'dark:bg-blue-900/40', 'ring-1', 'ring-blue-500', 'text-blue-700', 'dark:text-blue-200');
+                const check = activeEl.querySelector('.check-icon');
+                if (check) check.classList.remove('hidden');
+            }
+
+            const prefix = val.startsWith('folder_') ? '📂 ' : '📝 ';
+            if (triggerText && textName) {
+                triggerText.textContent = prefix + textName;
+                triggerText.className = "truncate text-slate-800 dark:text-slate-100 font-semibold";
+            }
+
+            const topicInput = document.getElementById('modal-plan-topic');
+            if (topicInput && textName) {
+                topicInput.value = textName;
+            }
+
+            // Auto-collapse scroll container after choosing
+            toggleResourceDropdown(false);
+        } else {
+            if (triggerText) {
+                triggerText.textContent = "Select Folder or Note (Optional)...";
+                triggerText.className = "truncate text-slate-500 dark:text-slate-400 font-medium";
+            }
+        }
+    }
+
+    function openPlanModal() {
+        const modal = document.getElementById('plan-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.remove('active');
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(() => modal.classList.add('active'));
+            } else {
+                requestAnimationFrame(() => modal.classList.add('active'));
+            }
+        }
+
+        const headerTitle = document.getElementById('modal-plan-header-title');
+        if (headerTitle) headerTitle.textContent = 'Create Study Plan';
+
+        const form = document.getElementById('plan-modal-form');
+        if (form) form.action = "{% url 'scheduler:create' %}";
+
+        const topicInput = document.getElementById('modal-plan-topic');
+        if (topicInput) topicInput.value = '';
+
+        selectResourceOption('');
+
+        const freqSelect = document.getElementById('modal-plan-frequency');
+        if (freqSelect) freqSelect.value = 'daily';
+
+        const prioSelect = document.getElementById('modal-plan-priority');
+        if (prioSelect) prioSelect.value = '3';
+
+        const specDate = document.getElementById('modal-plan-specific-date');
+        if (specDate) {
+            const today = new Date().toISOString().split('T')[0];
+            specDate.value = today;
+        }
+
+        setModalTimeDropdowns('08:00', '10:00');
+        updatePriorityDot();
+        toggleModalWeeklyDays();
+    }
+
+    function openEditPlanModal(id, topic, frequency, weeklyDays, startTime, endTime, priority, targetResource, specificDate) {
+        const modal = document.getElementById('plan-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.remove('active');
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(() => modal.classList.add('active'));
+            } else {
+                requestAnimationFrame(() => modal.classList.add('active'));
+            }
+        }
+
+        const headerTitle = document.getElementById('modal-plan-header-title');
+        if (headerTitle) headerTitle.textContent = 'Edit Study Plan';
+
+        const form = document.getElementById('plan-modal-form');
+        if (form) form.action = `/quiz-schedule/update/${id}/`;
+
+        const topicInput = document.getElementById('modal-plan-topic');
+        if (topicInput) topicInput.value = topic;
+
+        selectResourceOption(targetResource || '');
+
+        const freqSelect = document.getElementById('modal-plan-frequency');
+        if (freqSelect) freqSelect.value = frequency || 'daily';
+
+        const prioSelect = document.getElementById('modal-plan-priority');
+        if (prioSelect) prioSelect.value = priority || '3';
+
+        const specDate = document.getElementById('modal-plan-specific-date');
+        if (specDate) specDate.value = specificDate || new Date().toISOString().split('T')[0];
+
+        setModalTimeDropdowns(startTime || '08:00', endTime || '10:00');
+
+        const daysArr = weeklyDays ? weeklyDays.split(',') : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+        document.querySelectorAll('.modal-weekly-day-checkbox').forEach(cb => {
+            cb.checked = daysArr.includes(cb.value);
+        });
+
+        updatePriorityDot();
+        toggleModalWeeklyDays();
+    }
+
+    function closePlanModal() {
+        const modal = document.getElementById('plan-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            const hideAction = () => {
+                setTimeout(() => {
+                    if (!modal.classList.contains('active')) {
+                        modal.classList.add('hidden');
+                    }
+                }, 350);
+            };
+            if (typeof doubleRAF === 'function') {
+                doubleRAF(hideAction);
+            } else {
+                hideAction();
+            }
+        }
+    }
+
+    function toggleModalWeeklyDays() {
+        const freq = document.getElementById('modal-plan-frequency');
+        if (!freq) return;
+        const weeklyContainer = document.getElementById('modal-weekly-days-container');
+        const specificContainer = document.getElementById('modal-specific-date-container');
+
+        if (weeklyContainer) {
+            if (freq.value === 'weekly') {
+                weeklyContainer.classList.remove('hidden');
+            } else {
+                weeklyContainer.classList.add('hidden');
+            }
+        }
+
+        if (specificContainer) {
+            if (freq.value === 'specific') {
+                specificContainer.classList.remove('hidden');
+            } else {
+                specificContainer.classList.add('hidden');
+            }
+        }
+    }
+
+    function confirmDeletePlan(deleteUrl, planTopic) {
+        const modal = document.getElementById('delete-plan-confirm-modal');
+        const desc = document.getElementById('delete-plan-modal-desc');
+        const confirmBtn = document.getElementById('delete-plan-confirm-btn');
+        if (!modal || !confirmBtn) return;
+
+        if (desc) {
+            desc.innerHTML = `Are you sure you want to delete <strong class="text-slate-900 dark:text-white font-semibold">"${planTopic || 'this study plan'}"</strong>? This action cannot be undone.`;
+        }
+        confirmBtn.href = deleteUrl;
+        modal.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeDeletePlanModal() {
+        const modal = document.getElementById('delete-plan-confirm-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    document.addEventListener('click', function(e) {
+        const editBtn = e.target.closest('.btn-edit-plan');
+        if (editBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const ds = editBtn.dataset;
+            openEditPlanModal(
+                ds.id,
+                ds.topic,
+                ds.frequency,
+                ds.weeklyDays,
+                ds.startTime,
+                ds.endTime,
+                ds.priority,
+                ds.targetItem,
+                ds.specificDate
+            );
+            return;
+        }
+
+        const deleteBtn = e.target.closest('.btn-delete-plan');
+        if (deleteBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            confirmDeletePlan(deleteBtn.dataset.deleteUrl, deleteBtn.dataset.topic);
+            return;
+        }
+    });
+</script>
+
+<!-- SLEEK GLASSMORPHIC PLAN DELETE CONFIRMATION MODAL -->
+<div id="delete-plan-confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm hidden p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center shrink-0">
+                <i data-lucide="trash-2" class="w-6 h-6 text-rose-500"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="font-bold text-base text-slate-900 dark:text-slate-100">Delete Study Plan?</h3>
+                <p id="delete-plan-modal-desc" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Are you sure you want to delete this study plan? This action cannot be undone.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+            <button type="button" onclick="closeDeletePlanModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition">
+                Cancel
+            </button>
+            <a id="delete-plan-confirm-btn" href="#" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition flex items-center gap-1.5">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>Delete Plan</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

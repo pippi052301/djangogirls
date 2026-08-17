@@ -14,8 +14,8 @@ from django.utils import timezone
 def notes_processor(request):
     if request.user.is_authenticated:
         today_date = timezone.localtime(timezone.now()).date()
-        today_notes = Note.objects.filter(owner=request.user, created_at__date=today_date).order_by('-created_at')
-        sidebar_notes = Note.objects.filter(owner=request.user).order_by('-created_at')[:30]
+        today_notes = Note.objects.filter(owner=request.user, created_at__date=today_date).exclude(template_type='pdf').exclude(title__icontains='.pdf').order_by('-created_at')
+        sidebar_notes = Note.objects.filter(owner=request.user).exclude(template_type='pdf').exclude(title__icontains='.pdf').order_by('-created_at')[:30]
         sidebar_folders = Folder.objects.filter(owner=request.user).order_by('-created_at')[:10]
         return {
             'today_notes': today_notes,
@@ -31,6 +31,8 @@ def note_list(request):
     notes_queryset = (
         Note.objects
         .filter(owner=request.user)
+        .exclude(template_type='pdf')
+        .exclude(title__icontains='.pdf')
         .prefetch_related('tags')
         .select_related('folder')
     )
@@ -90,9 +92,19 @@ def note_create(request):
         if form.is_valid():
             note = form.save(commit=False)
             note.owner = request.user
+
+            folder_id = request.POST.get('folder') or request.GET.get('folder_id')
+            if folder_id:
+                folder_obj = Folder.objects.filter(id=folder_id, owner=request.user).first()
+                if folder_obj:
+                    note.folder = folder_obj
+
             note.save()
+            form.save_m2m()
+
 
             form.save_m2m()
+
 
             tag_ids = request.POST.getlist('tags')
 
@@ -103,9 +115,102 @@ def note_create(request):
                 )
                 note.tags.set(valid_tags)
 
+            if note.folder:
+                return redirect("notes:folder_detail", pk=note.folder.pk)
+
             return redirect("notes:note_list")
 
     return redirect("notes:note_list")
+
+
+@login_required
+def folder_create(request):
+    if request.method == "POST":
+        form = FolderForm(
+            request.POST,
+            user=request.user
+        )
+
+        if form.is_valid():
+            folder = form.save(commit=False)
+            folder.owner = request.user
+
+            parent_id = request.POST.get('parent') or request.GET.get('parent_id')
+            if parent_id:
+                parent_obj = Folder.objects.filter(id=parent_id, owner=request.user).first()
+                if parent_obj:
+                    folder.parent = parent_obj
+
+            folder.save()
+
+            # Create notes provided inside New Folder modal (supports multiple notes or single note)
+            modal_notes_json = request.POST.get('modal_notes_json', '').strip()
+            if modal_notes_json and modal_notes_json != '[]':
+                try:
+                    notes_arr = json.loads(modal_notes_json)
+                    if isinstance(notes_arr, list):
+                        for item in notes_arr:
+                            n_title = (item.get('title') or 'Untitled Note').strip()
+                            n_content = item.get('content', '')
+                            n_template = item.get('template_type', 'blank')
+                            
+                            c_dict = {"body": n_content}
+                            if isinstance(n_content, dict):
+                                c_dict = n_content
+                            elif isinstance(n_content, str) and n_content.startswith('{') and 'pdf_data' in n_content:
+                                try:
+                                    c_dict = json.loads(n_content)
+                                    n_template = 'pdf'
+                                except Exception:
+                                    pass
+
+                            Note.objects.create(
+                                title=n_title,
+                                content=c_dict,
+                                template_type=n_template,
+                                owner=request.user,
+                                folder=folder
+                            )
+                except Exception as e:
+                    print('Error parsing modal_notes_json:', e)
+            else:
+                note_title = request.POST.get('note_title', '').strip()
+                note_content = request.POST.get('note_content', '').strip()
+                if note_title:
+                    template_type = request.POST.get('template_type', 'blank')
+                    if not template_type or template_type == 'blank':
+                        if '.pdf' in note_title.lower():
+                            template_type = 'pdf'
+
+                    content_dict = {"body": note_content}
+                    if note_content.startswith('{') and 'pdf_data' in note_content:
+                        try:
+                            content_dict = json.loads(note_content)
+                            template_type = 'pdf'
+                        except Exception:
+                            pass
+
+                    new_note = Note.objects.create(
+                        title=note_title,
+                        content=content_dict,
+                        template_type=template_type,
+                        owner=request.user,
+                        folder=folder
+                    )
+                    tag_ids = request.POST.getlist('note_tags')
+                    if tag_ids:
+                        tag_objs = Tag.objects.filter(id__in=tag_ids, owner=request.user)
+                        new_note.tags.set(tag_objs)
+
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"id": folder.id, "name": folder.name})
+
+            if folder.parent:
+                return redirect("notes:folder_detail", pk=folder.parent.pk)
+
+            return redirect("notes:folder_list")
+
+    return redirect("notes:folder_list")
 
 @login_required
 def note_detail(request, pk):
@@ -217,6 +322,17 @@ def folder_list(request):
     if search_query:
         folders = folders.filter(name__icontains=search_query)
 
+    for folder in folders:
+        notes_data = []
+        for n in folder.notes.all():
+            notes_data.append({
+                "id": n.id,
+                "title": n.title,
+                "content": n.content if isinstance(n.content, (dict, str)) else str(n.content),
+                "template_type": n.template_type or ('pdf' if '.pdf' in n.title.lower() else 'blank')
+            })
+        folder.notes_json = json.dumps(notes_data)
+
     return render(
         request,
         "folders/folder_list.html", 
@@ -244,9 +360,14 @@ def folder_create(request):
             note_title = request.POST.get('note_title', '').strip()
             note_content = request.POST.get('note_content', '').strip()
             if note_title:
+                template_type = request.POST.get('template_type', 'blank')
+                if not template_type or template_type == 'blank':
+                    if '.pdf' in note_title.lower():
+                        template_type = 'pdf'
                 new_note = Note.objects.create(
                     title=note_title,
                     content={"body": note_content},
+                    template_type=template_type,
                     owner=request.user,
                     folder=folder
                 )
@@ -305,10 +426,56 @@ def folder_edit(request, pk):
 
         if form.is_valid():
             folder = form.save()
-            return redirect(
-                "notes:folder_detail",
-                pk=folder.pk
-            )
+
+            # Batch process modal_notes_json if submitted from side drawer
+            modal_notes_json = request.POST.get('modal_notes_json', '').strip()
+            if modal_notes_json:
+                try:
+                    notes_arr = json.loads(modal_notes_json)
+                    if isinstance(notes_arr, list):
+                        submitted_ids = set()
+                        for item in notes_arr:
+                            n_id = item.get('id')
+                            n_title = (item.get('title') or 'Untitled Note').strip()
+                            n_content = item.get('content', '')
+                            n_template = item.get('template_type', 'blank')
+
+                            c_dict = {"body": n_content}
+                            if isinstance(n_content, dict):
+                                c_dict = n_content
+                            elif isinstance(n_content, str) and n_content.startswith('{') and 'pdf_data' in n_content:
+                                try:
+                                    c_dict = json.loads(n_content)
+                                    n_template = 'pdf'
+                                except Exception:
+                                    pass
+
+                            if n_id and str(n_id).isdigit():
+                                existing_note = Note.objects.filter(id=int(n_id), owner=request.user).first()
+                                if existing_note:
+                                    existing_note.title = n_title
+                                    existing_note.content = c_dict
+                                    existing_note.template_type = n_template
+                                    existing_note.folder = folder
+                                    existing_note.save()
+                                    submitted_ids.add(existing_note.id)
+                                    continue
+
+                            new_note = Note.objects.create(
+                                title=n_title,
+                                content=c_dict,
+                                template_type=n_template,
+                                owner=request.user,
+                                folder=folder
+                            )
+                            submitted_ids.add(new_note.id)
+
+                        # Delete any notes previously in this folder that were removed from the modal list!
+                        folder.notes.exclude(id__in=submitted_ids).delete()
+                except Exception as e:
+                    print('Error in folder_edit modal_notes_json:', e)
+
+            return redirect("notes:folder_list")
     else:
         form = FolderForm(
             instance=folder,

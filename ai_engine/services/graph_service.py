@@ -32,13 +32,16 @@ def generate_knowledge_graph(text_content):
     \"\"\"{text_content}\"\"\"
     """
     
-    try:
-        response = get_client().models.generate_content(
-            model='gemini-3.6-flash', 
-            contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type="application/json")
-        )
-        return json.loads(response.text)
-    except Exception as e:
-        print(f"Error when calling API draw Graph: {e}")
-        return None
+    models_to_try = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
+    for model_name in models_to_try:
+        try:
+            response = get_client().models.generate_content(
+                model=model_name, 
+                contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+            if response and response.text:
+                return json.loads(response.text)
+        except Exception as e:
+            print(f"Error when calling API draw Graph with {model_name}: {e}")
+    return None
