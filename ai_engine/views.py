@@ -478,14 +478,33 @@ def grade_simple_api(request):
 def ai_home(request):
     prompt = request.GET.get('prompt', '')
     from notes.models import Note, Folder
+    from learning.models import Attempt
     user_notes = Note.objects.filter(owner=request.user) if request.user.is_authenticated else []
     user_folders = Folder.objects.filter(owner=request.user) if request.user.is_authenticated else []
     standalone_notes = Note.objects.filter(owner=request.user, folder__isnull=True) if request.user.is_authenticated else []
+
+    recent_avg_score = 50.0
+    level_name = "Standard"
+
+    if request.user.is_authenticated:
+        avg_val = Attempt.objects.recent_average_score_for(request.user)
+        if avg_val is not None:
+            recent_avg_score = round(float(avg_val), 1)
+        
+        if recent_avg_score < 40:
+            level_name = "Basic"
+        elif recent_avg_score < 75:
+            level_name = "Standard"
+        else:
+            level_name = "Advanced"
+
     return render(request, 'ai_engine_base.html', {
         'initial_prompt': prompt,
         'user_notes': user_notes,
         'user_folders': user_folders,
         'standalone_notes': standalone_notes,
+        'recent_avg_score': recent_avg_score,
+        'level_name': level_name,
     })
 
 
@@ -733,7 +752,22 @@ def record_attempt_api(request):
                 score=Decimal(str(q.get('score', score_percent)))
             )
 
-        return JsonResponse({"status": "success", "quiz_id": quiz.id, "attempt_id": quiz_attempt.id})
+        new_avg = Attempt.objects.recent_average_score_for(user)
+        new_avg_val = round(float(new_avg), 1) if new_avg is not None else 50.0
+        if new_avg_val < 40:
+            new_lvl = "Basic"
+        elif new_avg_val < 75:
+            new_lvl = "Standard"
+        else:
+            new_lvl = "Advanced"
+
+        return JsonResponse({
+            "status": "success", 
+            "quiz_id": quiz.id, 
+            "attempt_id": quiz_attempt.id,
+            "recent_avg_score": new_avg_val,
+            "level_name": new_lvl
+        })
     except Exception as e:
         print("Record attempt error:", e)
         return JsonResponse({"error": str(e)}, status=400)
