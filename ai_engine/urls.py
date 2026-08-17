@@ -11,10 +11,8 @@ urlpatterns = [
     path('quiz/', views.create_quiz_api, name='api_create_quiz'),
     
     # API 2: Map
-    # API 2: Map
     path('graph/', views.create_graph_api, name='api_create_graph'),
     
-    # API 3: Adaptive practice
     # API 3: Adaptive practice
     path('adaptive/', views.create_adaptive_practice_api, name='api_create_adaptive'),
     
