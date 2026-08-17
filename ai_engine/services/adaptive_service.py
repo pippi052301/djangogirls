@@ -1,7 +1,10 @@
 import json
-from .ai_config import client, types
+from .ai_config import get_client, types
 
 def generate_adaptive_practice(text_content, recent_average_score=50, total_questions=5):
+
+    client = get_client()
+
     """Sinh câu hỏi thích ứng độ khó (Có kèm lời giải chi tiết)."""
     if recent_average_score < 40:
         mc_count, short_count, long_count = 4, 1, 0
@@ -59,6 +62,16 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
 
 
 def advanced_grade_essay(question, user_answer, standard_key_points, sample_essays=None):
+
+    client = get_client()
+
+    if isinstance(standard_key_points, (list, tuple)):
+        key_points_text = "\n".join(
+            f"- {point}"
+            for point in standard_key_points
+        )
+    else:
+        key_points_text = str(standard_key_points)
     """
     Hệ thống chấm điểm AI đa chiều dựa trên cơ sở khoa học giáo dục.
     - standard_key_points: Đáp án chuẩn (RAG / Retrieval).
