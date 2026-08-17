@@ -688,6 +688,7 @@ def record_attempt_api(request):
         quiz_attempt = QuizAttempt.objects.create(
             user=user,
             quiz=quiz,
+            score=Decimal(str(score_percent)),
             completed_at=timezone.now()
         )
 

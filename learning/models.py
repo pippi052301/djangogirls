@@ -204,10 +204,18 @@ class QuizAttempt(models.Model):
 class AttemptQuerySet(models.QuerySet):
     def recent_average_score_for(self, user, limit=5):
         """
-        ユーザーの直近の採点済み5問から平均点を返す。
-
-        採点済みの問題がなければ50.00を返す。
+        ユーザーの直近の採点済み5回のテストから平均点を返す。
         """
+        from learning.models import QuizAttempt
+        recent_quizzes = QuizAttempt.objects.filter(
+            user=user,
+            score__isnull=False
+        ).order_by("-completed_at")[:limit]
+
+        if recent_quizzes.exists():
+            avg = recent_quizzes.aggregate(val=models.Avg("score"))["val"]
+            if avg is not None:
+                return avg
 
         average = (
             self.filter(
