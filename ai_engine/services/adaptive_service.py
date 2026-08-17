@@ -51,7 +51,7 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
     """
     try:
         response = get_client().models.generate_content(
-            model='gemini-3.6-flash', 
+            model='gemini-flash-lite-latest', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
@@ -87,7 +87,7 @@ def grade_simple_answer(question_type, question, user_answer, correct_answer, ex
     """
     try:
         response = get_client().models.generate_content(
-            model='gemini-3.6-flash', 
+            model='gemini-flash-lite-latest', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json",
             system_instruction="You are an automated grading system. Grade objectively, strictly based on mathematical logic and semantic keyword matching. Results must be completely deterministic and identical across runs for identical inputs. Respond strictly with JSON."
@@ -150,7 +150,7 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
     
     try:
         response = get_client().models.generate_content(
-            model='gemini-3.6-flash', 
+            model='gemini-flash-lite-latest', 
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

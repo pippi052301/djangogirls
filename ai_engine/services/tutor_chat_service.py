@@ -56,7 +56,7 @@ def generate_tutor_chat_response(conversation_history, student_input, question_p
     
     try:
         response = client.models.generate_content(
-            model='gemini-3.6-flash',
+            model='gemini-flash-lite-latest',
             contents=contents,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
