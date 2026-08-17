@@ -31,23 +31,11 @@ def generate_quiz_from_text(text_content, num_questions=3):
     
     try:
         response = get_client().models.generate_content(
-            model='gemini-flash-latest', 
+            model='gemini-3.6-flash', 
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
         return json.loads(response.text)
     except Exception as e:
         print(f"Error when calling API to generate Quiz: {e}")
-        return [
-            {
-                "question": "What is the primary theme of the provided study material?",
-                "options": {
-                    "A": "Core Concepts and Fundamental Principles",
-                    "B": "Unrelated Secondary Topics",
-                    "C": "Historical Context Only",
-                    "D": "Peripheral Edge Cases"
-                },
-                "correct_answer": "A",
-                "explanation": "Fundamental principles form the core foundation of study topics."
-            }
-        ]
+        return None

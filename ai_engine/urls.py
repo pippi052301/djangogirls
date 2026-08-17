@@ -11,8 +11,10 @@ urlpatterns = [
     path('quiz/', views.create_quiz_api, name='api_create_quiz'),
     
     # API 2: Map
+    # API 2: Map
     path('graph/', views.create_graph_api, name='api_create_graph'),
     
+    # API 3: Adaptive practice
     # API 3: Adaptive practice
     path('adaptive/', views.create_adaptive_practice_api, name='api_create_adaptive'),
     
@@ -28,6 +30,9 @@ urlpatterns = [
 
     # API 7: Attempt Recording
     path('api/attempt/', views.record_attempt_api, name='api_record_attempt'),
+    path('tutor/chat/', views.tutor_chat_api, name='tutor_chat_api'),
+    path('tutor/grade/', views.submit_tutor_essay_for_grading_api, name='api_tutor_grade'),
+    path('tutor/history/', views.tutor_history_api, name='api_tutor_history'),
 
     # API 8: Coursera Socratic Debate
     path('api/socratic-debate/', views.socratic_debate_api, name='api_socratic_debate'),

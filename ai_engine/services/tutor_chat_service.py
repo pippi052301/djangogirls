@@ -4,11 +4,11 @@ from .ai_config import get_client, types
 
 def generate_tutor_chat_response(conversation_history, student_input, question_prompt, required_key_points):
     """
-    Trợ lý AI đồng hành dạng chat gợi mở (Socratic Dialogue):
-    - Đối chiếu bài làm/ý kiến của học sinh với các ý chính bắt buộc.
-    - Tuyệt đối không đưa ra đáp án hoàn chỉnh hay viết hộ bài.
-    - Gợi mở, đặt câu hỏi định hướng nếu chưa đủ ý.
-    - Trả về JSON chứa phản hồi của AI và cờ (flag) cho biết đã đủ ý chính hay chưa để bật nút chấm điểm.
+    Socratic AI Tutor:
+    - Compare the student's ideas with the required key points.
+    - Do not provide the complete answer.
+    - Guide the student using questions and hints.
+    - Return readiness for grading and a compiled final answer.
     """
     client = get_client()
     
@@ -26,19 +26,20 @@ def generate_tutor_chat_response(conversation_history, student_input, question_p
     3. If the student has NOT covered all or most of the essential key points, guide them with Socratic questioning, hints, and scaffolding questions to help them think deeper and cover the missing points.
     4. Evaluate whether the student has successfully addressed all the mandatory key points well enough to trigger the grading phase. Set "is_ready_for_grading" to true ONLY when they have explicitly or sufficiently touched upon the main required concepts. Otherwise, keep it false.
     5. WHEN "is_ready_for_grading" is true, compile everything the student has expressed across the ENTIRE conversation (all turns, including this one) into one single, coherent piece of writing in "compiled_final_answer" — use the student's own ideas and wording, do not improve, correct, or add content they didn't say. WHEN "is_ready_for_grading" is false, set "compiled_final_answer" to null.
-
     [MANDATORY OUTPUT FORMAT]
     Return your response strictly as a JSON object with the following structure:
     {{
         "ai_message": "Your conversational response, encouragement, and Socratic guidance goes here...",
         "is_ready_for_grading": false,
         "compiled_final_answer": null
+
     }}
     """
     
     # Xây dựng nội dung gửi cho mô hình bao gồm lịch sử trò chuyện (nếu có)
     contents = []
     
+    # Đưa lịch sử vào nội dung (nếu được truyền vào dưới dạng list các đoạn chat trước)
     if conversation_history:
         for message in conversation_history:
             role = "user" if message.get("role") == "user" else "model"
@@ -47,42 +48,45 @@ def generate_tutor_chat_response(conversation_history, student_input, question_p
                 parts=[types.Part.from_text(text=message.get("content", ""))]
             ))
             
+    # Thêm câu hỏi/ý kiến hiện tại của người dùng
     contents.append(types.Content(
         role="user",
         parts=[types.Part.from_text(text=student_input)]
     ))
-    
-    models_to_try = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
+
+    models_to_try = ["genmini-flash-lite-latest",
+                     "gemini-flash-latest",
+                     "gemini-3-flsh-preview",
+                     "gemini-2.5-flash-lite"
+    ]
+
     for model_name in models_to_try:
+
+
         try:
             response = client.models.generate_content(
-                model=model_name,
+                model='model_name',
                 contents=contents,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
                     response_mime_type="application/json"
-                )
+                ),
             )
-            if response and response.text:
-                return json.loads(response.text)
-        except Exception as e:
-            print(f"Error when calling Tutor Chat API ({model_name}): {e}")
-            continue
 
-    # Dynamic fallback when API quota is exceeded
-    points_mentioned = [p for p in required_key_points if any(w.lower() in student_input.lower() for w in p.split()[:2])]
-    is_ready = len(points_mentioned) >= max(1, len(required_key_points) // 2) or len(student_input) > 80
-    
-    if is_ready:
-        return {
-            "ai_message": "Great effort! You've touched upon the core concepts effectively. You can now submit your essay for comprehensive automated grading!",
-            "is_ready_for_grading": True,
-            "compiled_final_answer": student_input
-        }
-    else:
-        missing_hint = required_key_points[0] if required_key_points else "the underlying mechanism"
-        return {
-            "ai_message": f"Good start! Could you elaborate a bit more on how {missing_hint} functions in this process?",
-            "is_ready_for_grading": False,
-            "compiled_final_answer": None
-        }
+            if response and respose.text:
+                return json.loads(response.text)
+        
+        except Exception as e:
+            print(f"Error when calling Tutor Chat API: {e}")
+
+        continue
+
+    #when all Ai models failed
+    return {
+        "ai_message": (
+            "The AI tutor is currently busy. "
+            "Please try again in a moment."
+        ),
+        "is_ready_for_grading": False,
+        "compiled_final_answer": None,
+    }
