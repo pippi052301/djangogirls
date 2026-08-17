@@ -1454,14 +1454,7 @@
             let totalPoints = 0;
             let maxPoints = 0;
             quizList.forEach(q => {
-                const qType = q.type || (q.options ? 'multiple_choice' : 'short_answer');
-                if (q.max_score) {
-                    maxPoints += q.max_score;
-                } else if (qType === 'multiple_choice') {
-                    maxPoints += 10;
-                } else {
-                    maxPoints += 20;
-                }
+                maxPoints += q.max_score || 20;
             });
             if (maxPoints === 0) maxPoints = 100;
 
