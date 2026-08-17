@@ -41,24 +41,54 @@ def create_quiz_api(request):
 
 @csrf_exempt
 def create_graph_api(request):
-    """API Bóc tách Sơ đồ tư duy"""
+    """API Bóc tách Sơ đồ tư duy - reads actual note/folder content from DB"""
     if request.method == 'POST':
         try:
             body = json.loads(request.body)
             context_type = body.get('context_type', '')
             context_name = body.get('context_name', '')
+            # text is optional fallback; we prefer reading from DB
             text_content = body.get('text', '')
-            
-            if not text_content:
-                return JsonResponse({"error": "Thiếu nội dung văn bản (text)"}, status=400)
-            
-            graph_data = generate_knowledge_graph(text_content)
-            
+
+            # --- Fetch real note content from database ---
+            from notes.models import Note, Folder
+            real_text = ''
+            if context_type == 'folder' and context_name:
+                user_filter = {'owner': request.user} if request.user.is_authenticated else {}
+                folder = Folder.objects.filter(name=context_name, **user_filter).first()
+                if not folder:
+                    folder = Folder.objects.filter(name=context_name).first()
+                if folder:
+                    notes = Note.objects.filter(folder=folder)
+                    if notes.exists():
+                        real_text = '\n\n'.join(
+                            [f"Note Title: {n.title}\nContent:\n{extract_clean_note_text(n)}" for n in notes]
+                        )
+            elif context_type == 'note' and context_name:
+                user_filter = {'owner': request.user} if request.user.is_authenticated else {}
+                note = Note.objects.filter(title=context_name, **user_filter).first()
+                if not note:
+                    note = Note.objects.filter(title=context_name).first()
+                if note:
+                    real_text = f"Note Title: {note.title}\nContent:\n{extract_clean_note_text(note)}"
+
+            # Use real note text if available, else fall back to whatever frontend sent
+            final_text = real_text.strip() or text_content.strip()
+
+            if not final_text or len(final_text) < 30:
+                return JsonResponse({
+                    "status": "error",
+                    "insufficient_content": True,
+                    "message": "Ghi chú chưa có nội dung đủ để tạo Knowledge Graph. Hãy thêm nội dung vào ghi chú trước!"
+                }, status=200)
+
+            graph_data = generate_knowledge_graph(final_text)
+
             if graph_data:
                 return JsonResponse({"status": "success", "data": graph_data}, status=200)
             else:
                 return JsonResponse({"error": "AI đang bận hoặc lỗi xử lý"}, status=503)
-                
+
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "Invalid method"}, status=405)
