@@ -1519,187 +1519,203 @@
 
             for (let idx = 0; idx < quizList.length; idx++) {
                 const q = quizList[idx];
-                const userChoice = quizSelectedAnswers[containerId + '-' + idx] || '';
-                const expEl = document.getElementById(`${containerId}-exp-${idx}`);
-                if (expEl) expEl.classList.remove('hidden');
+                if (!q) continue;
 
-                const qType = q.type || (q.options ? 'multiple_choice' : 'short_answer');
-                const cardEl = expEl ? expEl.parentElement : null;
-                const maxQScore = q.max_score || 20;
+                try {
+                    const userChoice = quizSelectedAnswers[containerId + '-' + idx] || '';
+                    const expEl = document.getElementById(`${containerId}-exp-${idx}`);
+                    if (expEl) expEl.classList.remove('hidden');
 
-                if (cardEl && qType === 'multiple_choice') {
-                    const grid = cardEl.querySelector('.quiz-options-grid');
-                    if (grid) {
-                        const buttons = grid.querySelectorAll('button');
-                        buttons.forEach(b => {
-                            const optKey = b.getAttribute('data-opt');
-                            b.classList.remove('ring-purple-500', 'border-purple-500', 'bg-purple-50');
-                            
-                            if (optKey === q.correct_answer) {
-                                b.className = "text-left px-3.5 py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 font-semibold text-xs transition flex items-center justify-between shadow-sm";
-                                if (!b.querySelector('.opt-badge')) {
-                                    b.innerHTML += `<span class="opt-badge text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">✓ Correct</span>`;
+                    const qType = q.type || (q.options ? 'multiple_choice' : 'short_answer');
+                    const cardEl = expEl ? expEl.parentElement : null;
+                    const maxQScore = q.max_score || 20;
+
+                    if (cardEl && qType === 'multiple_choice') {
+                        const grid = cardEl.querySelector('.quiz-options-grid');
+                        if (grid) {
+                            const buttons = grid.querySelectorAll('button');
+                            buttons.forEach(b => {
+                                const optKey = b.getAttribute('data-opt');
+                                b.classList.remove('ring-purple-500', 'border-purple-500', 'bg-purple-50');
+                                
+                                if (optKey === q.correct_answer) {
+                                    b.className = "text-left px-3.5 py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 font-semibold text-xs transition flex items-center justify-between shadow-sm";
+                                    if (!b.querySelector('.opt-badge')) {
+                                        b.innerHTML += `<span class="opt-badge text-emerald-600 dark:text-emerald-400 font-bold text-xs shrink-0">✓ Correct</span>`;
+                                    }
+                                } else if (optKey === userChoice && userChoice !== q.correct_answer) {
+                                    b.className = "text-left px-3.5 py-2.5 rounded-xl border-2 border-red-500 bg-red-50 dark:bg-red-950/80 text-red-800 dark:text-red-200 font-semibold text-xs transition flex items-center justify-between shadow-sm opacity-90";
+                                    if (!b.querySelector('.opt-badge')) {
+                                        b.innerHTML += `<span class="opt-badge text-red-600 dark:text-red-400 font-bold text-xs shrink-0">✗ Your Choice</span>`;
+                                    }
                                 }
-                            } else if (optKey === userChoice && userChoice !== q.correct_answer) {
-                                b.className = "text-left px-3.5 py-2.5 rounded-xl border-2 border-red-500 bg-red-50 dark:bg-red-950/80 text-red-800 dark:text-red-200 font-semibold text-xs transition flex items-center justify-between shadow-sm opacity-90";
-                                if (!b.querySelector('.opt-badge')) {
-                                    b.innerHTML += `<span class="opt-badge text-red-600 dark:text-red-400 font-bold text-xs shrink-0">✗ Your Choice</span>`;
-                                }
-                            }
-                        });
+                            });
+                        }
                     }
-                }
 
-                let qScore = 0;
-                let isCorrect = false;
-                let aiEvaluationHtml = '';
+                    let qScore = 0;
+                    let isCorrect = false;
+                    let aiEvaluationHtml = '';
 
-                if (qType === 'multiple_choice') {
-                    isCorrect = (userChoice === q.correct_answer);
-                    qScore = isCorrect ? maxQScore : 0;
-                    aiEvaluationHtml = `
-                    <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded ${isCorrect ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400'} font-bold text-xs mb-1">
-                        ${isCorrect ? `✓ Correct Choice (+${qScore} pts)` : '✗ Incorrect Choice (0 pts)'}
-                    </div>`;
-                } else if (qType === 'socratic_tutor') {
-                    const isFullyGraded = (window[`socratic_ready_${containerId}_${idx}`] === true);
-                    
-                    if (isFullyGraded) {
-                        qScore = maxQScore;
-                        isCorrect = true;
+                    if (qType === 'multiple_choice') {
+                        isCorrect = (userChoice === q.correct_answer);
+                        qScore = isCorrect ? maxQScore : 0;
                         aiEvaluationHtml = `
-                        <div class="p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 space-y-1.5 mb-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
-                                    <span>Socratic AI Tutor Evaluation</span>
-                                </span>
-                                <span class="px-3 py-1 rounded-full bg-emerald-600 text-white font-bold font-mono text-xs">${qScore} / ${maxQScore} pts</span>
-                            </div>
-                            <div class="text-xs text-emerald-800 dark:text-emerald-200 font-medium leading-relaxed">
-                                Excellent Socratic Debate! You engaged interactively with the AI Tutor and touched upon key concepts.
-                            </div>
+                        <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded ${isCorrect ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400'} font-bold text-xs mb-1">
+                            ${isCorrect ? `✓ Correct Choice (+${qScore} pts)` : '✗ Incorrect Choice (0 pts)'}
                         </div>`;
-                    } else {
-                        qScore = 0;
-                        isCorrect = false;
-                        aiEvaluationHtml = `
-                        <div class="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-1.5 mb-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
-                                    <span>Socratic AI Tutor Evaluation</span>
-                                </span>
-                                <span class="px-3 py-1 rounded-full bg-amber-600 text-white font-bold font-mono text-xs">0 / ${maxQScore} pts</span>
-                            </div>
-                            <div class="text-xs text-amber-800 dark:text-amber-200 font-medium leading-relaxed">
-                                No interactive Socratic dialogue conducted. Please chat with the AI Tutor to refine your understanding before submitting.
-                            </div>
-                        </div>`;
-                    }
-                } else if (qType === 'short_answer') {
-                    try {
-                        const res = await fetch('{% url "api_grade_simple" %}', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                question_type: 'short_answer',
-                                question: q.question,
-                                user_answer: userChoice || '(No answer provided)',
-                                correct_answer: q.sample_answer || q.correct_answer || 'Key concepts',
-                                explanation: q.explanation || ''
-                            })
-                        });
-                        const resData = await res.json();
-                        if (resData && resData.status === 'success' && resData.data) {
-                            isCorrect = resData.data.is_correct;
-                            const rawScore = (typeof resData.data.score === 'number') ? resData.data.score : (isCorrect ? 100 : 0);
-                            qScore = Math.round((rawScore / 100) * maxQScore);
+                    } else if (qType === 'socratic_tutor') {
+                        const isFullyGraded = (window[`socratic_ready_${containerId}_${idx}`] === true);
+                        
+                        if (isFullyGraded) {
+                            qScore = maxQScore;
+                            isCorrect = true;
                             aiEvaluationHtml = `
-                            <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-1.5 mb-2">
-                                <div class="flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400">
-                                    <span>🤖 AI Short Answer Evaluation</span>
-                                    <span class="px-2 py-0.5 rounded bg-purple-600 text-white font-mono text-[10px]">${qScore} / ${maxQScore} pts</span>
+                            <div class="p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 space-y-1.5 mb-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
+                                        <span>Socratic AI Tutor Evaluation</span>
+                                    </span>
+                                    <span class="px-3 py-1 rounded-full bg-emerald-600 text-white font-bold font-mono text-xs">${qScore} / ${maxQScore} pts</span>
                                 </div>
-                                <div class="text-xs text-slate-700 dark:text-slate-300 font-medium">${resData.data.feedback || q.explanation}</div>
+                                <div class="text-xs text-emerald-800 dark:text-emerald-200 font-medium leading-relaxed">
+                                    Excellent Socratic Debate! You engaged interactively with the AI Tutor and touched upon key concepts.
+                                </div>
                             </div>`;
                         } else {
+                            qScore = 0;
+                            isCorrect = false;
+                            aiEvaluationHtml = `
+                            <div class="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-1.5 mb-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
+                                        <span>Socratic AI Tutor Evaluation</span>
+                                    </span>
+                                    <span class="px-3 py-1 rounded-full bg-amber-600 text-white font-bold font-mono text-xs">0 / ${maxQScore} pts</span>
+                                </div>
+                                <div class="text-xs text-amber-800 dark:text-amber-200 font-medium leading-relaxed">
+                                    No interactive Socratic dialogue conducted. Please chat with the AI Tutor to refine your understanding before submitting.
+                                </div>
+                            </div>`;
+                        }
+                    } else if (qType === 'short_answer') {
+                        try {
+                            const res = await fetch('{% url "api_grade_simple" %}', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    question_type: 'short_answer',
+                                    question: q.question,
+                                    user_answer: userChoice || '(No answer provided)',
+                                    correct_answer: q.sample_answer || q.correct_answer || 'Key concepts',
+                                    explanation: q.explanation || ''
+                                })
+                            });
+                            const resData = await res.json();
+                            if (resData && resData.status === 'success' && resData.data) {
+                                isCorrect = resData.data.is_correct;
+                                const rawScore = (typeof resData.data.score === 'number') ? resData.data.score : (isCorrect ? 100 : 0);
+                                qScore = Math.round((rawScore / 100) * maxQScore);
+                                aiEvaluationHtml = `
+                                <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-1.5 mb-2">
+                                    <div class="flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400">
+                                        <span>🤖 AI Short Answer Evaluation</span>
+                                        <span class="px-2 py-0.5 rounded bg-purple-600 text-white font-mono text-[10px]">${qScore} / ${maxQScore} pts</span>
+                                    </div>
+                                    <div class="text-xs text-slate-700 dark:text-slate-300 font-medium">${resData.data.feedback || q.explanation}</div>
+                                </div>`;
+                            } else {
+                                isCorrect = evaluateShortAnswer(userChoice, q.sample_answer, q.correct_answer);
+                                qScore = isCorrect ? maxQScore : 0;
+                            }
+                        } catch (e) {
                             isCorrect = evaluateShortAnswer(userChoice, q.sample_answer, q.correct_answer);
                             qScore = isCorrect ? maxQScore : 0;
                         }
-                    } catch (e) {
-                        isCorrect = evaluateShortAnswer(userChoice, q.sample_answer, q.correct_answer);
-                        qScore = isCorrect ? maxQScore : 0;
-                    }
-                } else {
-                    try {
-                        const res = await fetch('{% url "api_grade_essay" %}', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                question: q.question,
-                                user_answer: userChoice || '(No answer provided)',
-                                standard_key_points: q.key_points || (q.sample_answer ? [q.sample_answer] : ["Core key points"]),
-                                sample_essays: q.sample_answer || ''
-                            })
-                        });
-                        const resData = await res.json();
-                        if (resData && resData.status === 'success' && resData.data) {
-                            const d = resData.data;
-                            const rawRubricScore = d.total_score || 0;
-                            qScore = Math.round((rawRubricScore / 100) * maxQScore);
-                            isCorrect = qScore >= (maxQScore / 2);
+                    } else {
+                        try {
+                            const res = await fetch('{% url "api_grade_essay" %}', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    question: q.question,
+                                    user_answer: userChoice || '(No answer provided)',
+                                    standard_key_points: q.key_points || (q.sample_answer ? [q.sample_answer] : ["Core key points"]),
+                                    sample_essays: q.sample_answer || ''
+                                })
+                            });
+                            const resData = await res.json();
+                            if (resData && resData.status === 'success' && resData.data) {
+                                const d = resData.data;
+                                const rawRubricScore = d.total_score || 0;
+                                qScore = Math.round((rawRubricScore / 100) * maxQScore);
+                                isCorrect = qScore >= (maxQScore / 2);
 
-                            aiEvaluationHtml = `
-                            <div class="p-3.5 rounded-2xl bg-purple-500/10 dark:bg-purple-950/40 border border-purple-500/20 text-slate-800 dark:text-slate-200 space-y-2 mb-2">
-                                <div class="flex items-center justify-between border-b border-purple-500/20 pb-2">
-                                    <span class="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
-                                        <i data-lucide="sparkles" class="w-4 h-4"></i>
-                                        <span>AI Essay Evaluation & Feedback</span>
-                                    </span>
-                                    <span class="px-3 py-1 rounded-full ${qScore > 0 ? 'bg-purple-600' : 'bg-red-600'} text-white font-bold font-mono text-xs">${qScore} / ${maxQScore} pts</span>
-                                </div>
-                                <div class="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
-                                    ${d.overall_feedback || d.feedback || 'Answer evaluated successfully.'}
-                                </div>
-                            </div>`;
-                        } else {
+                                aiEvaluationHtml = `
+                                <div class="p-3.5 rounded-2xl bg-purple-500/10 dark:bg-purple-950/40 border border-purple-500/20 text-slate-800 dark:text-slate-200 space-y-2 mb-2">
+                                    <div class="flex items-center justify-between border-b border-purple-500/20 pb-2">
+                                        <span class="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+                                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                            <span>AI Essay Evaluation & Feedback</span>
+                                        </span>
+                                        <span class="px-3 py-1 rounded-full ${qScore > 0 ? 'bg-purple-600' : 'bg-red-600'} text-white font-bold font-mono text-xs">${qScore} / ${maxQScore} pts</span>
+                                    </div>
+                                    <div class="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                                        ${d.overall_feedback || d.feedback || 'Answer evaluated successfully.'}
+                                    </div>
+                                </div>`;
+                            } else {
+                                isCorrect = evaluateLongAnswer(userChoice, q.key_points, q.sample_answer);
+                                qScore = isCorrect ? maxQScore : 0;
+                            }
+                        } catch (e) {
                             isCorrect = evaluateLongAnswer(userChoice, q.key_points, q.sample_answer);
                             qScore = isCorrect ? maxQScore : 0;
                         }
-                    } catch (e) {
-                        isCorrect = evaluateLongAnswer(userChoice, q.key_points, q.sample_answer);
-                        qScore = isCorrect ? maxQScore : 0;
                     }
-                }
 
-                totalPoints += qScore;
+                    totalPoints += qScore;
 
-                let displayUserAns = userChoice;
-                if (qType === 'multiple_choice' && q.options && q.options[userChoice]) {
-                    displayUserAns = `${userChoice}: ${q.options[userChoice]}`;
-                }
-
-                let displayCorrectAns = q.correct_answer || q.sample_answer || (q.key_points ? q.key_points.join(', ') : '');
-                if (qType === 'multiple_choice' && q.options && q.options[q.correct_answer]) {
-                    displayCorrectAns = `${q.correct_answer}: ${q.options[q.correct_answer]}`;
-                }
-
-                questionsData.push({
-                    question: q.question,
-                    question_type: qType,
-                    options: q.options || {},
-                    user_answer: displayUserAns || '(No answer provided)',
-                    correct_answer: displayCorrectAns,
-                    key_points: q.key_points || (q.sample_answer ? [q.sample_answer] : []),
-                    explanation: q.explanation || 'Analyzed by AI Assistant',
-                    score: qScore
-                });
-
-                if (expEl && !expEl.querySelector('.quiz-eval-badge')) {
-                    if (aiEvaluationHtml) {
-                        expEl.insertAdjacentHTML('afterbegin', aiEvaluationHtml);
+                    let displayUserAns = userChoice;
+                    if (qType === 'multiple_choice' && q.options && q.options[userChoice]) {
+                        displayUserAns = `${userChoice}: ${q.options[userChoice]}`;
                     }
+
+                    let displayCorrectAns = q.correct_answer || q.sample_answer || (q.key_points ? q.key_points.join(', ') : '');
+                    if (qType === 'multiple_choice' && q.options && q.options[q.correct_answer]) {
+                        displayCorrectAns = `${q.correct_answer}: ${q.options[q.correct_answer]}`;
+                    }
+
+                    questionsData.push({
+                        question: q.question,
+                        question_type: qType,
+                        options: q.options || {},
+                        user_answer: displayUserAns || '(No answer provided)',
+                        correct_answer: displayCorrectAns,
+                        key_points: q.key_points || (q.sample_answer ? [q.sample_answer] : []),
+                        explanation: q.explanation || 'Analyzed by AI Assistant',
+                        score: qScore
+                    });
+
+                    if (expEl && !expEl.querySelector('.quiz-eval-badge')) {
+                        if (aiEvaluationHtml) {
+                            expEl.insertAdjacentHTML('afterbegin', aiEvaluationHtml);
+                        }
+                    }
+                } catch (qErr) {
+                    console.log('Error evaluating question ' + idx + ':', qErr);
+                    questionsData.push({
+                        question: q.question || `Question ${idx + 1}`,
+                        question_type: q.type || (q.options ? 'multiple_choice' : 'short_answer'),
+                        options: q.options || {},
+                        user_answer: (quizSelectedAnswers[containerId + '-' + idx]) || '(No answer provided)',
+                        correct_answer: q.correct_answer || q.sample_answer || '',
+                        key_points: q.key_points || [],
+                        explanation: q.explanation || 'Analyzed by AI Assistant',
+                        score: 0
+                    });
                 }
             }
 
