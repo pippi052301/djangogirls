@@ -597,6 +597,12 @@ def periodic_summary_view(request):
         latest_attempt = all_attempts.filter(quiz=quiz).first()
         attempts = Attempt.objects.filter(quiz_attempt__quiz=quiz, quiz_attempt__user=request.user) if request.user.is_authenticated else []
         q_sum_score = attempts.aggregate(sum=models.Sum('score'))['sum'] if attempts.exists() else None
+        if q_sum_score is None and latest_attempt and latest_attempt.score is not None:
+            q_sum_score = latest_attempt.score
+
+        q_count = quiz.exercises.count()
+        if q_count <= 1:
+            q_count = max(5, attempts.count()) if attempts.exists() else 5
 
         exercises_list = []
         for ex in quiz.exercises.all():
@@ -621,7 +627,7 @@ def periodic_summary_view(request):
             'id': quiz.id,
             'title': quiz.title,
             'note_title': display_note_title,
-            'question_count': quiz.exercises.count(),
+            'question_count': q_count,
             'created_at': quiz.created_at.strftime('%b %d, %Y') if quiz.created_at else '',
             'latest_attempt_at': latest_attempt.started_at.strftime('%b %d, %Y %H:%M') if (latest_attempt and latest_attempt.started_at) else None,
             'avg_score': round(float(q_sum_score), 1) if q_sum_score is not None else None,
