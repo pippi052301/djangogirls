@@ -23,6 +23,10 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
     - {oral_count} Socratic oral questioning / interactive tutor questions (socratic_tutor): HARD / ADVANCED.
     MUST include the "explanation" field (in English).
     
+    CRITICAL MULTIPLE CHOICE RULE:
+    - "correct_answer" MUST be ONLY the single uppercase letter key ("A", "B", "C", or "D") that corresponds to the correct option.
+    - Double check that the letter in "correct_answer" EXACTLY matches the dictionary key of the correct option! Do NOT confuse mathematical symbols or variable names (such as Discriminant 'D') with option letter keys!
+    
     RETURN 100% A JSON ARRAY WITH THE FOLLOWING STRUCTURE:
     [
         {{
@@ -55,10 +59,43 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
-        return json.loads(response.text)
+        data = json.loads(response.text)
+        return verify_and_fix_quiz_answers(data)
     except Exception as e:
         print(f"Error when calling API Adaptive: {e}")
         return None
+
+
+def verify_and_fix_quiz_answers(quiz_data):
+    """Post-processing validation to ensure correct_answer key matches explanation and option text."""
+    if not isinstance(quiz_data, list):
+        return quiz_data
+
+    for q in quiz_data:
+        if not isinstance(q, dict):
+            continue
+        q_type = q.get("type")
+        if q_type == "multiple_choice" and "options" in q and "correct_answer" in q:
+            opts = q.get("options", {})
+            corr_key = str(q.get("correct_answer", "")).strip().upper()
+            expl = str(q.get("explanation", "")).lower()
+
+            best_matching_key = corr_key
+
+            for key, opt_text in opts.items():
+                opt_clean = str(opt_text).lower().replace(" ", "").replace("^2", "²")
+                expl_clean = expl.replace(" ", "").replace("^2", "²")
+                
+                # Check for formula substrings like b²-4ac
+                if len(opt_clean) > 3 and opt_clean in expl_clean:
+                    best_matching_key = key
+                    break
+
+            if best_matching_key != corr_key:
+                print(f"Auto-corrected quiz key from {corr_key} to {best_matching_key}")
+                q["correct_answer"] = best_matching_key
+
+    return quiz_data
 
 
 def grade_simple_answer(question_type, question, user_answer, correct_answer, explanation):
