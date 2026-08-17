@@ -972,8 +972,7 @@
                 body: JSON.stringify({
                     context_type: activeContext ? activeContext.type : '',
                     context_name: activeContext ? activeContext.name : '',
-                    text: `Study material for ${activeContext.type} "${activeContext.name}"`,
-                    recent_score: 50
+                    text: `Study material for ${activeContext ? activeContext.type : ''} "${activeContext ? activeContext.name : ''}"`
                 })
             })
             .then(res => res.json())
@@ -1288,14 +1287,12 @@
                 window[`socratic_history_${containerId}_${idx}`].push({ role: 'user', content: text });
                 window[`socratic_history_${containerId}_${idx}`].push({ role: 'model', content: aiMsg });
 
-                if (isReady && data.compiled_final_answer) {
-                    quizSelectedAnswers[`${containerId}-${idx}`] = data.compiled_final_answer;
+                if (isReady) {
+                    quizSelectedAnswers[`${containerId}-${idx}`] = data.compiled_final_answer || text;
                     window[`socratic_ready_${containerId}_${idx}`] = true;
                 } else {
                     quizSelectedAnswers[`${containerId}-${idx}`] = text;
-                    if (text && text.length > 5) {
-                        window[`socratic_ready_${containerId}_${idx}`] = true;
-                    }
+                    window[`socratic_ready_${containerId}_${idx}`] = false;
                 }
 
                 const aiHtml = `
@@ -1355,30 +1352,32 @@
         function evaluateShortAnswer(userAns, sampleAns, correctAns) {
             if (!userAns) return false;
             const cleanUser = userAns.trim().toLowerCase();
-            if (cleanUser.length < 3) return false;
-            
-            const userWords = extractMeaningfulWords(cleanUser);
-            if (userWords.length === 0) return false;
+            const targetStr = (sampleAns || correctAns || '').trim().toLowerCase();
+            if (!cleanUser || !targetStr) return false;
 
-            const targetStr = (sampleAns || correctAns || '');
-            const targetWords = extractMeaningfulWords(targetStr);
+            if (cleanUser === targetStr) return true;
 
-            if (targetWords.length === 0) return false;
-
-            const cleanTarget = targetStr.trim().toLowerCase();
-            if (cleanTarget && (cleanUser === cleanTarget || (cleanTarget.length > 5 && cleanUser.includes(cleanTarget)))) {
-                return true;
+            // Extract numbers for math equality
+            const numUser = cleanUser.match(/-?\d+(?:\.\d+)?/g) || [];
+            const numTarget = targetStr.match(/-?\d+(?:\.\d+)?/g) || [];
+            if (numTarget.length > 0) {
+                return JSON.stringify(numUser) === JSON.stringify(numTarget);
             }
 
+            // Extract meaningful content words
+            const userWords = extractMeaningfulWords(cleanUser);
+            const targetWords = extractMeaningfulWords(targetStr);
+            if (targetWords.length === 0 || userWords.length === 0) return false;
+
             let matchCount = 0;
-            userWords.forEach(uw => {
-                if (targetWords.some(tw => tw.includes(uw) || uw.includes(tw))) {
+            targetWords.forEach(tw => {
+                if (userWords.some(uw => uw === tw || (uw.length >= 4 && tw.length >= 4 && (uw.includes(tw) || tw.includes(uw))))) {
                     matchCount++;
                 }
             });
 
-            const ratio = matchCount / Math.max(1, targetWords.length);
-            return matchCount >= 2 || ratio >= 0.4;
+            const coverage = matchCount / targetWords.length;
+            return coverage >= 0.75 && matchCount >= Math.min(targetWords.length, 2);
         }
 
         function evaluateLongAnswer(userAns, keyPoints, sampleAns) {
@@ -1481,8 +1480,7 @@
                         ${isCorrect ? `✓ Correct Choice (+${qScore} pts)` : '✗ Incorrect Choice (0 pts)'}
                     </div>`;
                 } else if (qType === 'socratic_tutor') {
-                    const socHist = window[`socratic_history_${containerId}_${idx}`] || [];
-                    const isFullyGraded = window[`socratic_ready_${containerId}_${idx}`] || (socHist.length >= 2);
+                    const isFullyGraded = (window[`socratic_ready_${containerId}_${idx}`] === true);
                     
                     if (isFullyGraded) {
                         qScore = maxQScore;
@@ -1788,25 +1786,25 @@
             }
 
             const palette = [
-                { bg: '#9333ea', border: '#c084fc', font: '#ffffff' }, // Central Root (Purple)
-                { bg: '#4f46e5', border: '#818cf8', font: '#ffffff' }, // Indigo
-                { bg: '#0284c7', border: '#38bdf8', font: '#ffffff' }, // Sky Blue
-                { bg: '#059669', border: '#34d399', font: '#ffffff' }, // Emerald
-                { bg: '#d97706', border: '#fbbf24', font: '#ffffff' }  // Amber
+                { bg: '#3b0764', border: '#c084fc', font: '#ffffff', shadow: 'rgba(192, 132, 252, 0.6)' }, // Root: Glowing Neon Purple
+                { bg: '#1e1b4b', border: '#818cf8', font: '#f8fafc', shadow: 'rgba(129, 140, 248, 0.4)' }, // Indigo Glass
+                { bg: '#0c4a6e', border: '#38bdf8', font: '#f8fafc', shadow: 'rgba(56, 189, 248, 0.4)' },  // Cyan Glass
+                { bg: '#064e3b', border: '#34d399', font: '#f8fafc', shadow: 'rgba(52, 211, 153, 0.4)' },  // Emerald Glass
+                { bg: '#451a03', border: '#fbbf24', font: '#f8fafc', shadow: 'rgba(251, 191, 36, 0.4)' }   // Amber Glass
             ];
 
             const visNodes = data.nodes.map((n, idx) => {
                 const isRoot = (idx === 0);
-                const theme = isRoot ? palette[0] : palette[(idx % 4) + 1];
+                const theme = isRoot ? palette[0] : palette[((idx - 1) % 4) + 1];
 
                 return {
                     id: String(n.id),
-                    label: `  ${n.label}  `,
+                    label: ` ${n.label} `,
                     shape: 'box',
                     margin: isRoot ? 16 : 12,
-                    shapeProperties: { borderRadius: 16 },
-                    borderWidth: 2.5,
-                    shadow: { enabled: true, color: 'rgba(0,0,0,0.7)', size: 14, x: 0, y: 5 },
+                    shapeProperties: { borderRadius: 14 },
+                    borderWidth: isRoot ? 3 : 2,
+                    shadow: { enabled: true, color: theme.shadow, size: isRoot ? 20 : 12, x: 0, y: 3 },
                     color: {
                         background: theme.bg,
                         border: theme.border,
@@ -1815,7 +1813,7 @@
                     },
                     font: {
                         color: theme.font,
-                        size: isRoot ? 16 : 14,
+                        size: isRoot ? 15 : 13,
                         face: 'Inter, system-ui, sans-serif',
                         bold: true
                     }
@@ -1826,11 +1824,20 @@
                 from: String(e.from),
                 to: String(e.to),
                 label: e.label ? ` ${e.label} ` : '',
-                arrows: { to: { enabled: true, scaleFactor: 0.9 } },
-                width: 2.5,
-                smooth: { type: 'curvedCW', roundness: 0.3 },
-                color: { color: 'rgba(192, 132, 252, 0.75)', highlight: '#e9d5ff', hover: '#e9d5ff' },
-                font: { color: '#f8fafc', size: 11, background: '#2e1065', strokeWidth: 0, face: 'Inter, sans-serif' }
+                arrows: { to: { enabled: true, scaleFactor: 0.85 } },
+                width: 2.2,
+                smooth: { type: 'curvedCW', roundness: 0.25 },
+                color: { color: 'rgba(168, 85, 247, 0.75)', highlight: '#f472b6', hover: '#f472b6' },
+                font: {
+                    color: '#f3e8ff',
+                    size: 11,
+                    face: 'Inter, system-ui, sans-serif',
+                    strokeWidth: 2,
+                    strokeColor: '#0f172a',
+                    align: 'middle',
+                    background: 'rgba(15, 23, 42, 0.9)',
+                    bold: true
+                }
             }));
 
             const networkData = {

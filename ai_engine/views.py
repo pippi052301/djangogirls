@@ -285,6 +285,11 @@ def create_adaptive_practice_api(request):
             raw_user_text = text_content
 
             if request.user.is_authenticated:
+                from learning.models import Attempt
+                db_recent_avg = Attempt.objects.recent_average_score_for(request.user)
+                if db_recent_avg is not None:
+                    recent_score = float(db_recent_avg)
+
                 if context_type == 'folder' and context_name:
                     folder = Folder.objects.filter(owner=request.user, name=context_name).first()
                     if folder:

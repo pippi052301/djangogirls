@@ -2,7 +2,7 @@ import json
 import re
 from .ai_config import get_client, types
 
-def clean_vietnamese_text(text):
+def clean_study_text(text):
     if not text:
         return ""
     if '\\u' in text:
@@ -10,16 +10,6 @@ def clean_vietnamese_text(text):
             text = text.encode('utf-8').decode('unicode-escape')
         except Exception:
             pass
-            
-    font_artifact_map = {
-        'V«n': 'Văn', 'V«n Lợi': 'Văn Lợi', 'Nguy\u1ea1n': 'Nguyễn', 'Nguyạn': 'Nguyễn',
-        'Ngơ': 'Ngô', 'Nhã¢': 'Nhã', 'Nhãâ': 'Nhã', 'Nhã': 'Nhã',
-        'chỗ biên': 'chủ biên', 'chủ biàn': 'chủ biên', 'chủ bi\u00e0n': 'chủ biên',
-        'Ngi': 'Ngo', 'Lñi': 'Lợi'
-    }
-    for k, v in font_artifact_map.items():
-        text = text.replace(k, v)
-        
     return text.strip()
 
 import html
@@ -29,7 +19,7 @@ def extract_math_study_snippets(text_content):
     Extracts high-quality study sentences, filtering out cover page author headers,
     book title metadata, table of contents, and HTML tags while preserving math exponents.
     """
-    text_content = clean_vietnamese_text(text_content)
+    text_content = clean_study_text(text_content)
     text_content = html.unescape(text_content)
     text_content = re.sub(r'<br\s*/?>', '\n', text_content, flags=re.I)
     text_content = re.sub(r'</p>', '\n', text_content, flags=re.I)
@@ -37,11 +27,10 @@ def extract_math_study_snippets(text_content):
     text_content = re.sub(r'<[^>]+>', '', text_content)
     text_content = re.sub(r'[ \t]+', ' ', text_content)
     
-    raw_chunks = re.split(r'[\n\r]+|\.\s+(?=[A-Z0-9ÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ])', text_content)
+    raw_chunks = re.split(r'[\n\r]+|\.\s+(?=[A-Z0-9])', text_content)
     
     ignore_keywords = [
-        'TS.', 'Nguyễn Văn Lợi', 'Ngô Thị Nhã', 'chủ biên', 'TUYỂN TẬP', '108 x 5', 'BÀI TOÁN HAY LỚP',
-        'Lời nói đầu', 'Mục lục', 'Sigma - MATHS', 'Page', 'http', 'www', 'Content:', 'Note Title:', 'folder', 'study material'
+        'Page', 'http', 'www', 'Content:', 'Note Title:', 'folder', 'study material', 'table of contents', 'preface', 'copyright'
     ]
     
     study_lines = []
@@ -74,7 +63,7 @@ def trim_to_clean_phrase(text, max_len=95):
         truncated = truncated.rsplit('(', 1)[0].strip()
     return re.sub(r'[\:\,\=\s]+$', '', truncated).strip()
 
-def split_sentence_to_qa(sentence, q_idx=0, is_vietnamese=False):
+def split_sentence_to_qa(sentence, q_idx=0):
     """
     Deconstructs a factual sentence into a distinct Question and Answer pair
     so the question prompt and correct choice are NOT identical duplicates,
@@ -83,13 +72,10 @@ def split_sentence_to_qa(sentence, q_idx=0, is_vietnamese=False):
     sentence = sentence.strip()
     sentence = re.sub(r'(.{3,})\1+', r'\1', sentence).strip()
     if not sentence:
-        if is_vietnamese:
-            return "Khái niệm trọng tâm của bài học là gì?", "Nắm vững nguyên lý cốt lõi và phương pháp phân tích."
         return "What is the central concept of this lesson?", "Mastering core principles and analytical methods."
 
     delimiters = [
-        ', allowing ', ', causing ', ', resulting in ', ' causes ', ' is the site of ', ' requires ', ' allows ',
-        ', dẫn đến ', ' là ', ' gây ra ', ' làm cho '
+        ', allowing ', ', causing ', ', resulting in ', ' causes ', ' is the site of ', ' requires ', ' allows '
     ]
     part1, part2 = "", ""
     for d in delimiters:
@@ -120,22 +106,13 @@ def split_sentence_to_qa(sentence, q_idx=0, is_vietnamese=False):
     clean_p1 = trim_to_clean_phrase(part1, 95)
     a = part2[0].upper() + part2[1:] if part2 else sentence
 
-    if is_vietnamese:
-        templates = [
-            f"Khi điều kiện '{clean_p1}' xảy ra, kết quả hoặc cơ chế tiếp theo là gì?",
-            f"Phương pháp hoặc quy tắc nào áp dụng chính xác cho: '{clean_p1}'?",
-            f"Trong quy trình '{clean_p1}', chức năng hoặc vai trò trọng tâm là gì?",
-            f"Khẳng định nào sau đây mô tả đúng nhất yếu tố: '{clean_p1}'?"
-        ]
-        q = templates[q_idx % len(templates)]
-    else:
-        templates = [
-            f"When conditions specify '{clean_p1}', what is the resulting outcome or mechanism?",
-            f"Which key principle or rule applies to: '{clean_p1}'?",
-            f"What primary functional role is associated with: '{clean_p1}'?",
-            f"Which statement correctly reflects the property of: '{clean_p1}'?"
-        ]
-        q = templates[q_idx % len(templates)]
+    templates = [
+        f"When conditions specify '{clean_p1}', what is the resulting outcome or mechanism?",
+        f"Which key principle or rule applies to: '{clean_p1}'?",
+        f"What primary functional role is associated with: '{clean_p1}'?",
+        f"Which statement correctly reflects the property of: '{clean_p1}'?"
+    ]
+    q = templates[q_idx % len(templates)]
 
     return q, a
 
@@ -143,11 +120,11 @@ def split_sentence_to_qa(sentence, q_idx=0, is_vietnamese=False):
 def build_dynamic_context_fallback(text_content):
     """
     Extracts key sentences from actual study content to build direct, concrete,
-    and natural questions in clean Vietnamese or English with topic-matched distractors.
+    and natural questions in clean English with topic-matched distractors.
     """
     math_snippets = extract_math_study_snippets(text_content)
     
-    s0 = math_snippets[0] if len(math_snippets) > 0 else "Cho tập hợp D = {0; 1; 2; 3; ... 20}"
+    s0 = math_snippets[0] if len(math_snippets) > 0 else "Given quadratic equation ax^2 + bx + c = 0"
     s1 = math_snippets[1] if len(math_snippets) > 1 else s0
     s2 = math_snippets[2] if len(math_snippets) > 2 else s0
     s3 = math_snippets[3] if len(math_snippets) > 3 else s0
@@ -155,181 +132,179 @@ def build_dynamic_context_fallback(text_content):
     clean_s0 = trim_to_clean_phrase(s0, 95)
     clean_s1 = trim_to_clean_phrase(s1, 95)
 
-    is_vietnamese = any(c in text_content for c in "àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ") or ("bài toán" in text_content.lower()) or ("tập hợp" in text_content.lower()) or ("lớp" in text_content.lower())
-    is_math = any(w in text_content.lower() for w in ["equation", "discriminant", "quadratic", "b²", "ax²", "phương trình", "toán", "nghiệm", "tập hợp"])
+    is_math = any(w in text_content.lower() for w in ["equation", "discriminant", "quadratic", "b²", "ax²", "solve", "math", "root", "formula"])
 
-    q0, a0 = split_sentence_to_qa(s0, 0, is_vietnamese)
-    q1, a1 = split_sentence_to_qa(s1, 1, is_vietnamese)
-    q2, a2 = split_sentence_to_qa(s2, 2, is_vietnamese)
-    q3, a3 = split_sentence_to_qa(s3, 3, is_vietnamese)
+    q0, a0 = split_sentence_to_qa(s0, 0)
+    q1, a1 = split_sentence_to_qa(s1, 1)
+    q2, a2 = split_sentence_to_qa(s2, 2)
+    q3, a3 = split_sentence_to_qa(s3, 3)
 
-    if is_vietnamese:
-        if is_math:
-            return [
-                {
-                    "type": "multiple_choice",
-                    "question": "Cho phương trình bậc hai x² - 2x + 1 = 0 (với a = 1, b = -2, c = 1). Hãy tính biệt thức D = b² - 4ac và xác định số nghiệm thực.",
-                    "options": {
-                        "A": "D = 0 (có 1 nghiệm kép x = 1)",
-                        "B": "D = 4 (có 2 nghiệm phân biệt x = 2 và x = -2)",
-                        "C": "D = -4 (vô nghiệm thực)",
-                        "D": "D = 8 (có 2 nghiệm phân biệt)"
-                    },
-                    "correct_answer": "A",
-                    "explanation": "D = b² - 4ac = (-2)² - 4(1)(1) = 4 - 4 = 0. Vì D = 0 nên phương trình có đúng 1 nghiệm kép x = 1.",
-                    "max_score": 15
-                },
-                {
-                    "type": "multiple_choice",
-                    "question": "Cho phương trình bậc hai x² - 5x + 6 = 0 (với a = 1, b = -5, c = 6). Giá trị biệt thức D và số nghiệm của phương trình là bao nhiêu?",
-                    "options": {
-                        "A": "D = -1 (vô nghiệm thực)",
-                        "B": "D = 1 (có 2 nghiệm phân biệt x = 2 và x = 3)",
-                        "C": "D = 0 (có 1 nghiệm kép)",
-                        "D": "D = 25 (có 2 nghiệm phân biệt)"
-                    },
-                    "correct_answer": "B",
-                    "explanation": "D = b² - 4ac = (-5)² - 4(1)(6) = 25 - 24 = 1. Vì D > 0 nên phương trình có 2 nghiệm phân biệt x = 2 và x = 3.",
-                    "max_score": 15
-                },
-                {
-                    "type": "multiple_choice",
-                    "question": "Cho phương trình bậc hai x² + 2x + 5 = 0 (với a = 1, b = 2, c = 5). Số nghiệm thực của phương trình là gì?",
-                    "options": {
-                        "A": "Có 2 nghiệm thực phân biệt",
-                        "B": "Có 1 nghiệm kép x = -1",
-                        "C": "Vô nghiệm thực (D = -16 < 0)",
-                        "D": "Có vô số nghiệm thực"
-                    },
-                    "correct_answer": "C",
-                    "explanation": "D = b² - 4ac = 2² - 4(1)(5) = 4 - 20 = -16. Vì D < 0 nên phương trình vô nghiệm thực.",
-                    "max_score": 15
-                },
-                {
-                    "type": "multiple_choice",
-                    "question": "Khẳng định nào sau đây mô tả đúng nhất quy tắc xác định số nghiệm của ax² + bx + c = 0 dựa vào biệt thức D = b² - 4ac?",
-                    "options": {
-                        "A": "Nếu D > 0 thì phương trình chỉ có 1 nghiệm kép",
-                        "B": "Nếu D > 0 có 2 nghiệm phân biệt; D = 0 có 1 nghiệm kép; D < 0 vô nghiệm thực",
-                        "C": "Nếu D < 0 thì phương trình luôn có 2 nghiệm phân biệt",
-                        "D": "Biệt thức D không dùng để xác định số nghiệm"
-                    },
-                    "correct_answer": "B",
-                    "explanation": "Dấu của biệt thức D quyết định số nghiệm: D > 0 (2 nghiệm phân biệt), D = 0 (1 nghiệm kép), D < 0 (0 nghiệm thực).",
-                    "max_score": 15
-                },
-                {
-                    "type": "short_answer",
-                    "question": "Tính giá trị biệt thức D cho phương trình x² - 4x + 4 = 0 (thay a = 1, b = -4, c = 4) và kết luận số nghiệm.",
-                    "sample_answer": "D = (-4)² - 4(1)(4) = 16 - 16 = 0. Phương trình có 1 nghiệm kép x = 2.",
-                    "explanation": "Áp dụng công thức D = b² - 4ac với a=1, b=-4, c=4 thu được D = 0.",
-                    "max_score": 10
-                },
-                {
-                    "type": "short_answer",
-                    "question": "Cho phương trình 2x² - 3x - 5 = 0 (thay a = 2, b = -3, c = -5). Hãy tính giá trị biệt thức D = b² - 4ac.",
-                    "sample_answer": "D = (-3)² - 4(2)(-5) = 9 + 40 = 49 (D > 0, có 2 nghiệm phân biệt).",
-                    "explanation": "D = (-3)² - 4(2)(-5) = 9 + 40 = 49.",
-                    "max_score": 10
-                },
-                {
-                    "type": "long_answer",
-                    "question": "Bài luận toán học: Trình bày quy tắc sử dụng biệt thức D = b² - 4ac và áp dụng tính toán chi tiết khi thay a = 1, b = -2, c = 1.",
-                    "key_points": ["Công thức D = b² - 4ac", "Tính D = (-2)² - 4(1)(1) = 0", "Kết luận D = 0 có 1 nghiệm kép x = 1"],
-                    "explanation": "Bài làm cần trình bày công thức D, thay số tính D = 0 và kết luận nghiệm kép.",
-                    "max_score": 10
-                },
-                {
-                    "type": "socratic_tutor",
-                    "question": "Thảo luận Socratic toán học cùng AI Tutor: Hãy trao đổi từng bước tính biệt thức D = b² - 4ac khi thay các hệ số a = 1, b = -2, c = 1.",
-                    "required_key_points": ["Công thức D = b² - 4ac", "Tính D = (-2)² - 4(1)(1) = 0", "Xác định nghiệm dựa vào D"],
-                    "explanation": "Đối thoại cùng AI Tutor để hoàn thành từng bước thay số tính D và kết luận nghiệm.",
-                    "max_score": 10
-                }
-            ]
-
+    if is_math:
         return [
             {
                 "type": "multiple_choice",
-                "question": q0,
+                "question": "For the quadratic equation x² - 2x + 1 = 0 (substituting a = 1, b = -2, c = 1), calculate the discriminant D = b² - 4ac and determine the real solutions.",
                 "options": {
-                    "A": a0[:90],
-                    "B": "Phép tính bị lỗi hoặc không có đáp án",
-                    "C": "Biến đổi ngẫu nhiên không theo quy tắc",
-                    "D": "Tất cả các phương án trên đều sai"
+                    "A": "D = 0 (one repeated real solution x = 1)",
+                    "B": "D = 4 (two distinct real solutions x = 2 and x = -2)",
+                    "C": "D = -4 (no real solutions)",
+                    "D": "D = 8 (two distinct real solutions)"
                 },
                 "correct_answer": "A",
-                "explanation": f"Tài liệu bài học nêu rõ: {a0[:120]}",
+                "explanation": "D = b² - 4ac = (-2)² - 4(1)(1) = 4 - 4 = 0. Since D = 0, there is exactly one repeated real solution x = 1.",
                 "max_score": 15
             },
             {
                 "type": "multiple_choice",
-                "question": q1,
+                "question": "Given the quadratic equation x² - 5x + 6 = 0 (substituting a = 1, b = -5, c = 6), what is the value of the discriminant D and the number of solutions?",
                 "options": {
-                    "A": "Bỏ qua các điều kiện ban đầu",
-                    "B": a1[:90],
-                    "C": "Không tuân theo công thức toán học",
-                    "D": "Không tính được giá trị"
+                    "A": "D = -1 (no real solutions)",
+                    "B": "D = 1 (two distinct real solutions x = 2 and x = 3)",
+                    "C": "D = 0 (one repeated real solution)",
+                    "D": "D = 25 (two distinct real solutions)"
                 },
                 "correct_answer": "B",
-                "explanation": f"Theo quy tắc bài học: {a1[:120]}",
+                "explanation": "D = b² - 4ac = (-5)² - 4(1)(6) = 25 - 24 = 1. Since D > 0, there are two distinct real solutions x = 2 and x = 3.",
                 "max_score": 15
             },
             {
                 "type": "multiple_choice",
-                "question": q2,
+                "question": "For the quadratic equation x² + 2x + 5 = 0 (substituting a = 1, b = 2, c = 5), what is the nature of its real solutions?",
                 "options": {
-                    "A": "Bỏ qua các bước biến đổi",
-                    "B": "Đoán kết quả ngẫu nhiên",
-                    "C": a2[:90],
-                    "D": "Không xác định được kết quả"
+                    "A": "Two distinct real solutions",
+                    "B": "One repeated real solution x = -1",
+                    "C": "No real solutions (D = -16 < 0)",
+                    "D": "Infinitely many real solutions"
                 },
                 "correct_answer": "C",
-                "explanation": f"Nội dung bài học nêu rõ: {a2[:120]}",
+                "explanation": "D = b² - 4ac = 2² - 4(1)(5) = 4 - 20 = -16. Since D < 0, there are no real solutions.",
                 "max_score": 15
             },
             {
                 "type": "multiple_choice",
-                "question": q3,
+                "question": "Which statement correctly reflects the rule for determining real solutions of ax² + bx + c = 0 based on the discriminant D = b² - 4ac?",
                 "options": {
-                    "A": "Bỏ qua dữ kiện bài toán",
-                    "B": a3[:90],
-                    "C": "Không áp dụng công thức",
-                    "D": "Chọn ngẫu nhiên đáp án"
+                    "A": "If D > 0, there is only one repeated real solution",
+                    "B": "If D > 0 there are 2 distinct real solutions; if D = 0 there is 1 repeated solution; if D < 0 there are no real solutions",
+                    "C": "If D < 0, there are always two distinct real solutions",
+                    "D": "The discriminant formula cannot be used to find the number of solutions"
                 },
                 "correct_answer": "B",
-                "explanation": f"Giải bài toán/bài học yêu cầu tuân thủ đúng quy tắc: {a3[:120]}",
+                "explanation": "The sign of D determines the solution count: D > 0 (2 distinct real roots), D = 0 (1 double root), D < 0 (0 real roots).",
                 "max_score": 15
             },
             {
                 "type": "short_answer",
-                "question": f"Nêu kết quả hoặc cơ chế xảy ra khi: '{clean_s0}'",
-                "sample_answer": a0[:100],
-                "explanation": f"Lời giải chi tiết: {a0[:120]}",
+                "question": "Calculate the discriminant D for x² - 4x + 4 = 0 (substituting a = 1, b = -4, c = 4) and state the number of real solutions.",
+                "sample_answer": "D = (-4)² - 4(1)(4) = 16 - 16 = 0. One repeated real solution x = 2.",
+                "explanation": "Applying formula D = b² - 4ac with a=1, b=-4, c=4 yields D = 0.",
                 "max_score": 10
             },
             {
                 "type": "short_answer",
-                "question": f"Hãy trình bày vai trò hoặc quy tắc chính liên quan đến: '{clean_s1}'",
-                "sample_answer": a1[:100],
-                "explanation": f"Lời giải chi tiết: {a1[:120]}",
+                "question": "Given the quadratic equation 2x² - 3x - 5 = 0 (substituting a = 2, b = -3, c = -5), calculate the value of discriminant D = b² - 4ac.",
+                "sample_answer": "D = (-3)² - 4(2)(-5) = 9 + 40 = 49 (D > 0, two distinct real solutions).",
+                "explanation": "D = (-3)² - 4(2)(-5) = 9 + 40 = 49.",
                 "max_score": 10
             },
             {
                 "type": "long_answer",
-                "question": f"Bài luận phân tích: Hãy trình bày chi tiết các cơ sở khoa học hoặc quy trình giải quyết vấn đề cho: '{clean_s0}'.",
-                "key_points": [a0[:60], a1[:60], a2[:60]],
-                "explanation": f"Bài làm hoàn chỉnh cần trình bày rõ: {a0[:70]} và {a1[:70]}.",
+                "question": "Mathematical Essay Challenge: Explain the derivation of discriminant D = b² - 4ac and show step-by-step calculations for a = 1, b = -2, c = 1.",
+                "key_points": ["Discriminant formula D = b² - 4ac", "Substituted values D = (-2)² - 4(1)(1) = 0", "Conclusion D = 0 gives 1 repeated real root x = 1"],
+                "explanation": "A complete mathematical essay shows formula D, calculates D = 0, and concludes a double root.",
                 "max_score": 10
             },
             {
                 "type": "socratic_tutor",
-                "question": f"Thảo luận Socratic cùng AI Tutor: Trình bày và đối thoại cùng AI để làm rõ nguyên lý: '{clean_s0}'.",
-                "required_key_points": [a0[:60], a1[:60], a2[:60]],
-                "explanation": "AI Tutor sẽ gợi mở qua từng câu hỏi đến khi bạn làm rõ đầy đủ các ý chính.",
+                "question": "Interactive Socratic AI Tutor Debate: Discuss and calculate step-by-step the discriminant D = b² - 4ac when substituting coefficients a = 1, b = -2, c = 1.",
+                "required_key_points": ["Formula D = b² - 4ac", "Calculation D = (-2)² - 4(1)(1) = 0", "Determining root count from D"],
+                "explanation": "Engage with the Socratic AI Tutor to perform the numerical substitution and determine the root type.",
                 "max_score": 10
             }
         ]
+
+    return [
+        {
+            "type": "multiple_choice",
+            "question": q0,
+            "options": {
+                "A": a0[:90],
+                "B": "Incorrect statement or invalid property",
+                "C": "Random variation not supported by study context",
+                "D": "None of the above options"
+            },
+            "correct_answer": "A",
+            "explanation": f"Study material specifies: {a0[:120]}",
+            "max_score": 15
+        },
+        {
+            "type": "multiple_choice",
+            "question": q1,
+            "options": {
+                "A": "Ignore initial conditions",
+                "B": a1[:90],
+                "C": "Invalid rule application",
+                "D": "Unable to calculate"
+            },
+            "correct_answer": "B",
+            "explanation": f"According to study principles: {a1[:120]}",
+            "max_score": 15
+        },
+        {
+            "type": "multiple_choice",
+            "question": q2,
+            "options": {
+                "A": "Omit critical steps",
+                "B": "Random guess",
+                "C": a2[:90],
+                "D": "Undefined result"
+            },
+            "correct_answer": "C",
+            "explanation": f"Study content specifies: {a2[:120]}",
+            "max_score": 15
+        },
+        {
+            "type": "multiple_choice",
+            "question": q3,
+            "options": {
+                "A": "Disregard given parameters",
+                "B": a3[:90],
+                "C": "Incorrect formula application",
+                "D": "Arbitrary choice"
+            },
+            "correct_answer": "B",
+            "explanation": f"Solving requires following rule: {a3[:120]}",
+            "max_score": 15
+        },
+        {
+            "type": "short_answer",
+            "question": f"State the primary result or mechanism associated with: '{clean_s0}'",
+            "sample_answer": a0[:100],
+            "explanation": f"Detailed solution: {a0[:120]}",
+            "max_score": 10
+        },
+        {
+            "type": "short_answer",
+            "question": f"Explain the core principle or functional role regarding: '{clean_s1}'",
+            "sample_answer": a1[:100],
+            "explanation": f"Detailed solution: {a1[:120]}",
+            "max_score": 10
+        },
+        {
+            "type": "long_answer",
+            "question": f"Analytical Essay: Explain the scientific principles and procedural steps for: '{clean_s0}'.",
+            "key_points": [a0[:60], a1[:60], a2[:60]],
+            "explanation": f"A thorough essay clearly explains: {a0[:70]} and {a1[:70]}.",
+            "max_score": 10
+        },
+        {
+            "type": "socratic_tutor",
+            "question": f"Socratic Discussion with AI Tutor: Debate and clarify the core mechanism of: '{clean_s0}'.",
+            "required_key_points": [a0[:60], a1[:60], a2[:60]],
+            "explanation": "Engage with the AI Tutor step-by-step until all key points are clarified.",
+            "max_score": 10
+        }
+    ]
 
     # English math section with concrete numerical calculations
     if is_math:
@@ -524,21 +499,43 @@ def grade_simple_answer(question_type, question, user_answer, correct_answer, ex
         }
 
     if question_type == "short_answer":
-        u_norm = re.sub(r'[^\w\s]', '', str(user_answer or '')).strip().lower()
-        c_norm = re.sub(r'[^\w\s]', '', str(correct_answer or '')).strip().lower()
+        u_norm = re.sub(r'[^\w\s\=\-\+\*\/\^\.\,]', '', str(user_answer or '')).strip().lower()
+        c_norm = re.sub(r'[^\w\s\=\-\+\*\/\^\.\,]', '', str(correct_answer or '')).strip().lower()
 
-        is_correct = False
-        if u_norm == c_norm:
-            is_correct = True
-        elif u_norm and (u_norm in c_norm or c_norm in u_norm):
-            is_correct = True
+        u_clean = re.sub(r'\s+', ' ', u_norm).strip()
+        c_clean = re.sub(r'\s+', ' ', c_norm).strip()
+
+        # 1. Exact string match
+        if u_clean == c_clean:
+            return {
+                "is_correct": True,
+                "score": 100,
+                "feedback": f"Correct! {explanation}"
+            }
+
+        # 2. Extract key content words (filtering English stop words)
+        stop_words = {'the', 'a', 'an', 'is', 'are', 'was', 'were', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'and', 'or', 'it', 'its', 'as', 'be', 'this', 'that'}
+        c_words = [w for w in c_clean.split() if w not in stop_words and len(w) > 1]
+        u_words = [w for w in u_clean.split() if w not in stop_words and len(w) > 1]
+
+        # 3. For short numeric/math answers (e.g. "0", "-16", "1", "x=1"), require exact numeric match
+        num_c = re.findall(r'-?\d+(?:\.\d+)?', c_clean)
+        num_u = re.findall(r'-?\d+(?:\.\d+)?', u_clean)
+        if num_c:
+            is_correct = (num_c == num_u) and (len(u_words) == 0 or len(set(u_words).intersection(set(c_words))) >= len(set(c_words)) * 0.5)
+            return {
+                "is_correct": is_correct,
+                "score": 100 if is_correct else 0,
+                "feedback": f"Your answer is {'Correct' if is_correct else 'Incorrect'}. {explanation}"
+            }
+
+        # 4. For conceptual text answers, enforce strict key-term coverage (>= 75% coverage)
+        if c_words and u_words:
+            matched_words = set(w for w in c_words if w in u_words or any(w in uw or uw in w for uw in u_words if len(uw) >= 4 and len(w) >= 4))
+            coverage = len(matched_words) / float(len(set(c_words)))
+            is_correct = (coverage >= 0.75) and (len(matched_words) >= min(len(set(c_words)), 2))
         else:
-            u_words = set(u_norm.split())
-            c_words = set(c_norm.split())
-            if u_words and c_words:
-                overlap = len(u_words.intersection(c_words)) / max(len(c_words), 1)
-                if overlap >= 0.4:
-                    is_correct = True
+            is_correct = False
 
         return {
             "is_correct": is_correct,
@@ -679,27 +676,25 @@ def advanced_grade_essay(question, user_answer, standard_key_points, sample_essa
         overlap = user_words.intersection(ref_words)
         matched_ratio = len(overlap) / max(1, min(len(ref_words), 10))
 
-    is_vietnamese = any(c in (clean_ans + ref_text) for c in "àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ")
-
     if matched_ratio >= 0.5 or len(words) >= 30:
         total_score = min(96, max(88, int(matched_ratio * 100)))
-        feedback = "Xuất sắc! Bài làm giải thích chính xác các khái niệm chính, biến đổi cấu trúc và quy tắc phân tích." if is_vietnamese else "Excellent! Your response accurately explains the core concepts, structural alterations, and analytical principles."
+        feedback = "Excellent! Your response accurately explains the core concepts, structural alterations, and analytical principles."
     elif matched_ratio >= 0.25 or len(words) >= 15:
         total_score = min(84, max(65, int(matched_ratio * 100)))
-        feedback = "Bài làm nêu được một số khái niệm chính nhưng cần mở rộng chiều sâu phân tích." if is_vietnamese else "Good effort! Your response addresses several key concepts but could benefit from deeper analytical depth."
+        feedback = "Good effort! Your response addresses several key concepts but could benefit from deeper analytical depth."
     else:
         total_score = 30
-        feedback = "Câu trả lời quá ngắn hoặc thiếu từ khóa chuyên môn cốt lõi." if is_vietnamese else "Your response is too brief or lacks key domain-specific terminology."
+        feedback = "Your response is too brief or lacks key domain-specific terminology."
 
     acc = int(total_score * 0.4)
     log = int(total_score * 0.3)
     str_score = int(total_score * 0.15)
     voc = total_score - acc - log - str_score
 
-    rationale_acc = f"Nội dung khớp {int(matched_ratio*100)}% từ khóa chính" if is_vietnamese else f"Content aligned with key domain terms ({int(matched_ratio*100)}%)"
-    rationale_log = "Lập luận phù hợp bối cảnh" if is_vietnamese else "Logical reasoning consistent with context"
-    rationale_str = "Trình bày rõ ràng" if is_vietnamese else "Clear essay structure"
-    rationale_voc = "Sử dụng từ vựng chuyên ngành" if is_vietnamese else "Technical domain vocabulary"
+    rationale_acc = f"Content aligned with key domain terms ({int(matched_ratio*100)}%)"
+    rationale_log = "Logical reasoning consistent with context"
+    rationale_str = "Clear essay structure"
+    rationale_voc = "Technical domain vocabulary"
 
     return {
         "total_score": total_score,
