@@ -1070,7 +1070,8 @@
                     quizList = quizList.questions || quizList.quiz || quizList.data || quizList.items || [quizList];
                 }
                 if (!quizList || !Array.isArray(quizList) || quizList.length < 3) {
-                    quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material');
+                    const fallbackScore = parseFloat(document.getElementById('header-user-avg-val')?.textContent?.replace('%','').trim()) || 50;
+                    quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material', fallbackScore);
                 }
                 if (Array.isArray(quizList) && quizList.length > 5) {
                     quizList = quizList.slice(0, 5);
@@ -1078,7 +1079,8 @@
                 renderInteractiveQuiz(quizWrapperId + '-content', quizList, data ? data.recommendation_tip : '');
             })
             .catch(err => {
-                let quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material');
+                const fallbackScore = parseFloat(document.getElementById('header-user-avg-val')?.textContent?.replace('%','').trim()) || 50;
+                let quizList = buildClientContextQuiz(activeContext ? activeContext.name : 'Study Material', fallbackScore);
                 if (Array.isArray(quizList) && quizList.length > 5) {
                     quizList = quizList.slice(0, 5);
                 }
@@ -1088,90 +1090,58 @@
 
         let quizSelectedAnswers = {};
 
-        function buildClientContextQuiz(topicName) {
+        function buildClientContextQuiz(topicName, recentScore) {
             topicName = topicName || 'Study Material';
-            const isVietnamese = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(topicName);
-            if (isVietnamese) {
-                return [
-                    {
-                        type: "multiple_choice",
-                        question: `Nội dung cốt lõi nhất cần ghi nhớ khi học bài "${topicName}" là gì?`,
-                        options: { "A": `Nắm vững các khái niệm và nguyên lý chính của ${topicName}`, "B": "Học thuộc lòng không cần hiểu bản chất", "C": "Bỏ qua các ví dụ thực hành", "D": "Tất cả các đáp án đều sai" },
-                        correct_answer: "A",
-                        explanation: `Hiểu rõ bản chất và khái niệm chính giúp làm chủ nội dung ${topicName}.`,
-                        max_score: 20
-                    },
-                    {
-                        type: "multiple_choice",
-                        question: `Phương pháp nào hiệu quả nhất để ôn tập chủ đề "${topicName}"?`,
-                        options: { "A": "Đọc lướt qua một lần", "B": `Chủ động phân tích và làm bài tập thực hành về ${topicName}`, "C": "Bỏ qua các câu hỏi ôn tập", "D": "Ghi nhớ ngẫu nhiên" },
-                        correct_answer: "B",
-                        explanation: `Chủ động phân tích và làm bài tập giúp ghi nhớ lâu dài kiến thức ${topicName}.`,
-                        max_score: 20
-                    },
-                    {
-                        type: "multiple_choice",
-                        question: `Ứng dụng hoặc ý nghĩa quan trọng nhất của bài học "${topicName}" là gì?`,
-                        options: { "A": "Không có ứng dụng thực tế", "B": "Chỉ dùng để làm bài trắc nghiệm", "C": `Giải quyết các bài toán và tình huống thực tế liên quan đến ${topicName}`, "D": "Tăng dung lượng lưu trữ" },
-                        correct_answer: "C",
-                        explanation: `Áp dụng kiến thức ${topicName} vào giải quyết bài tập và tình huống thực tế.`,
-                        max_score: 20
-                    },
-                    {
-                        type: "short_answer",
-                        question: `Hãy tóm tắt ngắn gọn mục tiêu chính khi học chủ đề "${topicName}".`,
-                        sample_answer: `Hiểu rõ nguyên lý, công thức và ứng dụng thực hành của ${topicName}.`,
-                        explanation: `Mục tiêu là nắm vững kiến thức cốt lõi và vận dụng vào bài tập.`,
-                        max_score: 20
-                    },
-                    {
-                        type: "socratic_tutor",
-                        question: `Vấn đáp AI Tutor: Nêu các suy nghĩ hoặc thắc mắc của bạn về ứng dụng thực tế của "${topicName}".`,
-                        required_key_points: [`Ứng dụng ${topicName}`, "Thực hành bài tập"],
-                        explanation: `Trao đổi với AI Tutor giúp bạn củng cố sâu sắc kiến thức bài học.`,
-                        max_score: 20
-                    }
-                ];
+            recentScore = (typeof recentScore === 'number' && !isNaN(recentScore)) ? recentScore : 50;
+
+            // Determine ratio based on score (mirrors backend logic)
+            let mcCount, shortCount, oralCount;
+            if (recentScore < 40) {
+                mcCount = 3; shortCount = 1; oralCount = 1; // Below-average
+            } else if (recentScore < 75) {
+                mcCount = 2; shortCount = 2; oralCount = 1; // Standard
+            } else {
+                mcCount = 1; shortCount = 2; oralCount = 2; // Advanced
             }
+
+            const isVietnamese = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(topicName);
+
+            const mcQuestionsVI = [
+                { type: "multiple_choice", question: `Nội dung cốt lõi nhất cần ghi nhớ khi học bài "${topicName}" là gì?`, options: { "A": `Nắm vững các khái niệm và nguyên lý chính của ${topicName}`, "B": "Học thuộc lòng không cần hiểu bản chất", "C": "Bỏ qua các ví dụ thực hành", "D": "Tất cả các đáp án đều sai" }, correct_answer: "A", explanation: `Hiểu rõ bản chất và khái niệm chính giúp làm chủ nội dung ${topicName}.`, max_score: 20 },
+                { type: "multiple_choice", question: `Phương pháp nào hiệu quả nhất để ôn tập chủ đề "${topicName}"?`, options: { "A": "Đọc lướt qua một lần", "B": `Chủ động phân tích và làm bài tập thực hành về ${topicName}`, "C": "Bỏ qua các câu hỏi ôn tập", "D": "Ghi nhớ ngẫu nhiên" }, correct_answer: "B", explanation: `Chủ động phân tích và làm bài tập giúp ghi nhớ lâu dài kiến thức ${topicName}.`, max_score: 20 },
+                { type: "multiple_choice", question: `Ứng dụng hoặc ý nghĩa quan trọng nhất của bài học "${topicName}" là gì?`, options: { "A": "Không có ứng dụng thực tế", "B": "Chỉ dùng để làm bài trắc nghiệm", "C": `Giải quyết các bài toán và tình huống thực tế liên quan đến ${topicName}`, "D": "Tăng dung lượng lưu trữ" }, correct_answer: "C", explanation: `Áp dụng kiến thức ${topicName} vào giải quyết bài tập và tình huống thực tế.`, max_score: 20 }
+            ];
+            const shortQuestionsVI = [
+                { type: "short_answer", question: `Hãy tóm tắt ngắn gọn mục tiêu chính khi học chủ đề "${topicName}".`, sample_answer: `Hiểu rõ nguyên lý, công thức và ứng dụng thực hành của ${topicName}.`, explanation: `Mục tiêu là nắm vững kiến thức cốt lõi và vận dụng vào bài tập.`, max_score: 20 },
+                { type: "short_answer", question: `Nêu một ứng dụng thực tế quan trọng của "${topicName}" trong cuộc sống hoặc học tập.`, sample_answer: `${topicName} được ứng dụng để phân tích, giải quyết các vấn đề thực tiễn liên quan.`, explanation: `Hiểu được ứng dụng giúp việc học trở nên có ý nghĩa hơn.`, max_score: 20 }
+            ];
+            const oralQuestionsVI = [
+                { type: "socratic_tutor", question: `Vấn đáp AI Tutor: Nêu các suy nghĩ hoặc thắc mắc của bạn về ứng dụng thực tế của "${topicName}".`, required_key_points: [`Ứng dụng ${topicName}`, "Thực hành bài tập"], explanation: `Trao đổi với AI Tutor giúp bạn củng cố sâu sắc kiến thức bài học.`, max_score: 20 },
+                { type: "socratic_tutor", question: `Phân tích sâu: Điều gì trong "${topicName}" khiến bạn thấy thú vị nhất và tại sao?`, required_key_points: [`Khái niệm chính của ${topicName}`, "Lý do ý nghĩa"], explanation: `Phân tích cá nhân giúp tư duy phản biện phát triển.`, max_score: 20 }
+            ];
+
+            const mcQuestionsEN = [
+                { type: "multiple_choice", question: `What is the primary core focus when studying "${topicName}"?`, options: { "A": `Mastering the core principles and mechanisms of ${topicName}`, "B": "Memorizing terms without understanding", "C": "Ignoring practical examples", "D": "None of the above" }, correct_answer: "A", explanation: `Understanding core principles is essential to mastering ${topicName}.`, max_score: 20 },
+                { type: "multiple_choice", question: `Which approach is most effective for reviewing "${topicName}"?`, options: { "A": "Passive reading without practice", "B": `Active recall and analytical practice on ${topicName}`, "C": "Skipping review questions", "D": "Random guessing" }, correct_answer: "B", explanation: `Active recall and practice reinforce long-term memory retention.`, max_score: 20 },
+                { type: "multiple_choice", question: `What is the key objective of applying knowledge from "${topicName}"?`, options: { "A": "No practical relevance", "B": "Short-term memorization", "C": `Solving real-world problems and exercises related to ${topicName}`, "D": "Bypassing domain logic" }, correct_answer: "C", explanation: `Applying concepts from ${topicName} ensures deep functional understanding.`, max_score: 20 }
+            ];
+            const shortQuestionsEN = [
+                { type: "short_answer", question: `Briefly summarize the main learning goal for "${topicName}".`, sample_answer: `To understand the core mechanisms, formulas, and practical applications of ${topicName}.`, explanation: `Mastery involves acquiring core principles and applying them accurately.`, max_score: 20 },
+                { type: "short_answer", question: `Give one important real-world application of "${topicName}".`, sample_answer: `${topicName} is applied to analyze and solve practical problems in the relevant domain.`, explanation: `Understanding applications makes learning more meaningful.`, max_score: 20 }
+            ];
+            const oralQuestionsEN = [
+                { type: "socratic_tutor", question: `Socratic AI Discussion: Share your key takeaways and any questions regarding "${topicName}".`, required_key_points: [`Core concepts of ${topicName}`, "Practical application"], explanation: `Interactive discussion with the AI Tutor reinforces key insights.`, max_score: 20 },
+                { type: "socratic_tutor", question: `Deep Analysis: What aspect of "${topicName}" do you find most interesting, and why?`, required_key_points: [`Key idea of ${topicName}`, "Personal reasoning"], explanation: `Personal reflection develops critical thinking skills.`, max_score: 20 }
+            ];
+
+            const mc    = isVietnamese ? mcQuestionsVI    : mcQuestionsEN;
+            const short = isVietnamese ? shortQuestionsVI : shortQuestionsEN;
+            const oral  = isVietnamese ? oralQuestionsVI  : oralQuestionsEN;
+
             return [
-                {
-                    type: "multiple_choice",
-                    question: `What is the primary core focus when studying "${topicName}"?`,
-                    options: { "A": `Mastering the core principles and mechanisms of ${topicName}`, "B": "Memorizing terms without understanding", "C": "Ignoring practical examples", "D": "None of the above" },
-                    correct_answer: "A",
-                    explanation: `Understanding core principles is essential to mastering ${topicName}.`,
-                    max_score: 20
-                },
-                {
-                    type: "multiple_choice",
-                    question: `Which approach is most effective for reviewing "${topicName}"?`,
-                    options: { "A": "Passive reading without practice", "B": `Active recall and analytical practice on ${topicName}`, "C": "Skipping review questions", "D": "Random guessing" },
-                    correct_answer: "B",
-                    explanation: `Active recall and practice reinforce long-term memory retention.`,
-                    max_score: 20
-                },
-                {
-                    type: "multiple_choice",
-                    question: `What is the key objective of applying knowledge from "${topicName}"?`,
-                    options: { "A": "No practical relevance", "B": "Short-term memorization", "C": `Solving real-world problems and exercises related to ${topicName}`, "D": "Bypassing domain logic" },
-                    correct_answer: "C",
-                    explanation: `Applying concepts from ${topicName} ensures deep functional understanding.`,
-                    max_score: 20
-                },
-                {
-                    type: "short_answer",
-                    question: `Briefly summarize the main learning goal for "${topicName}".`,
-                    sample_answer: `To understand the core mechanisms, formulas, and practical applications of ${topicName}.`,
-                    explanation: `Mastery involves acquiring core principles and applying them accurately.`,
-                    max_score: 20
-                },
-                {
-                    type: "socratic_tutor",
-                    question: `Socratic AI Discussion: Share your key takeaways and any questions regarding "${topicName}".`,
-                    required_key_points: [`Core concepts of ${topicName}`, "Practical application"],
-                    explanation: `Interactive discussion with the AI Tutor reinforces key insights.`,
-                    max_score: 20
-                }
+                ...mc.slice(0, mcCount),
+                ...short.slice(0, shortCount),
+                ...oral.slice(0, oralCount)
             ];
         }
 
