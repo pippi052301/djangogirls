@@ -32,7 +32,7 @@ def generate_knowledge_graph(text_content):
     \"\"\"{text_content}\"\"\"
     """
     
-    models_to_try = ['gemini-flash-latest', 'gemini-2.0-flash', 'gemini-3.7-flash']
+    models_to_try = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
     for model_name in models_to_try:
         try:
             response = get_client().models.generate_content(

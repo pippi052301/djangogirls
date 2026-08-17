@@ -52,7 +52,7 @@ def generate_tutor_chat_response(conversation_history, student_input, question_p
         parts=[types.Part.from_text(text=student_input)]
     ))
     
-    models_to_try = ['gemini-flash-latest', 'gemini-3.7-flash', 'gemini-2.0-flash-exp']
+    models_to_try = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
     for model_name in models_to_try:
         try:
             response = client.models.generate_content(

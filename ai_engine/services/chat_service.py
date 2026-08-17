@@ -14,7 +14,7 @@ def generate_chat_answer(question_text, context_type=None, context_name=None, co
 
     prompt = f"{context_info}Student Question: {question_text}"
     
-    models_to_try = ['gemini-flash-latest', 'gemini-3.7-flash', 'gemini-2.0-flash-exp']
+    models_to_try = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
     for model_name in models_to_try:
         try:
             response = client.models.generate_content(
@@ -30,14 +30,4 @@ def generate_chat_answer(question_text, context_type=None, context_name=None, co
             print(f"Error when calling API Chat ({model_name}): {e}")
             continue
 
-    topic_label = f"\"{context_name}\"" if context_name else "your study notes"
-    if context_text and len(context_text) > 20:
-        clean_snippets = [s.strip() for s in re.split(r'[\.\n\r]+', context_text) if len(s.strip()) > 15][:3]
-        snippet_text = "\n- ".join(clean_snippets)
-        return (
-            f"I sure can! Here is what is inside your note on {topic_label}:\n\n"
-            f"- {snippet_text}\n\n"
-            f"How would you like to use this note today? We can break it down further, make up practice quiz questions, or connect it to a broader topic!"
-        )
-
-    return f"I'm ready to help you master {topic_label}! What specific concepts, practice problems, or questions would you like us to explore together?"
+    return "The AI tutor is currently busy. Please try again in a moment."

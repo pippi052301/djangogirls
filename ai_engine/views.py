@@ -415,21 +415,27 @@ def student_chat_api(request):
                     context_text = f"Note Title: {note.title}\nContent:\n{extract_clean_note_text(note)}"
 
             feature_key = "chat_qa"
-            matched_cache, input_vector = check_semantic_cache(user_question, feature_key)
-            
-            if matched_cache:
-                resp_text = matched_cache.ai_response if isinstance(matched_cache.ai_response, str) else str(matched_cache.ai_response)
-                return JsonResponse({
-                    "status": "success", 
-                    "data": resp_text,
-                    "response": resp_text,
-                    "is_cached": True 
-                }, status=200)
+            matched_cache = None
+            input_vector = None
+
+            # Bypass cache for Free Talk mode to ensure dynamic responses
+            if context_type != 'freetalk':
+                matched_cache, input_vector = check_semantic_cache(user_question, feature_key)
+                if matched_cache:
+                    resp_text = matched_cache.ai_response if isinstance(matched_cache.ai_response, str) else str(matched_cache.ai_response)
+                    if "ready to help" not in resp_text:
+                        return JsonResponse({
+                            "status": "success", 
+                            "data": resp_text,
+                            "response": resp_text,
+                            "is_cached": True 
+                        }, status=200)
             
             ai_answer = generate_chat_answer(user_question, context_type, context_name, context_text)
             
             if ai_answer:
-                save_to_cache(user_question, feature_key, input_vector, ai_answer)
+                if context_type != 'freetalk' and "ready to help" not in ai_answer:
+                    save_to_cache(user_question, feature_key, input_vector, ai_answer)
                 return JsonResponse({
                     "status": "success", 
                     "data": ai_answer,

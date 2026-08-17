@@ -540,27 +540,27 @@
         modalNotesList.forEach((n, idx) => {
             const isPdf = n.template_type === 'pdf' || (typeof n.content === 'object' && n.content && n.content.pdf_data) || (typeof n.content === 'string' && n.content.includes('pdf_data'));
             const card = document.createElement('div');
-            card.className = 'flex items-center justify-between p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs shadow-sm';
+            card.className = 'flex items-center justify-between p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs shadow-sm hover:border-purple-500/50 transition cursor-pointer';
+            card.onclick = (e) => {
+                if (!e.target.closest('button')) {
+                    editModalNote(idx);
+                }
+            };
             
             card.innerHTML = `
-            <div class="flex items-center gap-2.5 truncate max-w-[60%]">
-                <span class="p-1 rounded-lg ${isPdf ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'} font-bold shrink-0">
+            <div class="flex items-center gap-2.5 truncate max-w-[75%]">
+                <span class="p-1 rounded-lg ${isPdf ? 'bg-red-500/20 text-red-400' : 'bg-purple-500/20 text-purple-400'} font-bold shrink-0">
                     <i data-lucide="${isPdf ? 'file-text' : 'file-edit'}" class="w-3.5 h-3.5"></i>
                 </span>
                 <span class="font-semibold text-slate-800 dark:text-slate-100 truncate" title="${n.title}">${n.title}</span>
                 ${isPdf ? '<span class="px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 font-bold text-[10px]">PDF</span>' : ''}
             </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" onclick="previewModalNote(${idx})" class="p-1.5 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition flex items-center justify-center" title="View note">
-                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                </button>
-                <button type="button" onclick="editModalNote(${idx})" class="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition flex items-center gap-1 font-medium" title="Edit note">
+            <div class="flex items-center gap-1 shrink-0">
+                <button type="button" onclick="editModalNote(${idx})" class="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-100/50 dark:hover:bg-purple-900/40 transition flex items-center justify-center" title="Edit Note">
                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                    <span>Edit</span>
                 </button>
-                <button type="button" onclick="deleteModalNote(${idx})" class="p-1.5 rounded-lg text-red-500 hover:bg-red-100 dark:hover:bg-red-950/60 transition flex items-center gap-1 font-medium" title="Delete note">
+                <button type="button" onclick="deleteModalNote(${idx})" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-100/50 dark:hover:bg-rose-950/40 transition flex items-center justify-center" title="Remove Note">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                    <span>Delete</span>
                 </button>
             </div>`;
 
