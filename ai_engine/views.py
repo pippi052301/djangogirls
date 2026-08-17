@@ -273,6 +273,9 @@ def create_adaptive_practice_api(request):
                 db_recent_avg = Attempt.objects.recent_average_score_for(request.user)
                 if db_recent_avg is not None:
                     recent_score = float(db_recent_avg)
+                
+                print("DEBUG recent_score =", recent_score)
+                
 
                 if context_type == 'folder' and context_name:
                     folder = Folder.objects.filter(owner=request.user, name=context_name).first()
