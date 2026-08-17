@@ -19,6 +19,9 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     'pythonanywhere.com',
+    "djangogirls-czhd.onrender.com",
+    "127.0.0.1",
+    "localhost",
 ]
 
 
