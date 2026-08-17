@@ -308,3 +308,93 @@ class Attempt(models.Model):
 
     def __str__(self):
         return f"{self.quiz_attempt.user} - {self.exercise}"
+
+class TutorSession(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="tutor_sessions",
+    )
+    exercise = models.ForeignKey(
+        Exercise,
+        on_delete=models.CASCADE,
+        related_name="tutor_sessions",
+    )
+    quiz_attempt = models.ForeignKey(
+        QuizAttempt,
+        on_delete=models.CASCADE,
+        related_name="tutor_sessions",
+        null=True,
+        blank=True,
+    )
+    is_ready_for_grading = models.BooleanField(
+        default=False,
+    )
+    compiled_final_answer = models.TextField(
+        blank=True,
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def clean(self):
+        super().clean()
+
+        if (
+            self.exercise_id
+            and self.exercise.question_type
+            != Exercise.QuestionType.LONG_ANSWER
+        ):
+            raise ValidationError(
+                "Tutorセッションは記述問題にのみ作成できます。"
+            )
+
+        if self.quiz_attempt_id:
+            if self.quiz_attempt.user_id != self.user_id:
+                raise ValidationError(
+                    "受験者とTutorセッションのユーザーが一致しません。"
+                )
+
+            if self.quiz_attempt.quiz_id != self.exercise.quiz_id:
+                raise ValidationError(
+                    "受験中のクイズに含まれない問題です。"
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user} - {self.exercise}"
+
+
+class TutorMessage(models.Model):
+    class Role(models.TextChoices):
+        USER = "user", "ユーザー"
+        MODEL = "model", "AI Tutor"
+
+    session = models.ForeignKey(
+        TutorSession,
+        on_delete=models.CASCADE,
+        related_name="messages",
+    )
+    role = models.CharField(
+        max_length=10,
+        choices=Role.choices,
+    )
+    content = models.TextField()
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def __str__(self):
+        return f"{self.session_id} - {self.role}"
