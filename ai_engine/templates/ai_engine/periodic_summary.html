@@ -22,34 +22,8 @@
         </div>
     </div>
 
-    <!-- Overall Mastery Metric Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <!-- Average Mastery Score Card -->
-        <div class="md:col-span-2 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-sm flex flex-col justify-between space-y-4">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Overall Mastery Index</span>
-                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
-                    {% if avg_score >= 80 %}Advanced Mastery{% elif avg_score >= 60 %}Intermediate{% else %}Developing{% endif %}
-                </span>
-            </div>
-
-            <div class="flex items-baseline gap-3">
-                <span class="text-4xl sm:text-5xl font-black gemini-gradient-text">{{ avg_score }}%</span>
-                <span class="text-xs text-slate-400">Average score across recent attempts</span>
-            </div>
-
-            <!-- Progress Bar -->
-            <div class="space-y-1.5">
-                <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200/50 dark:border-slate-700/50">
-                    <div class="gemini-gradient-bg h-full rounded-full transition-all duration-1000" style="width: {{ mastery_percentage }}%;"></div>
-                </div>
-                <div class="flex justify-between text-[11px] text-slate-400 font-mono">
-                    <span>0%</span>
-                    <span>100%</span>
-                </div>
-            </div>
-        </div>
-
+    <!-- Metric Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Total Questions Attempted -->
         <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-sm flex flex-col justify-between space-y-3">
             <div class="flex items-center justify-between">
@@ -80,29 +54,6 @@
                 <i data-lucide="database" class="w-3.5 h-3.5"></i>
                 <span>Fully Indexed in AI Cache</span>
             </div>
-        </div>
-    </div>
-
-    <!-- AI Learning Analytics & Performance Trend Graph -->
-    <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
-            <div class="space-y-0.5">
-                <h2 class="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    <i data-lucide="trending-up" class="w-5 h-5 text-purple-500"></i>
-                    <span>AI Learning Performance & Mastery Trend</span>
-                </h2>
-                <p class="text-xs text-slate-400">Score progress across your recent quiz attempts</p>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-300 font-mono">
-                    Avg Score: {{ avg_score }}%
-                </span>
-            </div>
-        </div>
-
-        <!-- Canvas Chart -->
-        <div class="relative h-64 sm:h-72 w-full">
-            <canvas id="performanceChart"></canvas>
         </div>
     </div>
 
@@ -336,65 +287,6 @@
 
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('performanceChart');
-        if (!ctx) return;
-
-        const labels = {{ chart_labels|safe }};
-        const scores = {{ chart_scores|safe }};
-
-        const canvasCtx = ctx.getContext('2d');
-        const gradient = canvasCtx.createLinearGradient(0, 0, 0, 280);
-        gradient.addColorStop(0, 'rgba(147, 51, 234, 0.35)');
-        gradient.addColorStop(1, 'rgba(147, 51, 234, 0.0)');
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Score (%)',
-                    data: scores,
-                    borderColor: '#9333ea',
-                    borderWidth: 3,
-                    pointBackgroundColor: '#a855f7',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    tension: 0.35,
-                    fill: true,
-                    backgroundColor: gradient
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) { return ' Score: ' + context.parsed.y + '%'; }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#94a3b8', font: { size: 11 } }
-                    },
-                    y: {
-                        min: 0,
-                        max: 100,
-                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
-                        ticks: { color: '#94a3b8', font: { size: 11 }, callback: v => v + '%' }
-                    }
-                }
-            }
-        });
-    });
-</script>
 {% endblock %}
 
 {% block bottom_chat_bar %}{% endblock %}
