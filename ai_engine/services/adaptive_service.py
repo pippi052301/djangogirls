@@ -118,7 +118,7 @@ def grade_simple_answer(question_type, question, user_answer, correct_answer, ex
 
     # Number word equivalence maps
     num_map = {
-        '0': ['0', 'zero', 'none', 'no', 'no real', 'negative'],
+        '0': ['0', 'zero',  'no', 'no real', 'negative'],
         '1': ['1', 'one', 'single', 'double root', 'one repeated'],
         '2': ['2', 'two', 'distinct', 'two distinct', 'two real']
     }
