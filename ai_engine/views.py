@@ -777,14 +777,24 @@ def record_attempt_api(request):
 def context_score_api(request):
     """Fetch recent average score & level name for specific Note or Folder context"""
     if not request.user.is_authenticated:
-        return JsonResponse({"recent_avg_score": 50.0, "level_name": "Standard"})
+        return JsonResponse({"recent_avg_score": None, "display_score": "--%", "level_name": "New Topic"})
 
     context_type = request.GET.get('context_type', '')
     context_name = request.GET.get('context_name', '')
 
     from learning.models import Attempt
     avg_val = Attempt.objects.recent_average_score_for(request.user, context_type=context_type, context_name=context_name)
-    recent_avg = round(float(avg_val), 1) if avg_val is not None else 50.0
+
+    if avg_val is None:
+        return JsonResponse({
+            "status": "success",
+            "recent_avg_score": None,
+            "display_score": "--%",
+            "level_name": "New Topic",
+            "has_history": False
+        })
+
+    recent_avg = round(float(avg_val), 1)
 
     if recent_avg < 40:
         lvl = "Basic"
@@ -796,7 +806,9 @@ def context_score_api(request):
     return JsonResponse({
         "status": "success",
         "recent_avg_score": recent_avg,
-        "level_name": lvl
+        "display_score": f"{recent_avg}%",
+        "level_name": lvl,
+        "has_history": True
     })
 
 

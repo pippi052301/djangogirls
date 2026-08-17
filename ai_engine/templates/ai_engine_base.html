@@ -857,14 +857,21 @@
                     if (!data) return;
                     const avgEl = document.getElementById('header-user-avg-val');
                     const tagEl = document.getElementById('header-user-level-tag');
-                    if (avgEl && data.recent_avg_score !== undefined) {
-                        avgEl.textContent = data.recent_avg_score + '%';
+                    if (avgEl) {
+                        if (data.display_score) {
+                            avgEl.textContent = data.display_score;
+                        } else if (data.recent_avg_score !== undefined && data.recent_avg_score !== null) {
+                            avgEl.textContent = data.recent_avg_score + '%';
+                        } else {
+                            avgEl.textContent = '--%';
+                        }
                     }
                     if (tagEl && data.level_name) {
                         tagEl.textContent = data.level_name;
                         tagEl.className = 'px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide ' +
                             (data.level_name === 'Advanced' ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800' :
                              data.level_name === 'Basic' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' :
+                             data.level_name === 'New Topic' ? 'bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800' :
                              'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border border-amber-200 dark:border-amber-800');
                     }
                 })

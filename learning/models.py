@@ -221,7 +221,11 @@ class AttemptQuerySet(models.QuerySet):
             if avg is not None:
                 return avg
 
-        # Fallback to overall user average if specific context has no test history yet
+        # Return None for specific note/folder context if it has no test history yet
+        if context_type and context_name and context_type != 'freetalk':
+            return None
+
+        # Overall user average fallback for global context
         fallback_quizzes = QuizAttempt.objects.filter(user=user, score__isnull=False).order_by("-completed_at")[:limit]
         if fallback_quizzes.exists():
             fallback_avg = fallback_quizzes.aggregate(val=models.Avg("score"))["val"]
