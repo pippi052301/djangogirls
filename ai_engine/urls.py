@@ -28,6 +28,7 @@ urlpatterns = [
 
     # API 7: Attempt Recording & Context Score
     path('api/attempt/', views.record_attempt_api, name='api_record_attempt'),
+    path('api/context-score/', views.context_score_api, name='api_context_score'),
     path('tutor/chat/', views.socratic_debate_api, name='tutor_chat_api'),
     path('tutor/grade/', views.grade_essay_api, name='api_tutor_grade'),
     path('tutor/history/', views.get_chat_history_sessions_api, name='api_tutor_history'),
