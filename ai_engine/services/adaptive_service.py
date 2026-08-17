@@ -49,17 +49,32 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
     Source text:
     \"\"\"{text_content}\"\"\"
     """
-    try:
-        response = get_client().models.generate_content(
-            model='gemini-3.6-flash', 
-            contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type="application/json")
-        )
-        return json.loads(response.text)
-    except Exception as e:
-        print(f"Error when calling API Adaptive: {e}")
-        return None
+    models_to_try = [
+    "gemini-3.6-flash",
+    "gemini-flash-lite-latest",
+    "gemini-flash-latest",
+    "gemini-3-flash-preview",
+    "gemini-2.5-flash-lite",
+    ]
 
+    for model_name in models_to_try:
+        try:
+            response = get_client().models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            )
+
+            if response and response.text:
+                return json.loads(response.text)
+
+        except Exception as e:
+            print(f"Adaptive model {model_name} failed: {e}")
+            continue
+
+    return None
 
 def grade_simple_answer(question_type, question, user_answer, correct_answer, explanation):
     """Grading for simple question types.
@@ -95,26 +110,41 @@ def grade_simple_answer(question_type, question, user_answer, correct_answer, ex
             "feedback": "(Must insert the reference explanation here so the student understands)"
         }}
         """
-        try:
-            response = get_client().models.generate_content(
-                model='gemini-3.6-flash',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    system_instruction="You are an automated grading system. Grade objectively based on semantic "
-    "meaning only: ignore case, whitespace, punctuation, word order, and paraphrasing/synonyms. "
-    "Results must be completely deterministic and identical across runs for identical inputs. "
-    "Respond strictly with JSON."
-                )
-            )
-            return json.loads(response.text)
-        except Exception as e:
-            print(f"Error calling Simple Grading API: {e}")
-            return None
+        models_to_try = [
+            "gemini-3.6-flash",
+            "gemini-flash-lite-latest",
+            "gemini-flash-latest",
+            "gemini-3-flash-preview",
+            "gemini-2.5-flash-lite",
+        ]
 
-    # Unsupported question_type: avoid silently sending it to an AI prompt meant for short_answer.
-    print(f"grade_simple_answer: unsupported question_type '{question_type}'")
-    return None
+        for model_name in models_to_try:
+            try:
+                response = get_client().models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        system_instruction=(
+                            "You are an automated grading system. "
+                            "Grade objectively based on semantic meaning only: "
+                            "ignore case, whitespace, punctuation, word order, "
+                            "and paraphrasing/synonyms. "
+                            "Results must be completely deterministic and identical "
+                            "across runs for identical inputs. "
+                            "Respond strictly with JSON."
+                        )
+                    )
+                )
+
+                if response and response.text:
+                    return json.loads(response.text)
+
+            except Exception as e:
+                print(f"Simple grading model {model_name} failed: {e}")
+                continue
+
+        return None
 
 
 def advanced_grade_essay(question, user_answer, standard_key_points, sample_essays=None):

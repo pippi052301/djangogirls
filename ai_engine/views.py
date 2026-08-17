@@ -14,6 +14,7 @@ from pgvector.django import CosineDistance
 
 from .models import SemanticAICache, ReferenceSample
 from learning.models import (
+    Quiz,
     Exercise,
     QuizAttempt,
     TutorSession,
@@ -274,8 +275,9 @@ def create_adaptive_practice_api(request):
                 if db_recent_avg is not None:
                     recent_score = float(db_recent_avg)
                 
-                print("DEBUG recent_score =", recent_score)
                 
+                
+            
 
                 if context_type == 'folder' and context_name:
                     folder = Folder.objects.filter(owner=request.user, name=context_name).first()
@@ -314,6 +316,49 @@ def create_adaptive_practice_api(request):
             practice_data = generate_adaptive_practice(full_text_to_analyze, recent_score)
             
             if practice_data:
+                if request.user.is_authenticated and context_type == "note" and context_name:
+                    note = Note.objects.filter(
+                        owner=request.user,
+                        title=context_name
+                    ).first()
+
+                    if note:
+                        quiz = Quiz.objects.create(
+                            note=note,
+                            title="Adaptive Practice"
+                        )
+
+                        for index, item in enumerate(practice_data, start=1):
+                            qtype = item.get("type", "multiple_choice")
+
+                            exercise = Exercise.objects.create(
+                                quiz=quiz,
+                                order=index,
+                                question_type=qtype,
+                                recent_average_score=f"{recent_score:.2f}",
+                                question=item.get("question", ""),
+                                options=(
+                                    item.get("options", {})
+                                    if qtype == "multiple_choice"
+                                    else {}
+                                ),
+                                correct_answer=(
+                                    item.get("correct_answer", "")
+                                    if qtype == "multiple_choice"
+                                    else item.get("sample_answer", "")
+                                    if qtype == "short_answer"
+                                    else ""
+                                ),
+                                key_points=(
+                                    item.get("key_points", [])
+                                    if qtype == "long_answer"
+                                    else []
+                                ),
+                                explanation=item.get("explanation", ""),
+                            )
+
+                            item["exercise_id"] = exercise.id
+
                 return JsonResponse({
                     "status": "success",
                     "recommendation_tip": rec_tip,

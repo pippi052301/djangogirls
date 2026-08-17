@@ -1179,7 +1179,7 @@
                     <div class="pt-1">
                         <input type="text" oninput="quizSelectedAnswers['${containerId}-${idx}'] = this.value" placeholder="Type your short answer here..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-purple-500 transition">
                     </div>`;
-                } else if (qTyep === 'long_answer' || qType === 'socratic_tutor') {
+                } else if (qType === 'long_answer' || qType === 'socratic_tutor') {
                     html += `
                     <div class="pt-2 space-y-3">
                         <div id="${containerId}-tutor-history-${idx}" class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 max-h-56 overflow-y-auto text-xs">
@@ -1231,6 +1231,26 @@
             if (window.lucide) lucide.createIcons();
         }
 
+        function getCookie(name) {
+        let cookieValue = null;
+
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(
+                        cookie.substring(name.length + 1)
+                    );
+                    break;
+                }
+            }
+        }
+
+    return cookieValue;
+}
         function sendSocraticTutorMsg(containerId, idx) {
             const input = document.getElementById(`${containerId}-tutor-input-${idx}`);
             const historyBox = document.getElementById(`${containerId}-tutor-history-${idx}`);
@@ -1266,9 +1286,14 @@
 
             fetch('/ai/tutor/chat/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                 },
                 body: JSON.stringify({
                     student_input: text,
+                    exercise_id: qObj.exercise_id,
+                    session_id: window[`socratic_session_${containerId}_${idx}`] || null,
                     history: window[`socratic_history_${containerId}_${idx}`] || [],
                     question_prompt: qObj.question || '',
                     required_key_points: qObj.required_key_points || []
@@ -1279,8 +1304,11 @@
                 const loadEl = document.getElementById(loadingId);
                 if (loadEl) loadEl.remove();
 
-                const aiMsg = data.ai_message || data.error || 'Thinking completed.';
-                const isReady = data.is_ready_for_grading || false;
+                if (data.session_id) {
+                    window[`socratic_session_${containerId}_${idx}`] = data.session_id;
+}
+                const aiMsg = data.data?.ai_message || data.error || 'Thinking completed.';
+                const isReady = data.data?.is_ready_for_grading || false;
 
                 if (!window[`socratic_history_${containerId}_${idx}`]) {
                     window[`socratic_history_${containerId}_${idx}`] = [];
@@ -1289,7 +1317,8 @@
                 window[`socratic_history_${containerId}_${idx}`].push({ role: 'model', content: aiMsg });
 
                 if (isReady) {
-                    quizSelectedAnswers[`${containerId}-${idx}`] = data.compiled_final_answer || text;
+                    quizSelectedAnswers[`${containerId}-${idx}`] =
+                        data.data?.compiled_final_answer || text;
                     window[`socratic_ready_${containerId}_${idx}`] = true;
                 } else {
                     quizSelectedAnswers[`${containerId}-${idx}`] = text;
