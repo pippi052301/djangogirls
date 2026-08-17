@@ -39,39 +39,7 @@ class Migration(migrations.Migration):
                 'ordering': ['-updated_at'],
             },
         ),
-        migrations.RemoveField(
-            model_name='attempt',
-            name='rubric_details',
-        ),
-        migrations.AddField(
-            model_name='attempt',
-            name='is_correct',
-            field=models.BooleanField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name='quiz',
-            name='generation_type',
-            field=models.CharField(choices=[('standard', '標準'), ('adaptive', '適応型')], default='adaptive', max_length=20),
-        ),
-        migrations.AddField(
-            model_name='quizattempt',
-            name='score',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True, validators=[django.core.validators.MinValueValidator(0), django.core.validators.MaxValueValidator(100)]),
-        ),
-        migrations.AlterField(
-            model_name='attempt',
-            name='reasoning',
-            field=models.TextField(help_text='ユーザーが入力した、問題を解くための論理ステップ'),
-        ),
-        migrations.AlterField(
-            model_name='exercise',
-            name='order',
-            field=models.PositiveSmallIntegerField(default=1),
-        ),
-        migrations.AddConstraint(
-            model_name='quizattempt',
-            constraint=models.CheckConstraint(condition=models.Q(('score__isnull', True), models.Q(('score__gte', 0), ('score__lte', 100)), _connector='OR'), name='quiz_attempt_score_between_0_and_100'),
-        ),
+
         migrations.AddField(
             model_name='tutorsession',
             name='exercise',

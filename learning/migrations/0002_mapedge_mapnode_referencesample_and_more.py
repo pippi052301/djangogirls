@@ -40,18 +40,6 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
             ],
         ),
-        migrations.RemoveConstraint(
-            model_name='quizattempt',
-            name='quiz_attempt_score_between_0_and_100',
-        ),
-        migrations.RemoveField(
-            model_name='attempt',
-            name='is_correct',
-        ),
-        migrations.RemoveField(
-            model_name='quiz',
-            name='generation_type',
-        ),
         migrations.AddField(
             model_name='attempt',
             name='rubric_details',
