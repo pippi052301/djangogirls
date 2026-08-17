@@ -302,8 +302,8 @@ def grade_simple_api(request):
             correct_answer = body.get('correct_answer', '')
             explanation = body.get('explanation', 'No explan.')
             
-            if not all([question_type, question, user_answer, correct_answer]):
-                return JsonResponse({"error": "Not enough content. Need question_type, question, user_answer, correct_answer"}, status=400)
+            if not question or not correct_answer:
+                return JsonResponse({"error": "Not enough content. Need question and correct_answer"}, status=400)
             
             result = grade_simple_answer(question_type, question, user_answer, correct_answer, explanation)
             

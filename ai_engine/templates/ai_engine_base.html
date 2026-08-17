@@ -1581,13 +1581,17 @@
                                 isCorrect = resData.data.is_correct;
                                 const rawScore = (typeof resData.data.score === 'number') ? resData.data.score : (isCorrect ? 100 : 0);
                                 qScore = Math.round((rawScore / 100) * maxQScore);
+                                const feedbackText = resData.data.feedback || q.explanation;
                                 aiEvaluationHtml = `
-                                <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-1.5 mb-2">
-                                    <div class="flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400">
-                                        <span>🤖 AI Short Answer Evaluation</span>
-                                        <span class="px-2 py-0.5 rounded bg-purple-600 text-white font-mono text-[10px]">${qScore} / ${maxQScore} pts</span>
+                                <div class="p-3 rounded-2xl bg-purple-500/10 dark:bg-purple-950/40 border border-purple-500/20 text-slate-800 dark:text-slate-200 space-y-1.5 mb-2">
+                                    <div class="flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400 border-b border-purple-500/20 pb-1.5">
+                                        <span class="flex items-center gap-1.5">
+                                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                            <span>AI Short Answer Evaluation</span>
+                                        </span>
+                                        <span class="px-2.5 py-0.5 rounded-full ${qScore > 0 ? 'bg-emerald-600' : 'bg-red-600'} text-white font-mono text-xs">${qScore} / ${maxQScore} pts</span>
                                     </div>
-                                    <div class="text-xs text-slate-700 dark:text-slate-300 font-medium">${resData.data.feedback || q.explanation}</div>
+                                    <div class="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">${feedbackText}</div>
                                 </div>`;
                             } else {
                                 isCorrect = evaluateShortAnswer(userChoice, q.sample_answer, q.correct_answer);
@@ -1596,6 +1600,13 @@
                         } catch (e) {
                             isCorrect = evaluateShortAnswer(userChoice, q.sample_answer, q.correct_answer);
                             qScore = isCorrect ? maxQScore : 0;
+                        }
+
+                        if (!aiEvaluationHtml) {
+                            aiEvaluationHtml = `
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg ${isCorrect ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'} font-bold text-xs mb-2 shadow-sm">
+                                ${isCorrect ? `✓ Correct Answer (+${qScore} pts)` : `✗ Incorrect Answer (0 / ${maxQScore} pts)`}
+                            </div>`;
                         }
                     } else {
                         try {
