@@ -1475,7 +1475,7 @@
 
                 const qType = q.type || (q.options ? 'multiple_choice' : 'short_answer');
                 const cardEl = expEl ? expEl.parentElement : null;
-                const maxQScore = q.max_score || (qType === 'multiple_choice' ? 10 : 20);
+                const maxQScore = q.max_score || 20;
 
                 if (cardEl && qType === 'multiple_choice') {
                     const grid = cardEl.querySelector('.quiz-options-grid');
