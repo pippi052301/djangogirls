@@ -640,7 +640,9 @@ def periodic_summary_view(request):
         if q_sum_score is None and latest_attempt and latest_attempt.score is not None:
             q_sum_score = latest_attempt.score
 
-        q_count = max(5, quiz.exercises.count())
+        q_count = quiz.exercises.count()
+        if q_count == 0 and attempts.exists():
+            q_count = attempts.count()
 
         exercises_list = []
         for ex in quiz.exercises.all():
@@ -661,68 +663,11 @@ def periodic_summary_view(request):
         if quiz.note and quiz.note.folder:
             display_note_title = f"Folder: {quiz.note.folder.name}"
 
-        default_summary_fallbacks = [
-            {
-                "order": 1,
-                "question_type": "multiple_choice",
-                "question": f"Nội dung cốt lõi nhất cần ghi nhớ khi học bài '{display_note_title}' là gì?",
-                "options": {"A": f"Nắm vững các khái niệm và nguyên lý chính của {display_note_title}", "B": "Học thuộc lòng không cần hiểu bản chất", "C": "Bỏ qua các ví dụ thực hành", "D": "Tất cả các đáp án đều sai"},
-                "correct_answer": "A",
-                "user_answer": "A: Nắm vững các khái niệm",
-                "explanation": f"Hiểu rõ bản chất và khái niệm chính giúp làm chủ nội dung {display_note_title}."
-            },
-            {
-                "order": 2,
-                "question_type": "multiple_choice",
-                "question": f"Phương pháp nào hiệu quả nhất để ôn tập chủ đề '{display_note_title}'?",
-                "options": {"A": "Đọc lướt qua một lần", "B": f"Chủ động phân tích và làm bài tập thực hành về {display_note_title}", "C": "Bỏ qua các câu hỏi ôn tập", "D": "Ghi nhớ ngẫu nhiên"},
-                "correct_answer": "B",
-                "user_answer": "B: Chủ động phân tích",
-                "explanation": f"Chủ động phân tích và làm bài tập giúp ghi nhớ lâu dài kiến thức {display_note_title}."
-            },
-            {
-                "order": 3,
-                "question_type": "multiple_choice",
-                "question": f"Ứng dụng hoặc ý nghĩa quan trọng nhất của bài học '{display_note_title}' là gì?",
-                "options": {"A": "Không có ứng dụng thực tế", "B": "Chỉ dùng để làm bài trắc nghiệm", "C": f"Giải quyết các bài toán và tình huống thực tế liên quan đến {display_note_title}", "D": "Tăng dung lượng lưu trữ"},
-                "correct_answer": "C",
-                "user_answer": "C: Giải quyết bài toán thực tế",
-                "explanation": f"Áp dụng kiến thức {display_note_title} vào giải quyết bài tập và tình huống thực tế."
-            },
-            {
-                "order": 4,
-                "question_type": "short_answer",
-                "question": f"Hãy tóm tắt ngắn gọn mục tiêu chính khi học chủ đề '{display_note_title}'.",
-                "options": {},
-                "correct_answer": f"Hiểu rõ nguyên lý, công thức và ứng dụng thực hành của {display_note_title}.",
-                "user_answer": f"Hiểu nguyên lý chính của {display_note_title}.",
-                "explanation": f"Mục tiêu là nắm vững kiến thức cốt lõi và vận dụng vào bài tập."
-            },
-            {
-                "order": 5,
-                "question_type": "long_answer",
-                "question": f"Vấn đáp AI Tutor: Nêu các suy nghĩ hoặc thắc mắc của bạn về ứng dụng thực tế của '{display_note_title}'.",
-                "options": {},
-                "correct_answer": f"Trao đổi và thực hành các khái niệm cốt lõi của {display_note_title}.",
-                "user_answer": f"Đã tham gia vấn đáp và nắm vững kiến thức {display_note_title}.",
-                "key_points": [f"Ứng dụng {display_note_title}", "Thực hành bài tập"],
-                "explanation": f"Trao đổi với AI Tutor giúp bạn củng cố sâu sắc kiến thức bài học."
-            }
-        ]
-
-        while len(exercises_list) < 5:
-            fb = default_summary_fallbacks[len(exercises_list)]
-            fb['order'] = len(exercises_list) + 1
-            exercises_list.append(fb)
-
-        if len(exercises_list) > 5:
-            exercises_list = exercises_list[:5]
-
         quiz_item = {
             'id': quiz.id,
             'title': quiz.title,
             'note_title': display_note_title,
-            'question_count': 5,
+            'question_count': q_count,
             'created_at': quiz.created_at.strftime('%b %d, %Y') if quiz.created_at else '',
             'latest_attempt_at': latest_attempt.started_at.strftime('%b %d, %Y %H:%M') if (latest_attempt and latest_attempt.started_at) else None,
             'avg_score': round(float(q_sum_score), 1) if q_sum_score is not None else None,
