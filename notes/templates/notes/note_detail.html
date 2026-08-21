@@ -1,0 +1,127 @@
+{% extends 'base_notes.html' %}
+
+{% block title %}{{ note.title }} - Study Notes{% endblock %}
+
+{% block page_title %}{{ note.title }}{% endblock %}
+
+{% block page_header %}
+<!-- Header Actions & Breadcrumb -->
+<div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 mb-6">
+    <div class="flex items-center gap-2 text-xs text-slate-500">
+        <a href="{% url 'notes:note_list' %}" class="hover:underline flex items-center gap-1">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+            <span>Back to Notes</span>
+        </a>
+    </div>
+    <div class="flex items-center gap-2">
+        <a href="{% url 'notes:note_edit' pk=note.pk %}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded transition">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <span>Edit</span>
+        </a>
+        <a href="{% url 'notes:note_delete' pk=note.pk %}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded transition">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Delete</span>
+        </a>
+    </div>
+</div>
+
+<!-- Title & Icon -->
+<div class="mb-6">
+    <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ note.title }}</h1>
+</div>
+
+<!-- Note Properties (Notion Style) -->
+<div class="space-y-3 text-xs text-slate-500 border-y border-slate-100 dark:border-slate-800 py-4 mb-6">
+    <div class="flex items-center gap-4">
+        <span class="w-28 flex items-center gap-1.5 text-slate-400">
+            <i data-lucide="clock" class="w-3.5 h-3.5"></i> Created
+        </span>
+        <span class="text-slate-700 dark:text-slate-300 font-medium">{{ note.created_at|date:"M d, Y, H:i" }}</span>
+    </div>
+    
+    <div class="flex items-center gap-4">
+        <span class="w-28 flex items-center gap-1.5 text-slate-400">
+            <i data-lucide="folder" class="w-3.5 h-3.5"></i> Folder
+        </span>
+        {% if note.folder %}
+            <a href="{% url 'notes:folder_detail' pk=note.folder.pk %}" class="inline-block bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded font-medium hover:underline">
+                {{ note.folder.name }}
+            </a>
+        {% else %}
+            <span class="text-slate-400 italic">No Folder</span>
+        {% endif %}
+    </div>
+
+    <div class="flex items-center gap-4">
+        <span class="w-28 flex items-center gap-1.5 text-slate-400">
+            <i data-lucide="tag" class="w-3.5 h-3.5"></i> Tags
+        </span>
+        <div class="flex flex-wrap gap-1">
+            {% for tag in note.tags.all %}
+                <a href="{% url 'notes:note_list' %}?q={{ tag.name }}" class="inline-block {{ tag.color_class }} text-xs px-2.5 py-0.5 rounded border font-medium transition hover:scale-105">
+                    # {{ tag.name }}
+                </a>
+            {% empty %}
+                <span class="text-slate-400 italic">No Tags</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if note.template_type == 'pdf' or note.content.pdf_data or '.pdf' in note.title|lower %}
+<!-- Google Drive Style PDF Document Viewer -->
+<div class="space-y-4">
+    <!-- Top Google Drive Toolbar -->
+    <div class="flex items-center justify-between bg-slate-900 text-slate-100 p-3 rounded-2xl shadow-lg border border-slate-800 text-xs select-none">
+        <div class="flex items-center gap-3 truncate">
+            <div class="w-7 h-7 rounded-lg bg-red-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                PDF
+            </div>
+            <span class="font-semibold text-sm truncate">{{ note.title }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'ai_home' %}?prompt=Let's%20analyze%20and%20discuss%20my%20PDF%20document%3A%20{{ note.title|urlencode }}" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium flex items-center gap-1.5 transition shadow-sm">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>Ask AI about this PDF</span>
+            </a>
+            {% if note.content.pdf_data %}
+            <a href="{{ note.content.pdf_data }}" download="{{ note.title }}" class="p-1.5 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition" title="Download PDF">
+                <i data-lucide="download" class="w-4 h-4"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- PDF Viewer Frame (Native Google Drive PDF View) -->
+    {% if note.content.pdf_data %}
+        <div class="w-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 bg-slate-950">
+            <iframe src="{{ note.content.pdf_data }}" class="w-full h-[780px] border-none"></iframe>
+        </div>
+    {% else %}
+        <!-- Document Text Container -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-3">
+                <i data-lucide="file-text" class="w-4 h-4 text-red-500"></i>
+                <span>PDF Document Content</span>
+            </div>
+            <div class="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap font-sans">
+                {% if note.content.body %}{{ note.content.body }}{% else %}{{ note.content }}{% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% else %}
+<!-- Standard Note Content Display with Rich HTML/Markdown Rendering -->
+<div class="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+    {% if note.content.body %}
+        {{ note.content.body|safe }}
+    {% elif note.content %}
+        {{ note.content|safe }}
+    {% else %}
+        <p class="text-slate-400 italic">No content in this note yet.</p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

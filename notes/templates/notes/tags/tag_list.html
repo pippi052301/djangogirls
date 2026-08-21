@@ -1,0 +1,73 @@
+{% extends 'base_clean.html' %}
+
+{% block title %}Manage Tags{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-4 max-w-md mx-auto select-none">
+
+    <!-- List of Tags -->
+    <div class="space-y-2">
+        {% for tag in tags %}
+        <div class="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/60 hover:border-blue-300 dark:hover:border-blue-600 transition group" id="tag-row-{{ tag.id }}">
+            
+            <!-- View Mode -->
+            <div class="flex items-center justify-between w-full" id="tag-view-{{ tag.id }}">
+                <a href="{% url 'notes:tag_detail' pk=tag.pk %}" class="inline-block {{ tag.color_class }} border text-xs px-2.5 py-0.5 rounded font-medium transition hover:scale-105">
+                    # {{ tag.name }}
+                </a>
+                
+                <div class="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition">
+                    <button type="button" onclick="enableTagEdit('{{ tag.id }}')" class="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 rounded transition" title="Edit tag">
+                        <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                    
+                    <!-- Quick Delete Form with JS Confirm -->
+                    <form method="POST" action="{% url 'notes:tag_delete' pk=tag.pk %}" onsubmit="return confirm('Are you sure you want to delete tag &quot;{{ tag.name }}&quot;?');" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded transition" title="Delete tag">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Inline Edit Mode (Hidden by default) -->
+            <form method="POST" action="{% url 'notes:tag_update' pk=tag.pk %}" class="hidden flex items-center justify-between w-full gap-2" id="tag-edit-{{ tag.id }}">
+                {% csrf_token %}
+                <input type="text" name="name" value="{{ tag.name }}" required class="flex-1 px-2.5 py-1 text-xs border border-blue-400 rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none">
+                <div class="flex items-center gap-1">
+                    <button type="submit" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition text-xs flex items-center gap-1 font-medium">
+                        <i data-lucide="check" class="w-3 h-3"></i> Save
+                    </button>
+                    <button type="button" onclick="disableTagEdit('{{ tag.id }}')" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+        {% empty %}
+        <div class="text-center py-8 text-xs text-slate-400 italic">
+            No tags available in storage.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    function enableTagEdit(tagId) {
+        document.getElementById('tag-view-' + tagId).classList.add('hidden');
+        document.getElementById('tag-edit-' + tagId).classList.remove('hidden');
+        const input = document.querySelector('#tag-edit-' + tagId + ' input[name="name"]');
+        if (input) {
+            input.focus();
+            input.select();
+        }
+    }
+
+    function disableTagEdit(tagId) {
+        document.getElementById('tag-edit-' + tagId).classList.add('hidden');
+        document.getElementById('tag-view-' + tagId).classList.remove('hidden');
+    }
+</script>
+{% endblock %}
