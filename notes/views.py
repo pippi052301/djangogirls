@@ -92,6 +92,8 @@ def note_create(request):
         if form.is_valid():
             note = form.save(commit=False)
             note.owner = request.user
+            if not note.title or not note.title.strip():
+                note.title = 'Untitled'
 
             folder_id = request.POST.get('folder') or request.GET.get('folder_id')
             if folder_id:
@@ -115,8 +117,15 @@ def note_create(request):
                 )
                 note.tags.set(valid_tags)
 
+            next_url = request.POST.get("next") or request.GET.get("next")
+            if next_url and not note.folder:
+                return redirect(next_url)
+
             if note.folder:
                 return redirect("notes:folder_detail", pk=note.folder.pk)
+
+            if next_url:
+                return redirect(next_url)
 
             return redirect("notes:note_list")
 
@@ -204,6 +213,10 @@ def folder_create(request):
 
             if request.headers.get("x-requested-with") == "XMLHttpRequest":
                 return JsonResponse({"id": folder.id, "name": folder.name})
+
+            next_url = request.POST.get("next") or request.GET.get("next")
+            if next_url:
+                return redirect(next_url)
 
             if folder.parent:
                 return redirect("notes:folder_detail", pk=folder.parent.pk)
@@ -316,11 +329,17 @@ def note_bulk_delete(request):
 @login_required
 def folder_list(request):
     search_query = request.GET.get('q', '').strip()
-    folders = Folder.objects.filter(owner=request.user).prefetch_related('notes')
+    folders = Folder.objects.filter(owner=request.user, parent__isnull=True).prefetch_related('notes')
+    all_folders = Folder.objects.filter(owner=request.user).order_by('name')
     tags = Tag.objects.filter(owner=request.user)
+    unfoldered_notes = Note.objects.filter(owner=request.user, folder__isnull=True).exclude(template_type='pdf').exclude(title__icontains='.pdf').prefetch_related('tags')
     
     if search_query:
         folders = folders.filter(name__icontains=search_query)
+        unfoldered_notes = unfoldered_notes.filter(
+            Q(title__icontains=search_query) |
+            Q(tags__name__icontains=search_query)
+        ).distinct()
 
     for folder in folders:
         notes_data = []
@@ -338,50 +357,13 @@ def folder_list(request):
         "folders/folder_list.html", 
         {
             "folders": folders,
+            "all_folders": all_folders,
+            "unfoldered_notes": unfoldered_notes,
             "tags": tags,
             "search_query": search_query,
         }
     )
 
-@login_required
-def folder_create(request):
-    if request.method == "POST":
-        form = FolderForm(
-            request.POST,
-            user=request.user
-        )
-
-        if form.is_valid():
-            folder = form.save(commit=False)
-            folder.owner = request.user
-            folder.save()
-
-            # Create initial note if provided inside New Folder modal
-            note_title = request.POST.get('note_title', '').strip()
-            note_content = request.POST.get('note_content', '').strip()
-            if note_title:
-                template_type = request.POST.get('template_type', 'blank')
-                if not template_type or template_type == 'blank':
-                    if '.pdf' in note_title.lower():
-                        template_type = 'pdf'
-                new_note = Note.objects.create(
-                    title=note_title,
-                    content={"body": note_content},
-                    template_type=template_type,
-                    owner=request.user,
-                    folder=folder
-                )
-                tag_ids = request.POST.getlist('note_tags')
-                if tag_ids:
-                    tag_objs = Tag.objects.filter(id__in=tag_ids, owner=request.user)
-                    new_note.tags.set(tag_objs)
-
-            if request.headers.get("x-requested-with") == "XMLHttpRequest":
-                return JsonResponse({"id": folder.id, "name": folder.name})
-
-            return redirect("notes:folder_list")
-
-    return redirect("notes:folder_list")
 
 @login_required
 def folder_detail(request, pk):
@@ -400,6 +382,9 @@ def folder_detail(request, pk):
         owner=request.user
     )
 
+    folders = Folder.objects.filter(owner=request.user)
+    tags = Tag.objects.filter(owner=request.user)
+
     return render(
         request,
         "folders/folder_detail.html",
@@ -407,6 +392,8 @@ def folder_detail(request, pk):
             "folder": folder,
             "subfolders": subfolders,
             "notes": notes,
+            "folders": folders,
+            "tags": tags,
         }
     )
 @login_required

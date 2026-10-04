@@ -27,6 +27,14 @@ class NoteForm(forms.ModelForm):
         required=False
     )
 
+    title = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Add title...'
+        })
+    )
+
     class Meta:
         model = Note
         fields = [
@@ -37,13 +45,6 @@ class NoteForm(forms.ModelForm):
         ]
 
         widgets = {
-            'title': forms.TextInput(
-                attrs={
-                    'class': 'form-control',
-                    'placeholder': 'Add title...'
-                }
-            ),
-
             'template_type': forms.Select(
                 attrs={
                     'class': 'form-control'

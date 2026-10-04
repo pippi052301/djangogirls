@@ -27,6 +27,7 @@ from .services.adaptive_service import generate_adaptive_practice, advanced_grad
 from .services.embedding_service import get_text_embedding 
 from .services.chat_service import generate_chat_answer
 from .services.tutor_chat_service import generate_tutor_chat_response
+from .services.fact_check_service import verify_note_accuracy
 # --- CACHING HELPER FUNCTIONS ---
 SIMILARITY_THRESHOLD = 0.035 
 
@@ -1214,3 +1215,113 @@ def delete_chat_session_api(request, session_id):
             return JsonResponse({"status": "success"})
         return JsonResponse({"error": "Session not found"}, status=404)
     return JsonResponse({"error": "Invalid method"}, status=405)
+
+
+@csrf_exempt
+def check_note_accuracy_api(request):
+    """
+    Evaluates note content for factual accuracy, identifying claims where
+    the AI raises "Are you sure this information is correct?" alerts with explanations.
+    Supports existing note by note_id or raw text for unsaved drafts.
+    """
+    if request.method != 'POST':
+        return JsonResponse({"error": "Only POST method is accepted."}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        note_id = body.get('note_id')
+        raw_text = body.get('text', '').strip()
+        title = body.get('title', '').strip()
+
+        if note_id and request.user.is_authenticated:
+            from notes.models import Note
+            note_obj = Note.objects.filter(id=note_id, owner=request.user).first()
+            if note_obj:
+                raw_text = extract_clean_note_text(note_obj)
+                title = note_obj.title
+
+        if not raw_text:
+            return JsonResponse({"error": "No note content provided to check."}, status=400)
+
+        result = verify_note_accuracy(raw_text, title)
+
+        return JsonResponse({
+            "status": "success",
+            "data": result
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+@login_required
+def apply_note_correction_api(request):
+    """
+    Applies an AI-suggested factual correction to the user's note.
+    """
+    if request.method != 'POST':
+        return JsonResponse({"error": "Only POST method is accepted."}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        note_id = body.get('note_id')
+        old_claim = body.get('old_claim', '').strip()
+        new_text = body.get('new_text', '').strip()
+
+        from notes.models import Note
+        note = Note.objects.filter(id=note_id, owner=request.user).first()
+        if not note:
+            return JsonResponse({"error": "Note not found or permission denied."}, status=404)
+
+        if not old_claim or not new_text:
+            return JsonResponse({"error": "Both old_claim and new_text are required."}, status=400)
+
+        content = note.content
+        replaced = False
+
+        if isinstance(content, dict):
+            body_text = content.get('body', '')
+            if old_claim in body_text:
+                content['body'] = body_text.replace(old_claim, new_text)
+                note.content = content
+                note.save(update_fields=['content', 'updated_at'])
+                replaced = True
+            elif re.search(re.escape(old_claim), body_text, re.IGNORECASE):
+                content['body'] = re.sub(re.escape(old_claim), new_text, body_text, count=1, flags=re.IGNORECASE)
+                note.content = content
+                note.save(update_fields=['content', 'updated_at'])
+                replaced = True
+            elif html.unescape(old_claim) in html.unescape(body_text):
+                # Handle HTML encoded entities
+                body_clean = re.sub(re.escape(old_claim), new_text, body_text, count=1, flags=re.IGNORECASE)
+                content['body'] = body_clean
+                note.content = content
+                note.save(update_fields=['content', 'updated_at'])
+                replaced = True
+        elif isinstance(content, str):
+            if old_claim in content:
+                note.content = content.replace(old_claim, new_text)
+                note.save(update_fields=['content', 'updated_at'])
+                replaced = True
+            elif re.search(re.escape(old_claim), content, re.IGNORECASE):
+                note.content = re.sub(re.escape(old_claim), new_text, content, count=1, flags=re.IGNORECASE)
+                note.save(update_fields=['content', 'updated_at'])
+                replaced = True
+
+        if replaced:
+            updated_text = extract_clean_note_text(note)
+            return JsonResponse({
+                "status": "success",
+                "message": "Note content successfully updated with the corrected information.",
+                "updated_text": updated_text
+            }, status=200)
+
+        return JsonResponse({
+            "status": "partial",
+            "message": "Original claim could not be matched automatically. Please review and update in note edit mode."
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+

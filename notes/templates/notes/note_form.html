@@ -10,7 +10,8 @@
         <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">
             {% if note %}Edit Note{% else %}Create New Note{% endif %}
         </h2>
-        <a href="{% if note %}{% url 'notes:note_detail' pk=note.pk %}{% else %}{% url 'notes:note_list' %}{% endif %}" class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+        <a href="{% if note %}{% url 'notes:note_detail' pk=note.pk %}{% else %}{% url 'notes:note_list' %}{% endif %}"
+            class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
             Cancel
         </a>
     </div>
@@ -19,34 +20,181 @@
         {% csrf_token %}
         <div>
             <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Title</label>
-            <input type="text" name="title" value="{{ form.title.value|default:note.title|default:'' }}" required placeholder="Note title..." class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-semibold">
+            <input type="text" name="title" value="{{ form.title.value|default:note.title|default:'' }}" required
+                placeholder="Note title..."
+                class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-semibold">
         </div>
 
         <div>
             <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Folder</label>
-            <select name="folder" class="w-full px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500">
+            <select name="folder"
+                class="w-full px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500">
                 <option value="">No Folder</option>
                 {% for folder in form.folder.field.queryset %}
-                    <option value="{{ folder.pk }}" {% if form.folder.value == folder.pk or note.folder_id == folder.pk %}selected{% endif %}>
-                        {{ folder.name }}
-                    </option>
+                <option value="{{ folder.pk }}" {% if form.folder.value == folder.pk or note.folder_id == folder.pk %}selected{% endif %}>
+                    {{ folder.name }}
+                </option>
                 {% endfor %}
             </select>
         </div>
 
         <div>
-            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Content</label>
-            <textarea name="content" rows="8" placeholder="Start typing note content..." class="w-full p-3 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-mono resize-y">{% if note.content.body %}{{ note.content.body }}{% else %}{{ form.content.value|default:'' }}{% endif %}</textarea>
+            <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400">Content</label>
+                <button type="button" id="btn-check-draft" onclick="checkDraftAccuracy()"
+                    class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition">
+                    <i data-lucide="shield-alert" class="w-3 h-3"></i>
+                    <span>Check Accuracy</span>
+                </button>
+            </div>
+            <!-- Fact check live feedback container -->
+            <div id="form-fact-check-box" class="hidden mb-3 p-3 rounded-xl border text-xs"></div>
+            <textarea id="note-content-input" name="content" rows="8" placeholder="Start typing note content..."
+                class="w-full p-3 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-mono resize-y">{% if note.content.body %}{{ note.content.body }}{% else %}{{ form.content.value|default:'' }}{% endif %}</textarea>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-            <a href="{% if note %}{% url 'notes:note_detail' pk=note.pk %}{% else %}{% url 'notes:note_list' %}{% endif %}" class="px-3.5 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition font-medium">
+            <a href="{% if note %}{% url 'notes:note_detail' pk=note.pk %}{% else %}{% url 'notes:note_list' %}{% endif %}"
+                class="px-3.5 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition font-medium">
                 Cancel
             </a>
-            <button type="submit" class="px-4 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition">
+            <button type="submit"
+                class="px-4 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition">
                 Save Note
             </button>
         </div>
     </form>
 </div>
+
+<script>
+    async function checkDraftAccuracy() {
+        const textarea = document.getElementById('note-content-input');
+        const titleInput = document.querySelector('input[name="title"]');
+        const box = document.getElementById('form-fact-check-box');
+        const btn = document.getElementById('btn-check-draft');
+
+        const text = (textarea.value || '').trim();
+        const title = (titleInput ? titleInput.value : '').trim();
+
+        if (!text || text.length < 10) {
+            box.classList.remove('hidden');
+            box.className = 'mb-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs';
+            box.innerHTML = 'Please write at least a few sentences before running an accuracy check.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<span class="animate-spin">⏳</span> Checking...`;
+        box.classList.remove('hidden');
+        box.className = 'mb-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2 animate-pulse';
+        box.innerHTML = `<span>AI checking content accuracy against academic facts...</span>`;
+
+        try {
+            const resp = await fetch('{% url "api_note_fact_check" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    text: text,
+                    title: title
+                })
+            });
+
+            const res = await resp.json();
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="shield-alert" class="w-3 h-3"></i><span>Check Accuracy</span>`;
+
+            if (res.status === 'success' && res.data) {
+                const data = res.data;
+                const disc = data.discrepancies || [];
+
+                if (disc.length > 0) {
+                    box.classList.remove('animate-pulse');
+                    box.className = 'mb-3 p-3.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-xs space-y-3';
+
+                    let itemsHtml = '';
+                    disc.forEach((item, idx) => {
+                        itemsHtml += `
+                            <div class="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 space-y-2">
+                                <div class="font-bold text-amber-800 dark:text-amber-300 flex items-center justify-between">
+                                    <span>⚠️ ${item.prompt_message || 'Are you sure this information is correct?'}</span>
+                                </div>
+                                <div class="text-slate-600 dark:text-slate-300">
+                                    <span class="text-red-500 font-semibold">Your text:</span> "${escapeHtml(item.claim_text)}"
+                                </div>
+                                <div class="text-slate-600 dark:text-slate-300">
+                                    <strong class="text-amber-700 dark:text-amber-400">Why to review:</strong> ${escapeHtml(item.reason)}
+                                </div>
+                                <div class="text-emerald-700 dark:text-emerald-300 font-medium">
+                                    <strong>Factually accepted:</strong> ${escapeHtml(item.suggestion)}
+                                </div>
+                                <button type="button" onclick="replaceInTextarea('${escapeAttribute(item.claim_text)}', '${escapeAttribute(item.suggestion)}')" class="mt-1 px-2.5 py-1 rounded bg-purple-600 text-white text-[11px] font-semibold hover:bg-purple-700 transition">
+                                    Insert Correction
+                                </button>
+                            </div>
+                        `;
+                    });
+
+                    box.innerHTML = `
+                        <div class="flex items-center justify-between font-bold text-amber-900 dark:text-amber-100">
+                            <span>💡 ${disc.length} statement(s) may need review:</span>
+                            <button type="button" onclick="document.getElementById('form-fact-check-box').classList.add('hidden')" class="text-xs hover:underline">Dismiss</button>
+                        </div>
+                        <div class="space-y-2">${itemsHtml}</div>
+                    `;
+                } else {
+                    box.classList.remove('animate-pulse');
+                    box.className = 'mb-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs flex items-center justify-between';
+                    box.innerHTML = `
+                        <span>✓ All clear! No factual discrepancies detected.</span>
+                        <button type="button" onclick="document.getElementById('form-fact-check-box').classList.add('hidden')" class="hover:underline">Dismiss</button>
+                    `;
+                }
+            } else {
+                box.className = 'mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs';
+                box.innerHTML = `⚠️ ${res.error || 'Could not verify at this time.'}`;
+            }
+        } catch (e) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="shield-alert" class="w-3 h-3"></i><span>Check Accuracy</span>`;
+            box.className = 'mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs';
+            box.innerHTML = `⚠️ Network error while connecting to AI Fact-Checker.`;
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function replaceInTextarea(oldClaim, newText) {
+        const textarea = document.getElementById('note-content-input');
+        if (!textarea) return;
+        if (textarea.value.includes(oldClaim)) {
+            textarea.value = textarea.value.replace(oldClaim, newText);
+        } else {
+            // Regex case insensitive fallback
+            const reg = new RegExp(oldClaim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+            textarea.value = textarea.value.replace(reg, newText);
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttribute(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '&quot;')
+            .replace(/\n/g, ' ');
+    }
+</script>
 {% endblock %}

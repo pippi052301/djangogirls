@@ -54,6 +54,11 @@ def generate_tutor_chat_response(
        WHEN "is_ready_for_grading" is false,
        set "compiled_final_answer" to null.
 
+    6. FACTUAL TRUTH & MISCONCEPTION CHECK:
+       If the student asserts a factual inaccuracy or misconception, DO NOT accept it as valid.
+       Prompt them with a polite Socratic question to reconsider:
+       e.g., "Are you sure this detail is correct? Consider what happens when..."
+
     [MANDATORY OUTPUT FORMAT]
 
     {{

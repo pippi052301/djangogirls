@@ -14,6 +14,10 @@
         </a>
     </div>
     <div class="flex items-center gap-2">
+        <button type="button" id="btn-fact-check" onclick="runNoteFactCheck()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded transition shadow-sm">
+            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
+            <span id="btn-fact-check-text">Check Accuracy</span>
+        </button>
         <a href="{% url 'notes:note_edit' pk=note.pk %}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded transition">
             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
             <span>Edit</span>
@@ -39,17 +43,27 @@
         <span class="text-slate-700 dark:text-slate-300 font-medium">{{ note.created_at|date:"M d, Y, H:i" }}</span>
     </div>
     
-    <div class="flex items-center gap-4">
-        <span class="w-28 flex items-center gap-1.5 text-slate-400">
-            <i data-lucide="folder" class="w-3.5 h-3.5"></i> Folder
-        </span>
-        {% if note.folder %}
-            <a href="{% url 'notes:folder_detail' pk=note.folder.pk %}" class="inline-block bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded font-medium hover:underline">
-                {{ note.folder.name }}
-            </a>
-        {% else %}
-            <span class="text-slate-400 italic">No Folder</span>
-        {% endif %}
+    {% if note.folder %}
+        <nav class="text-xs text-slate-500 dark:text-slate-400 mb-4" aria-label="breadcrumb">
+            <ol class="list-none p-0 inline-flex">
+                {% for f in note.folder_path %}
+                    <li class="flex items-center">
+                        <a href="{% url 'notes:folder_detail' pk=f.pk %}" class="text-blue-600 dark:text-blue-400 hover:underline">{{ f.name }}</a>
+                        {% if not forloop.last %}
+                            <span class="mx-2">&gt;</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                <li class="flex items-center">
+                    <span class="mx-2">&gt;</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ note.title }}</span>
+                </li>
+            </ol>
+        </nav>
+    {% else %}
+        <span class="text-slate-400 italic">No Folder</span>
+    {% endif %}
+
     </div>
 
     <div class="flex items-center gap-4">
@@ -67,9 +81,13 @@
         </div>
     </div>
 </div>
+
+<!-- Dynamic Fact-Check Alert Panel -->
+<div id="fact-check-status-panel" class="hidden mb-6 rounded-2xl border transition-all duration-300 shadow-sm overflow-hidden"></div>
 {% endblock %}
 
 {% block content %}
+<div id="note-body-wrapper">
 {% if note.template_type == 'pdf' or note.content.pdf_data or '.pdf' in note.title|lower %}
 <!-- Google Drive Style PDF Document Viewer -->
 <div class="space-y-4">
@@ -106,7 +124,7 @@
                 <i data-lucide="file-text" class="w-4 h-4 text-red-500"></i>
                 <span>PDF Document Content</span>
             </div>
-            <div class="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap font-sans">
+            <div id="note-text-content" class="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap font-sans">
                 {% if note.content.body %}{{ note.content.body }}{% else %}{{ note.content }}{% endif %}
             </div>
         </div>
@@ -114,14 +132,247 @@
 </div>
 {% else %}
 <!-- Standard Note Content Display with Rich HTML/Markdown Rendering -->
-<div class="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+<div id="note-text-content" class="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
     {% if note.content.body %}
         {{ note.content.body|safe }}
-    {% elif note.content %}
-        {{ note.content|safe }}
-    {% else %}
-        <p class="text-slate-400 italic">No content in this note yet.</p>
     {% endif %}
 </div>
 {% endif %}
+</div>
+
+<!-- JavaScript for Fact-Checking & Interactive Correction -->
+<script>
+    async function runNoteFactCheck() {
+        const btn = document.getElementById('btn-fact-check');
+        const btnText = document.getElementById('btn-fact-check-text');
+        const panel = document.getElementById('fact-check-status-panel');
+
+        btn.disabled = true;
+        btnText.textContent = 'Checking...';
+        panel.classList.remove('hidden');
+        panel.className = 'mb-6 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-3 animate-pulse';
+        panel.innerHTML = `
+            <div class="w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin shrink-0"></div>
+            <div>
+                <span class="font-bold">AI Fact-Check in progress:</span> Analyzing factual claims, scientific mechanisms, and potential misconceptions against verified knowledge...
+            </div>
+        `;
+
+        try {
+            const resp = await fetch('{% url "api_note_fact_check" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    note_id: Number('{{ note.pk }}')
+                })
+            });
+
+            const res = await resp.json();
+            btn.disabled = false;
+            btnText.textContent = 'Check Accuracy';
+
+            if (res.status === 'success' && res.data) {
+                const data = res.data;
+                const discrepancies = data.discrepancies || [];
+
+                if (discrepancies.length > 0) {
+                    renderDiscrepancies(discrepancies, data.summary);
+                } else {
+                    renderAllAccurate(data.summary);
+                }
+            } else {
+                panel.className = 'mb-6 p-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs';
+                panel.innerHTML = `⚠️ Could not complete fact-checking: ${res.error || 'Server error'}`;
+            }
+        } catch (err) {
+            btn.disabled = false;
+            btnText.textContent = 'Check Accuracy';
+            panel.className = 'mb-6 p-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs';
+            panel.innerHTML = `⚠️ Network error while connecting to AI Fact-Checker.`;
+        }
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    function renderDiscrepancies(discrepancies, summary) {
+        const panel = document.getElementById('fact-check-status-panel');
+        panel.classList.remove('hidden', 'animate-pulse');
+        panel.className = 'mb-6 rounded-2xl bg-gradient-to-br from-amber-50/90 to-orange-50/90 dark:from-amber-950/40 dark:to-orange-950/40 border border-amber-300 dark:border-amber-700 p-5 space-y-4 shadow-sm';
+
+        let cardsHtml = '';
+        discrepancies.forEach((item, idx) => {
+            cardsHtml += `
+                <div id="discrepancy-card-${idx}" class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                                ⚠️ ${item.prompt_message || 'Are you sure this information is correct?'}
+                            </span>
+                        </div>
+                        <button type="button" onclick="dismissCard(${idx})" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs transition">
+                            Dismiss
+                        </button>
+                    </div>
+
+                    <div class="space-y-1.5 text-xs">
+                        <div class="p-2.5 rounded-lg bg-red-50/60 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/40 text-slate-800 dark:text-slate-200">
+                            <span class="font-semibold text-red-600 dark:text-red-400">Statement in Note:</span>
+                            <span class="italic text-slate-700 dark:text-slate-300">"${escapeHtml(item.claim_text)}"</span>
+                        </div>
+
+                        <div class="text-slate-600 dark:text-slate-300 pl-1 leading-relaxed">
+                            <strong class="text-amber-700 dark:text-amber-400">Why to review:</strong> ${escapeHtml(item.reason)}
+                        </div>
+
+                        <div class="p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-slate-800 dark:text-slate-200">
+                            <span class="font-semibold text-emerald-600 dark:text-emerald-400">Scientifically Accepted Fact:</span>
+                            <span class="text-slate-800 dark:text-slate-100 font-medium">${escapeHtml(item.suggestion)}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-1">
+                        <button type="button" onclick="applyCorrection(${idx}, '${escapeAttribute(item.claim_text)}', '${escapeAttribute(item.suggestion)}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-sm transition">
+                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                            <span>Apply Suggested Fact to Note</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        panel.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow">
+                        💡
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-amber-900 dark:text-amber-200">AI Accuracy Review</h3>
+                        <p class="text-xs text-amber-800/80 dark:text-amber-300/80">${escapeHtml(summary || 'Found ' + discrepancies.length + ' statement(s) that may require factual verification.')}</p>
+                    </div>
+                </div>
+                <button type="button" onclick="document.getElementById('fact-check-status-panel').classList.add('hidden')" class="text-amber-700 dark:text-amber-400 hover:text-amber-900 text-xs font-medium">
+                    Close
+                </button>
+            </div>
+            <div class="space-y-3">
+                ${cardsHtml}
+            </div>
+        `;
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    function renderAllAccurate(summary) {
+        const panel = document.getElementById('fact-check-status-panel');
+        panel.classList.remove('hidden', 'animate-pulse');
+        panel.className = 'mb-6 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs flex items-center justify-between gap-3 shadow-sm';
+        panel.innerHTML = `
+            <div class="flex items-center gap-2.5">
+                <div class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    ✓
+                </div>
+                <div>
+                    <span class="font-bold text-emerald-900 dark:text-emerald-100">Factual Accuracy Confirmed:</span>
+                    <span>${escapeHtml(summary || 'No factual errors or misconceptions detected in this note.')}</span>
+                </div>
+            </div>
+            <button type="button" onclick="panel.classList.add('hidden')" class="text-emerald-700 dark:text-emerald-300 hover:underline text-xs font-medium shrink-0">
+                Dismiss
+            </button>
+        `;
+    }
+
+    function dismissCard(idx) {
+        const card = document.getElementById(`discrepancy-card-${idx}`);
+        if (card) {
+            card.remove();
+            const panel = document.getElementById('fact-check-status-panel');
+            if (!panel.querySelector('[id^="discrepancy-card-"]')) {
+                panel.classList.add('hidden');
+            }
+        }
+    }
+
+    async function applyCorrection(idx, oldClaim, newText) {
+        const card = document.getElementById(`discrepancy-card-${idx}`);
+        if (!card) return;
+
+        const btn = card.querySelector('button');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Applying...';
+        }
+
+        try {
+            const resp = await fetch('{% url "api_note_apply_correction" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    note_id: Number('{{ note.pk }}'),
+                    old_claim: oldClaim,
+                    new_text: newText
+                })
+            });
+
+            const res = await resp.json();
+            if (res.status === 'success') {
+                // Update note content on page
+                const contentElem = document.getElementById('note-text-content');
+                if (contentElem && res.updated_text) {
+                    contentElem.textContent = res.updated_text;
+                }
+
+                card.className = 'p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs flex items-center justify-between gap-2';
+                card.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold">✓ Corrected:</span> Note updated with "${escapeHtml(newText)}".
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" class="text-xs hover:underline text-emerald-700 dark:text-emerald-300">Close</button>
+                `;
+            } else {
+                alert(res.message || 'Could not apply automatic replacement. Please edit the note manually.');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'Apply Suggested Fact to Note';
+                }
+            }
+        } catch (e) {
+            alert('Error updating note.');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Apply Suggested Fact to Note';
+            }
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttribute(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '&quot;')
+            .replace(/\n/g, ' ');
+    }
+</script>
 {% endblock %}

@@ -83,6 +83,16 @@ class Note(models.Model):
     def __str__(self):
         return self.title
 
+    @property
+    def folder_path(self):
+        """Return a list of folders from root to this note's folder."""
+        path = []
+        folder = self.folder
+        while folder:
+            path.insert(0, folder)
+            folder = folder.parent
+        return path
+
 
 class Tag(models.Model):
     owner = models.ForeignKey(

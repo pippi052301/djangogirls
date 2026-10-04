@@ -94,9 +94,21 @@ urlpatterns = [
         views.save_chat_message_api,
         name='api_history_save_message'
     ),
-    path(
+        path(
         'api/history/session/<int:session_id>/delete/',
         views.delete_chat_session_api,
         name='api_history_delete_session'
+    ),
+
+    # Note Fact-Checking & Accuracy Verification
+    path(
+        'api/note/fact-check/',
+        views.check_note_accuracy_api,
+        name='api_note_fact_check'
+    ),
+    path(
+        'api/note/apply-correction/',
+        views.apply_note_correction_api,
+        name='api_note_apply_correction'
     ),
 ]

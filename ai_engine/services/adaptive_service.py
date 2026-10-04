@@ -16,13 +16,22 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
     short_count = round(total_questions * ratio_short)
     long_count = total_questions - mc_count - short_count  
     prompt = f"""
-    You are an education expert. Generate {total_questions} practice questions in English.
+    You are an education expert and academic examiner. Generate {total_questions} practice questions in English.
     DIFFICULTY DISTRIBUTION:
     - {mc_count} multiple choice questions (multiple_choice): VERY EASY.
     - {short_count} short answer questions (short_answer): MEDIUM.
     - {long_count} long answer questions (long_answer): HARD.
     MUST include the "explanation" field (in English).
     
+    CRITICAL TRUTH & FACT-CHECKING GROUNDING RULES:
+    1. The "Source text" represents student-written study notes and MAY CONTAIN FACTUAL ERRORS or misconceptions.
+    2. NEVER create an answer key that validates a factual error as correct!
+    3. The "correct_answer", "sample_answer", and "key_points" MUST ALWAYS adhere to objective, scientifically and historically verified truth.
+    4. If the student's note contains a factual error or misconception on a concept you choose to test:
+       - The correct answer must be the actual factual truth.
+       - In the "explanation" field, explicitly clarify: "Note discrepancy: Your study notes stated [X], but the scientifically/factually correct answer is [Y] because [Z]."
+    5. Ensure questions test concepts relevant to the subject matter of the Source text.
+
     RETURN 100% A JSON ARRAY WITH THE FOLLOWING STRUCTURE:
     [
         {{
@@ -30,18 +39,18 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
             "question": "Content?",
             "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}},
             "correct_answer": "A",
-            "explanation": "Explanation."
+            "explanation": "Detailed explanation clarifying why this is the correct fact."
         }},
         {{
             "type": "short_answer",
             "question": "Content?",
-            "sample_answer": "Sample answer",
+            "sample_answer": "Factually accurate sample answer",
             "explanation": "Explanation."
         }},
         {{
             "type": "long_answer",
             "question": "Content?",
-            "key_points": ["Key point 1"],
+            "key_points": ["Factually accurate key point 1"],
             "explanation": "Explanation."
         }}
     ]
@@ -63,7 +72,13 @@ def generate_adaptive_practice(text_content, recent_average_score=50, total_ques
                 model=model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    response_mime_type="application/json"
+                    response_mime_type="application/json",
+                    system_instruction=(
+                        "You are an expert exam creator. "
+                        "Always ground questions and answer keys in scientific and factual reality, "
+                        "even if the student's source notes contain mistakes or misconceptions. "
+                        "Never mark an untruth as correct."
+                    )
                 )
             )
 
